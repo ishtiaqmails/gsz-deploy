@@ -625,7 +625,8 @@ node --check "$APP/routes/adminOrders.js" || { restore; exit 1; }
 echo "[ok] all JS parses clean"
 
 # render every new EJS view with sample data (catches include/syntax errors)
-cat > /tmp/gsz_render.js <<'GSZ_RN_EOF'
+# NOTE: write + run this INSIDE $APP so require('ejs') resolves against $APP/node_modules
+cat > "$APP/_gsz_render.js" <<'GSZ_RN_EOF'
 const ejs=require('ejs'),path=require('path');
 const V=process.argv[2]+'/views/';
 const sampleMethods=[{key:'binance',name:'Binance',currency:'USD',scope:'all',details:'d',instructions:'i',pay:'$ 5.00'}];
@@ -638,7 +639,8 @@ const jobs=[
 ];
 (async()=>{let bad=0;for(const [f,d] of jobs){try{await ejs.renderFile(V+f,d,{});console.log('OK   '+f);}catch(e){console.log('FAIL '+f+' -> '+e.message);bad++;}}process.exit(bad?1:0);})();
 GSZ_RN_EOF
-( cd "$APP" && node /tmp/gsz_render.js "$APP" ) || { restore; exit 1; }
+node "$APP/_gsz_render.js" "$APP" || { rm -f "$APP/_gsz_render.js"; restore; exit 1; }
+rm -f "$APP/_gsz_render.js"
 echo "[ok] all new views render"
 
 # prove the real INSERT (column/param match) against the live DB, then rollback it
