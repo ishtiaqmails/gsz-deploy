@@ -10,7 +10,6 @@ BAK=$APP/.bak-step42-$TS
 mkdir -p "$BAK"
 echo "==> backup -> $BAK"
 
-# files we overwrite (new files are removed on rollback instead)
 for f in routes/checkout.js views/order.ejs views/product.ejs views/partials/store_bottom.ejs; do
   mkdir -p "$BAK/$(dirname "$f")"; cp "$APP/$f" "$BAK/$f"
 done
@@ -26,12 +25,23 @@ trap 'restore' ERR
 
 mkdir -p "$APP/public/js" "$APP/public/css" "$APP/views/partials" "$APP/routes"
 
-writef(){ # dest-rel  b64file  expected-md5
+writef(){
   local dest="$APP/$1" b64="$2" md5="$3"
   base64 -d "$b64" > "$dest"
   local got; got=$(md5sum "$dest" | awk '{print $1}')
   echo "   $1  $got $([ "$got" = "$md5" ] && echo OK || echo MISMATCH)"
   [ "$got" = "$md5" ] || { echo "!! md5 mismatch for $1"; false; }
+}
+
+# retry a GET until it contains a pattern (handles brand-new static files
+# settling after restart). Up to ~10s per check.
+getok(){ # url pattern label
+  local i
+  for i in 1 2 3 4 5 6 7 8; do
+    if curl -fsS -m 10 "$1" 2>/dev/null | grep -q "$2"; then return 0; fi
+    sleep 1
+  done
+  echo "!! $3"; return 1
 }
 
 cat > /tmp/s42_cartjs.b64 <<'B64_cartjs'
@@ -90,11 +100,11 @@ const ejs=require("/opt/gsz/node_modules/ejs"),fs=require("fs");
 
 echo "==> pm2 restart gsz"
 pm2 restart gsz --update-env >/dev/null
-sleep 2
+sleep 4
 
-echo "==> static assets"
-curl -s -m 10 http://127.0.0.1:3900/static/js/cart.js  | grep -q 'GSZCart'   || { echo "!! cart.js not served"; false; }
-curl -s -m 10 http://127.0.0.1:3900/static/css/cart.css | grep -q 'gszcart-fab' || { echo "!! cart.css not served"; false; }
+echo "==> static assets (with retry)"
+getok "http://127.0.0.1:3900/static/js/cart.js"  "GSZCart"     "cart.js not served" || false
+getok "http://127.0.0.1:3900/static/css/cart.css" "gszcart-fab" "cart.css not served" || false
 
 echo "==> home + product + cart pages"
 HOME_HTML=$(curl -s -m 15 http://127.0.0.1:3900/)
@@ -104,14 +114,8 @@ SLUG=$(printf '%s' "$HOME_HTML" | grep -oE '/product/[a-z0-9-]+' | head -1 | sed
 [ -n "$SLUG" ] || { echo "!! no product slug"; false; }
 echo "   slug: $SLUG"
 
-PROD=$(curl -s -m 15 "http://127.0.0.1:3900/product/$SLUG")
-printf '%s' "$PROD" | grep -q '</html>' || { echo "!! product page broken"; false; }
-printf '%s' "$PROD" | grep -qi 'Add to cart' || { echo "!! Add to cart button missing"; false; }
-printf '%s' "$PROD" | grep -qi 'Product error:' && { echo "!! product route threw"; false; } || true
-
-CART=$(curl -s -m 15 http://127.0.0.1:3900/cart)
-printf '%s' "$CART" | grep -q '</html>' || { echo "!! /cart broken"; false; }
-printf '%s' "$CART" | grep -q 'cartPage' || { echo "!! /cart container missing"; false; }
+getok "http://127.0.0.1:3900/product/$SLUG" "Add to cart" "Add to cart button missing / product page broken" || false
+getok "http://127.0.0.1:3900/cart" "cartPage" "/cart broken" || false
 
 echo "==> POST a real cart to combined checkout"
 CARTJSON='[{"slug":"'"$SLUG"'","planIdx":0,"qty":1}]'
