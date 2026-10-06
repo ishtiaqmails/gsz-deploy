@@ -6,6 +6,7 @@
    - Exposes a tiny secret-gated HTTP send API so the website can push
      order/credential notifications (Phase 2d).
    This is NOT the Galaxy reseller bot. Keep it on its own number + process. */
+try { require('dotenv').config(); } catch (e) { /* dotenv optional; env may be set another way */ }
 const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const P = require('pino');
