@@ -18,9 +18,16 @@ restore(){ echo "!! rollback";
   pm2 restart gsz --update-env >/dev/null 2>&1 || true; }
 trap 'restore' ERR
 
-echo "==> migration: product_downloads table"
-( sudo -u postgres psql -d gsz -c "CREATE TABLE IF NOT EXISTS product_downloads (id serial PRIMARY KEY, product_id integer REFERENCES products(id) ON DELETE CASCADE, label text, url text, sort integer DEFAULT 0);" 2>&1 \
-  || psql -U gsz_user -d gsz -c "CREATE TABLE IF NOT EXISTS product_downloads (id serial PRIMARY KEY, product_id integer REFERENCES products(id) ON DELETE CASCADE, label text, url text, sort integer DEFAULT 0);" 2>&1 ) | tail -1
+echo "==> migration: product_downloads table (owned by the app role, so the app can read it)"
+SQL="CREATE TABLE IF NOT EXISTS product_downloads (id serial PRIMARY KEY, product_id integer REFERENCES products(id) ON DELETE CASCADE, label text, url text, sort integer DEFAULT 0);
+DO \$do\$ DECLARE r text; BEGIN
+  SELECT tableowner INTO r FROM pg_tables WHERE tablename='products';
+  IF r IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE product_downloads OWNER TO %I', r);
+    EXECUTE format('ALTER SEQUENCE product_downloads_id_seq OWNER TO %I', r);
+  END IF;
+END \$do\$;"
+( sudo -u postgres psql -d gsz -c "$SQL" 2>&1 || psql -U gsz_user -d gsz -c "$SQL" 2>&1 ) | tail -4
 
 echo "==> patch files"
 node <<'NODE'
