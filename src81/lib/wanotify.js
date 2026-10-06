@@ -94,7 +94,7 @@ module.exports = function (pool) {
   // Helper for other modules to queue a notification.
   async function enqueue(o) {
     return pool.query(
-      "INSERT INTO wa_notifications(customer_id,order_id,destination_identity_id,destination_phone,template_key,vars,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(idempotency_key) DO NOTHING",
+      "INSERT INTO wa_notifications(customer_id,order_id,destination_identity_id,destination_phone,template_key,vars,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING",
       [o.customer_id || null, o.order_id || null, o.destination_identity_id || null, o.destination_phone || null, o.template_key, JSON.stringify(o.vars || {}), o.idempotency_key || null]);
   }
 

@@ -153,7 +153,7 @@ module.exports = function (pool) {
       await audit('WHATSAPP_VERIFICATION_COMPLETED', { customer_id: sess.customer_id, identity_id: identity.id });
       try {
         const cust = (await pool.query('SELECT ref_code FROM customers WHERE id=$1', [sess.customer_id])).rows[0] || {};
-        await pool.query("INSERT INTO wa_notifications(customer_id,destination_identity_id,template_key,vars,idempotency_key) VALUES($1,$2,'whatsapp.verification_success',$3,$4) ON CONFLICT(idempotency_key) DO NOTHING",
+        await pool.query("INSERT INTO wa_notifications(customer_id,destination_identity_id,template_key,vars,idempotency_key) VALUES($1,$2,'whatsapp.verification_success',$3,$4) ON CONFLICT(idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING",
           [sess.customer_id, identity.id, JSON.stringify({ site_name: 'Galaxy Subz × Zayron', customer_reference: cust.ref_code || '' }), 'verif-ok-' + sess.id]);
       } catch (e) {}
       const reply = renderTpl(await tpl('whatsapp.verification_success'), { site_name: 'Galaxy Subz × Zayron', customer_reference: '' });
