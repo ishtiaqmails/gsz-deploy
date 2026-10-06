@@ -1,0 +1,72 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<% var waOk = (typeof wa!=='undefined' && wa && wa.verified); var waPhone = (typeof wa!=='undefined' && wa) ? (wa.phone||'') : '';
+   var ords = (typeof orders!=='undefined' && orders) ? orders : [];
+   function stCls(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='rejected'||s==='failed'||s==='cancelled') return 'bad'; return 'no'; }
+   function money(o){ var c=(o.currency||'').toUpperCase(); var a=o.amount_display!=null?o.amount_display:0; var n=Math.round(Number(a)).toLocaleString('en-US'); return c==='USD'?('$'+n):(c==='PKR'?('Rs '+n):(c?c+' '+n:n)); }
+%>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>Hi, <%= (c.name||'there').split(' ')[0] %></h1>
+        <p class="sub">Welcome to your account.</p>
+      </div>
+      <form method="post" action="/logout" style="margin:0"><button class="btn btn-g" type="submit">Sign out</button></form>
+    </div>
+
+    <% if (ok === 'email') { %><div class="okmsg" style="max-width:760px">Your email is verified — you're all set.</div><% } %>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h2>Your profile</h2>
+        <div class="drow"><span class="k">Name</span><span class="v"><%= c.name %></span></div>
+        <div class="drow"><span class="k">Email</span><span class="v">
+          <%= c.email %>
+          <% if (c.email_verified) { %><span class="vbadge ok" style="margin-left:8px">Verified</span>
+          <% } else { %><a href="/account/verify-email" class="vbadge no" style="margin-left:8px;text-decoration:none">Verify now</a><% } %>
+        </span></div>
+        <div class="drow"><span class="k">WhatsApp</span><span class="v">
+          <% if (waOk) { %><%= waPhone ? waPhone : (c.wa_number ? ('+'+c.wa_number) : '') %> <span class="vbadge ok" style="margin-left:8px">Verified</span>
+          <% } else { %><a href="/account/whatsapp" class="vbadge no" style="margin-left:8px;text-decoration:none">Verify WhatsApp</a><% } %>
+        </span></div>
+      </div>
+
+      <div class="dash-card">
+        <h2>WhatsApp</h2>
+        <% if (waOk) { %>
+          <p class="soon">Your WhatsApp is verified. You'll get order updates and login details there, and you can claim free trials. <a href="/account/whatsapp" style="color:var(--b);font-weight:600">Manage →</a></p>
+        <% } else { %>
+          <p class="soon" style="margin-bottom:14px">Verify your WhatsApp to get instant order updates and to unlock free IPTV trials. One tap — no need to type your number.</p>
+          <a class="btn btn-p" href="/account/whatsapp">Verify with WhatsApp</a>
+        <% } %>
+      </div>
+
+      <div class="dash-card">
+        <h2>Your orders</h2>
+        <% if (!ords.length) { %>
+          <p class="soon">No orders yet. <a href="/" style="color:var(--b);font-weight:600">Browse products →</a></p>
+        <% } else { %>
+          <% ords.forEach(function(o){ %>
+            <a class="drow" style="text-decoration:none;gap:10px" href="<%= o.order_no ? ('/order/'+o.order_no) : '#' %>">
+              <span class="k" style="flex:1;min-width:0">
+                <span style="color:var(--ink);font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= o.product_name || 'Order' %></span>
+                <span style="font-size:12.5px"><%= o.order_no || ('#'+o.id) %><%= o.plan_label ? (' · '+o.plan_label) : '' %></span>
+              </span>
+              <span class="v" style="text-align:right;white-space:nowrap">
+                <span style="display:block"><%= money(o) %></span>
+                <span class="vbadge <%= stCls(o.status) %>" style="margin-top:4px"><%= (o.status||'pending') %></span>
+              </span>
+            </a>
+          <% }); %>
+        <% } %>
+      </div>
+
+      <div class="dash-card">
+        <h2>Free trials</h2>
+        <p class="soon">Eligible IPTV trials will appear here. <%= waOk ? 'Your WhatsApp is verified — you can claim trials when they go live.' : 'Verify your WhatsApp to unlock them.' %></p>
+      </div>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
