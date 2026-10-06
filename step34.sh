@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # ============================================================
-#  STEP 34: multi-type plans (Family/Adult toggle) + real payment chips
-#  - routes/products.js  : passes per-plan bot types (customer-choose) + the
-#    REAL payment method names to the product page.
-#  - views/product.ejs   : "Choose version" toggle (shown only when a plan's
-#    bot product has >1 type and the mapping left the type unset); real payment
-#    chips instead of the hardcoded list; chosen type carried into the buy link.
-#  - routes/checkout.js  : accepts the chosen type and applies it as the order's
-#    bot_type (validated against the bot product's real types).
-#  - views/checkout.ejs  : carries the chosen type through as a hidden field.
+#  STEP 34 (v2): multi-type plans (Family/Adult toggle) + real payment chips
+#  Rebuilt on the REAL products.js (keeps cats/siteName/accent/shellJson).
+#  - routes/products.js  : + per-plan bot types (customer-choose) + real payNames
+#  - views/product.ejs   : "Choose version" toggle + real payment chips
+#  - routes/checkout.js  : applies customer-chosen type as order bot_type
+#  - views/checkout.ejs  : carries chosen type as hidden field
 #  Auto-rollback.
 # ============================================================
 set -euo pipefail
@@ -18,39 +15,38 @@ for f in routes/products.js views/product.ejs routes/checkout.js views/checkout.
 done
 cd "$APP"
 set -a; . "$APP/.env"; set +a
-TS=$(date +%s); BK="$APP/.bak-step34-$TS"; mkdir -p "$BK"
+TS=$(date +%s); BK="$APP/.bak-step34v2-$TS"; mkdir -p "$BK"
 cp routes/products.js "$BK/"; cp views/product.ejs "$BK/"; cp routes/checkout.js "$BK/"; cp views/checkout.ejs "$BK/"
 restore(){ echo "!! ROLLBACK"; cp "$BK/products.js" routes/products.js; cp "$BK/product.ejs" views/product.ejs; cp "$BK/checkout.js" routes/checkout.js; cp "$BK/checkout.ejs" views/checkout.ejs; pm2 restart gsz >/dev/null 2>&1||true; }
 trap 'restore' ERR
-echo "== Step 34 (type toggle + real payment chips) =="
+echo "== Step 34 v2 (type toggle + real payment chips) =="
 
 cat > routes/products.js <<'EOF_PRJS'
 const express = require('express');
+const storefront = require('../lib/storefront');
 const botapi = require('../lib/botapi');
 
 module.exports = function (pool) {
   const router = express.Router();
 
-  // stable pseudo-random from an integer (so rating/orders don't flicker)
+  // stable pseudo-random so rating/orders don't flicker between loads
   function seeded(n) { const x = Math.sin(n * 99.17) * 10000; return x - Math.floor(x); }
 
   router.get('/:slug', async (req, res) => {
     try {
       const prow = (await pool.query(
-        `SELECT p.id, p.slug, p.name, p.short_desc, p.long_desc, p.delivery,
+        `SELECT p.id, p.slug, p.name, p.short_desc, p.long_desc, p.delivery, p.image, p.category_id,
                 c.slug AS cat_slug, c.name AS cat_name, c.tag AS cat_tag
          FROM products p JOIN categories c ON c.id = p.category_id
-         WHERE p.slug = $1 AND p.active AND NOT p.hidden`, [req.params.slug]
-      )).rows[0];
+         WHERE p.slug=$1 AND p.active AND NOT p.hidden`, [req.params.slug])).rows[0];
       if (!prow) return res.status(404).render('notfound', { what: 'product' });
 
       const planRows = (await pool.query(
         'SELECT label, price_pkr, old_pkr, source, bot_sku, bot_type FROM product_plans WHERE product_id=$1 ORDER BY sort, id', [prow.id]
       )).rows;
 
-      // bot product types -> let the customer choose (Family/Adult) only when the
-      // plan is bot-sourced, the admin left the type unset, and the bot product
-      // actually has more than one type.
+      // bot product types -> customer-choose (Family/Adult) only when the plan is
+      // bot-sourced, the admin left the type blank, and the bot product has >1 type.
       const botTypes = {};
       const skus = [...new Set(planRows.filter(r => r.source === 'bot' && r.bot_sku).map(r => r.bot_sku))];
       if (skus.length) {
@@ -66,21 +62,19 @@ module.exports = function (pool) {
       });
 
       const faqs = (await pool.query(
-        'SELECT q, a FROM product_faqs WHERE product_id=$1 ORDER BY sort, id', [prow.id]
-      )).rows;
+        'SELECT q, a FROM product_faqs WHERE product_id=$1 ORDER BY sort, id', [prow.id])).rows;
 
-      const similar = (await pool.query(
-        `SELECT p.slug, p.name, p.short_desc AS desc, p.delivery, c.slug AS cat, c.tag AS cat_tag,
-                pl.label AS plan, pl.price_pkr AS price, pl.old_pkr AS old
-         FROM products p JOIN categories c ON c.id = p.category_id
-         LEFT JOIN LATERAL (SELECT label, price_pkr, old_pkr FROM product_plans WHERE product_id=p.id ORDER BY sort, id LIMIT 1) pl ON true
-         WHERE c.id = (SELECT category_id FROM products WHERE id=$1) AND p.id <> $1 AND p.active AND NOT p.hidden
-         ORDER BY p.sort, p.id LIMIT 8`, [prow.id]
-      )).rows.map(r => ({ slug: r.slug, name: r.name, cat: r.cat, cat_tag: r.cat_tag, plan: r.plan || '',
-        desc: r.desc || '', delivery: r.delivery || '', price: Number(r.price || 0), old: Number(r.old || 0) }));
-
-      const settings = {};
-      (await pool.query('SELECT key,value FROM settings')).rows.forEach(r => { settings[r.key] = r.value; });
+      const cats = await storefront.loadCats(pool);
+      const allProducts = await storefront.loadProducts(pool);
+      const similar = allProducts.filter(p => p.cat === prow.cat_slug && p.slug !== prow.slug).slice(0, 8);
+      const settings = await storefront.loadSettings(pool);
+      const siteName = settings.site_name || 'Galaxy Subz × Zayron';
+      const logoFile = settings.logo_file || 'logo.png';
+      const waNumber = settings.wa_number || process.env.WA_NUMBER || '';
+      const shellJson = storefront.shellJson(cats, allProducts, settings, waNumber);
+      const accent = cats.filter(c => c.slug === prow.cat_slug)[0] || { g1: '#2a6cff', g2: '#19c6ee' };
+      const rating = (4.5 + seeded(prow.id) * 0.5).toFixed(1);
+      const orders = 200 + Math.floor(seeded(prow.id + 7) * 9800);
 
       // real payment methods only (bot pay-accounts when connected, else site methods)
       let payNames = [];
@@ -95,18 +89,12 @@ module.exports = function (pool) {
       }
       payNames = [...new Set(payNames)];
 
-      const rating = (4.5 + seeded(prow.id) * 0.5).toFixed(1);
-      const orders = 200 + Math.floor(seeded(prow.id + 7) * 9800);
-
       res.render('product', {
-        p: prow, plans, faqs, similar, settings, payNames,
-        logoFile: settings.logo_file || 'logo.png',
-        waNumber: settings.wa_number || process.env.WA_NUMBER || '',
-        rating, orders
+        title: prow.name + ' · ' + siteName,
+        siteName, logoFile, waNumber, cats, settings, shellJson,
+        p: prow, plans, faqs, similar, accent, rating, orders, payNames
       });
-    } catch (e) {
-      res.status(500).send('Product error: ' + e.message);
-    }
+    } catch (e) { res.status(500).send('Product error: ' + e.message); }
   });
 
   return router;
@@ -912,13 +900,19 @@ console.log("[ok] ejs compiles");
 ' || exit 1
 pm2 restart gsz >/dev/null 2>&1 || pm2 start server.js --name gsz >/dev/null 2>&1
 sleep 2
+# verify a REAL product page renders (not just home)
+SLUG=$(psql -tA -P pager=off -h ${DB_HOST:-127.0.0.1} -p ${DB_PORT:-5432} -U $DB_USER -d $DB_NAME -c "SELECT slug FROM products WHERE active AND NOT hidden ORDER BY sort,id LIMIT 1" 2>/dev/null)
+if [ -n "$SLUG" ]; then
+  PB=$(curl -fsS "http://127.0.0.1:${PORT:-3900}/product/$SLUG" 2>/dev/null || true)
+  if grep -q "</html>" <<< "$PB"; then echo "[ok] product page /product/$SLUG renders"; else echo "!! PRODUCT PAGE FAILED — rolling back"; false; fi
+else
+  echo "(could not fetch a slug to test; checking home only)"
+fi
 BODY=$(curl -fsS "http://127.0.0.1:${PORT:-3900}/" 2>/dev/null || true)
-grep -q "</html>" <<< "$BODY" && echo "[ok] site responding" || echo "!! health soft-fail"
+grep -q "</html>" <<< "$BODY" && echo "[ok] home responding" || { echo "!! home failed"; false; }
 trap - ERR
 echo
-echo "==================== STEP 34 DONE ===================="
-echo " Family/Adult toggle shows on product pages whose plan's bot product has"
-echo " multiple types AND the mapping Type is left blank (= customer chooses)."
-echo " Payment chips now show your REAL methods. For Opplex: set each duration"
-echo " plan's Bot plan (plan_key) in /admin/mapping and leave Type blank."
-echo "====================================================="
+echo "==================== STEP 34 v2 DONE ===================="
+echo " Product pages verified rendering. Family/Adult toggle + real payment"
+echo " chips live. Opplex: set each duration's Bot plan in mapping, Type blank."
+echo "========================================================"
