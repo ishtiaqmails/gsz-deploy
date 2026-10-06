@@ -1,0 +1,33 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="auth">
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="auth-card">
+      <span class="auth-badge"><span class="dot"></span>Create your account</span>
+      <h1>Sign up</h1>
+      <p class="lead">One account for your orders, downloads and free trials. We'll verify your email and WhatsApp to keep things secure.</p>
+      <% if (error) { %><div class="err"><%= error %></div><% } %>
+      <form method="post" action="/signup" autocomplete="on">
+        <label class="fld" for="name">Full name</label>
+        <input id="name" type="text" name="name" value="<%= form.name || '' %>" placeholder="Your name" required autocomplete="name">
+        <label class="fld" for="email">Email address</label>
+        <input id="email" type="email" name="email" value="<%= form.email || '' %>" placeholder="you@email.com" required autocomplete="email">
+        <label class="fld" for="wa">WhatsApp number</label>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <select name="wa_country" id="wa_country" style="max-width:170px;margin-bottom:6px">
+            <% var selCt = (form.wa_country || 'PK'); (typeof countries!=='undefined'?countries:[]).forEach(function(ct){ %><option value="<%= ct.iso %>" <%= ct.iso===selCt?'selected':'' %>>+<%= ct.code %> · <%= ct.name %></option><% }); %>
+          </select>
+          <input id="wa" type="tel" name="wa" value="<%= form.wa || '' %>" placeholder="300 1234567" required autocomplete="tel" style="flex:1">
+        </div>
+        <p class="hint">Pick your country, then type your number (local format is fine). You'll verify it later.</p>
+        <label class="fld" for="password">Password</label>
+        <input id="password" type="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+        <label class="fld" for="password2">Confirm password</label>
+        <input id="password2" type="password" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+        <button class="btn btn-p btn-full" type="submit">Create account</button>
+      </form>
+      <p class="alt">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
