@@ -95,6 +95,16 @@ module.exports = function (pool) {
     res.json({ status: r.status });
   });
 
+  // ---- secure credential view (Mode B): login-gated + ownership-checked ----
+  router.get('/account/order/:no/credentials', requireLogin, async (req, res) => {
+    const cust = req.session.customer;
+    const o = (await pool.query("SELECT id, order_no, product_name, plan_label, status, delivered_credentials, customer_id, email FROM orders WHERE order_no=$1", [req.params.no])).rows[0];
+    if (!o) return res.status(404).render('account/credentials', Object.assign(await shell(), { title: 'Credentials', o: null, denied: false }));
+    const owns = (o.customer_id && o.customer_id === cust.id) || (o.email && cust.email && String(o.email).toLowerCase() === String(cust.email).toLowerCase());
+    if (!owns) return res.status(403).render('account/credentials', Object.assign(await shell(), { title: 'Credentials', o: null, denied: true }));
+    res.render('account/credentials', Object.assign(await shell(), { title: 'Order credentials', o, denied: false }));
+  });
+
   // ---- inbound webhook (called by the dedicated verification bot) ----
   router.post('/internal/whatsapp/incoming', json, async (req, res) => {
     const s = await settings();
