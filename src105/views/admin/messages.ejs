@@ -1,0 +1,32 @@
+<%- include('_shell_top', { active:'messages', title:'Bot messages' }) %>
+<p class="sub">Edit every WhatsApp message your bot sends, in each language. Enabled languages are sent together in one message. Use <code>{{'{{'}}variable{{'}}'}}</code> placeholders (e.g. <code>{{'{{'}}order_number{{'}}'}}</code>) — they're filled in automatically.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="card">
+  <h2 style="margin-bottom:12px">Languages sent in each message</h2>
+  <form method="post" action="/admin/messages/langs" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <% langs.forEach(function(l){ %>
+      <label style="display:inline-flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" name="lang" value="<%= l.code %>" <%= enabled.indexOf(l.code)>=0?'checked':'' %> style="width:auto;margin:0"><%= l.name %></label>
+    <% }); %>
+    <button class="btn btn-p" type="submit" style="margin-left:auto">Save languages</button>
+  </form>
+  <p class="hint" style="margin-top:10px">Tip: more languages = longer messages. English + Urdu is a good default for most customers.</p>
+</div>
+
+<% rows.forEach(function(r){ var L = (r.langs && typeof r.langs==='object') ? r.langs : {}; %>
+  <div class="card">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h2 style="margin:0"><%= names[r.key] || r.key %></h2>
+      <code style="color:var(--muted);font-size:12px"><%= r.key %></code>
+    </div>
+    <form method="post" action="/admin/messages/save">
+      <input type="hidden" name="key" value="<%= r.key %>">
+      <% langs.forEach(function(l){ var val = (L[l.code]!=null)?L[l.code]:(l.code==='en'?(r.body||''):''); %>
+        <label class="fld"><%= l.name %><% if (enabled.indexOf(l.code)<0) { %> <span style="color:var(--muted);font-weight:500">(not currently sent)</span><% } %></label>
+        <textarea name="lang_<%= l.code %>" rows="2" <%= l.rtl?'dir="rtl"':'' %> style="margin-bottom:12px"><%= val %></textarea>
+      <% }); %>
+      <button class="btn btn-p" type="submit">Save message</button>
+    </form>
+  </div>
+<% }); %>
+<%- include('_shell_bottom') %>
