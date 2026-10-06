@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # step42 — Add-to-Cart (combined order): floating cart + drawer, Add to cart on
-# product pages, /cart review page, and a one-payment combined checkout that
-# fulfils each item through the bot. New cart.js/cart.css keep app.js/app.css
-# untouched. Reuses the existing orders flow (items stored on the order).
+# product pages, /cart review page, one-payment combined checkout + bot fulfilment.
+# New cart.js/cart.css keep app.js/app.css untouched.
 set -euo pipefail
 APP=/opt/gsz
 TS=$(date +%Y%m%d-%H%M%S)
@@ -33,12 +32,13 @@ writef(){
   [ "$got" = "$md5" ] || { echo "!! md5 mismatch for $1"; false; }
 }
 
-# retry a GET until it contains a pattern (handles brand-new static files
-# settling after restart). Up to ~10s per check.
+# check a URL contains a pattern. Uses a here-string (NO pipe) so pipefail +
+# grep -q early-exit can't SIGPIPE curl and produce a false failure.
 getok(){ # url pattern label
-  local i
-  for i in 1 2 3 4 5 6 7 8; do
-    if curl -fsS -m 10 "$1" 2>/dev/null | grep -q "$2"; then return 0; fi
+  local i body
+  for i in 1 2 3 4 5 6; do
+    body=$(curl -fsS -m 10 "$1" 2>/dev/null || true)
+    if grep -q "$2" <<<"$body"; then return 0; fi
     sleep 1
   done
   echo "!! $3"; return 1
@@ -100,31 +100,30 @@ const ejs=require("/opt/gsz/node_modules/ejs"),fs=require("fs");
 
 echo "==> pm2 restart gsz"
 pm2 restart gsz --update-env >/dev/null
-sleep 4
+sleep 3
 
-echo "==> static assets (with retry)"
-getok "http://127.0.0.1:3900/static/js/cart.js"  "GSZCart"     "cart.js not served" || false
+echo "==> static assets"
+getok "http://127.0.0.1:3900/static/js/cart.js"   "GSZCart"     "cart.js not served" || false
 getok "http://127.0.0.1:3900/static/css/cart.css" "gszcart-fab" "cart.css not served" || false
 
-echo "==> home + product + cart pages"
-HOME_HTML=$(curl -s -m 15 http://127.0.0.1:3900/)
-printf '%s' "$HOME_HTML" | grep -q '</html>' || { echo "!! home broken"; false; }
-printf '%s' "$HOME_HTML" | grep -q 'cart.js' || { echo "!! cart.js not injected site-wide"; false; }
-SLUG=$(printf '%s' "$HOME_HTML" | grep -oE '/product/[a-z0-9-]+' | head -1 | sed 's#/product/##')
+echo "==> home + product + cart"
+HOME_HTML=$(curl -s -m 15 http://127.0.0.1:3900/ || true)
+grep -q '</html>' <<<"$HOME_HTML" || { echo "!! home broken"; false; }
+grep -q 'cart.js'  <<<"$HOME_HTML" || { echo "!! cart.js not injected site-wide"; false; }
+SLUG=$(grep -oE '/product/[a-z0-9-]+' <<<"$HOME_HTML" | head -1 | sed 's#/product/##')
 [ -n "$SLUG" ] || { echo "!! no product slug"; false; }
 echo "   slug: $SLUG"
-
-getok "http://127.0.0.1:3900/product/$SLUG" "Add to cart" "Add to cart button missing / product page broken" || false
+getok "http://127.0.0.1:3900/product/$SLUG" "Add to cart" "product page broken / Add to cart missing" || false
 getok "http://127.0.0.1:3900/cart" "cartPage" "/cart broken" || false
 
 echo "==> POST a real cart to combined checkout"
 CARTJSON='[{"slug":"'"$SLUG"'","planIdx":0,"qty":1}]'
-CC=$(curl -s -m 15 -X POST http://127.0.0.1:3900/cart/checkout --data-urlencode "cart=$CARTJSON" --data-urlencode "region=PK")
-printf '%s' "$CC" | grep -q '</html>' || { echo "!! combined checkout did not render"; false; }
-printf '%s' "$CC" | grep -qi 'Cart checkout error:' && { echo "!! combined checkout threw"; false; } || true
-printf '%s' "$CC" | grep -q 'Place order' || { echo "!! combined checkout missing submit"; false; }
-printf '%s' "$CC" | grep -q 'pm-logo' || { echo "!! payment logos missing on combined checkout"; false; }
-printf '%s' "$CC" | grep -qE 'name="proof"[^>]*required' || { echo "!! proof not required on combined checkout"; false; }
+CC=$(curl -s -m 15 -X POST http://127.0.0.1:3900/cart/checkout --data-urlencode "cart=$CARTJSON" --data-urlencode "region=PK" || true)
+grep -q '</html>' <<<"$CC" || { echo "!! combined checkout did not render"; false; }
+if grep -qi 'Cart checkout error:' <<<"$CC"; then echo "!! combined checkout threw"; false; fi
+grep -q 'Place order' <<<"$CC" || { echo "!! combined checkout missing submit"; false; }
+grep -q 'pm-logo'     <<<"$CC" || { echo "!! payment logos missing on combined checkout"; false; }
+grep -qE 'name="proof"[^>]*required' <<<"$CC" || { echo "!! proof not required on combined checkout"; false; }
 
 trap - ERR
 echo "==> step42 OK — cart live. Backup: $BAK"
