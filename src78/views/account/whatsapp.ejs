@@ -18,7 +18,8 @@
         <div class="dash-card">
           <h2>WhatsApp status</h2>
           <div class="drow"><span class="k">Status</span><span class="v"><span class="vbadge ok">Verified ✓</span></span></div>
-          <div class="drow"><span class="k">Number</span><span class="v"><%= st.phone ? maskNum(st.phone) : 'Captured on verification' %></span></div>
+          <% var showNum = st.phone || (typeof profileWa!=='undefined' && profileWa ? ('+'+profileWa) : ''); %>
+          <div class="drow"><span class="k">Number</span><span class="v"><%= showNum ? maskNum(showNum) : 'Linked (number not shared by WhatsApp)' %></span></div>
           <div class="drow"><span class="k">Used for</span><span class="v" style="font-weight:500;color:var(--muted)">Order updates · Account notifications · Security</span></div>
           <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
             <a class="btn btn-g" href="/account/whatsapp/change">Change WhatsApp</a>

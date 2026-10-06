@@ -49,8 +49,10 @@ module.exports = function (pool) {
   router.get('/account/whatsapp', requireLogin, async (req, res) => {
     const s = await settings();
     const st = await waStatus(req.session.customer.id);
+    let profileWa = '';
+    try { const c = (await pool.query('SELECT wa_number FROM customers WHERE id=$1', [req.session.customer.id])).rows[0]; if (c && c.wa_number) profileWa = c.wa_number; } catch (e) {}
     res.render('account/whatsapp', Object.assign(await shell(), {
-      title: 'WhatsApp', st,
+      title: 'WhatsApp', st, profileWa,
       cfg: { enabled: s.wa_verification_enabled === '1', hasNumber: !!s.wa_verify_number, botOnline: s.wa_bot_status === 'CONNECTED' }
     }));
   });
@@ -100,7 +102,13 @@ module.exports = function (pool) {
     if (!s.wa_bot_webhook_secret || secret !== s.wa_bot_webhook_secret) return res.status(401).json({ ok: false, error: 'unauthorized' });
     const b = req.body || {};
     const text = String(b.text || b.message || '').trim();
-    const parts = { lid: b.lid || b.senderLid || null, pnJid: b.pnJid || b.jid || b.from || null, phone: b.phone || null };
+    // Build identity parts WITHOUT letting a LID masquerade as a phone/PN.
+    const parts = { lid: b.lid || b.senderLid || null, pnJid: (b.pnJid && /@(s\.whatsapp\.net|c\.us)$/i.test(b.pnJid)) ? b.pnJid : null, phone: b.phone || null };
+    const rawJid = String(b.jid || b.from || '');
+    if (rawJid) {
+      if (/@lid$/i.test(rawJid)) { if (!parts.lid) parts.lid = rawJid; }
+      else if (/@(s\.whatsapp\.net|c\.us)$/i.test(rawJid)) { if (!parts.pnJid) parts.pnJid = rawJid; }
+    }
     // bot heartbeat
     try {
       await pool.query("INSERT INTO wa_settings(key,value) VALUES('wa_bot_status','CONNECTED') ON CONFLICT(key) DO UPDATE SET value='CONNECTED',updated_at=now()");

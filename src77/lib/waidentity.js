@@ -15,6 +15,9 @@ function normalizeLid(raw) {
 }
 function normalizePhoneE164(raw) {
   if (!raw) return null;
+  const low = String(raw).toLowerCase();
+  // A LID / group / broadcast is NOT a phone number — never fabricate one from it.
+  if (low.indexOf('@lid') >= 0 || low.indexOf('@g.us') >= 0 || low.indexOf('@broadcast') >= 0 || low.indexOf('@newsletter') >= 0) return null;
   let s = String(raw).trim();
   s = s.split('@')[0];                 // drop @s.whatsapp.net etc.
   s = s.replace(/[^\d+]/g, '');         // keep digits and +
@@ -41,9 +44,12 @@ function classifyIdentifier(raw) {
 function identifiersFrom(parts) {
   const out = [];
   const push = (type, value, norm) => { if (value && norm) out.push({ identifier_type: type, identifier_value: String(value), normalized_value: norm }); };
+  const isPn = j => { const s = String(j || '').toLowerCase(); return s.endsWith('@s.whatsapp.net') || s.endsWith('@c.us'); };
   if (parts.lid) push('LID', parts.lid, normalizeLid(parts.lid));
-  if (parts.pnJid) push('PN_JID', parts.pnJid, normalizeJid(parts.pnJid));
-  const phone = parts.phone || parts.pnJid;
+  // Only accept a PN JID that really is one — a LID passed in as pnJid is ignored.
+  if (parts.pnJid && isPn(parts.pnJid)) push('PN_JID', parts.pnJid, normalizeJid(parts.pnJid));
+  // Phone comes only from an explicit phone or a real PN JID — never from a LID.
+  const phone = parts.phone || (isPn(parts.pnJid) ? parts.pnJid : null);
   const e164 = normalizePhoneE164(phone);
   if (e164) push('PHONE_E164', phone, e164);
   // de-dupe by type+norm

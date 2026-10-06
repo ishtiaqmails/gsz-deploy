@@ -50,7 +50,10 @@ function buildIdentity(key) {
   if (alt.pnJid && !out.pnJid) out.pnJid = alt.pnJid;
   if (!out.lid) { const p = classifyJid(key.participant); if (p.lid) out.lid = p.lid; }
   if (!out.pnJid) { const pa = classifyJid(key.participantAlt); if (pa.pnJid) out.pnJid = pa.pnJid; }
-  if (out.pnJid) out.phone = out.pnJid.split('@')[0];
+  // Newer Baileys may expose the real phone for a LID sender via senderPn/participantPn.
+  if (!out.pnJid && key.senderPn && classifyJid(key.senderPn).pnJid) out.pnJid = key.senderPn;
+  if (!out.pnJid && key.participantPn && classifyJid(key.participantPn).pnJid) out.pnJid = key.participantPn;
+  if (out.pnJid && String(out.pnJid).indexOf('@') >= 0 && !String(out.pnJid).toLowerCase().endsWith('@lid')) out.phone = String(out.pnJid).split('@')[0];
   out.jid = key.remoteJid;
   return out;
 }
