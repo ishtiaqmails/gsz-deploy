@@ -1,125 +1,344 @@
-mkdir -p /opt/gsz && cat > /tmp/s30.gz.b64 <<'B64_GSZ_30'
-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
-B64_GSZ_30
-base64 -d /tmp/s30.gz.b64 2>/dev/null | gunzip > /opt/gsz/step30.sh 2>/dev/null
-S=$(md5sum /opt/gsz/step30.sh 2>/dev/null | awk '{print $1}')
-if [ "$S" = "c7fe5434704ca6016ba9e8df28887b95" ]; then
-  echo "[ok] step30.sh intact — running:"; echo
-  bash /opt/gsz/step30.sh
-else
-  echo "decoded md5=$S (expected c7fe5434704ca6016ba9e8df28887b95) — paste damaged; tell Claude and it'll send the exact repair."
-fi
+#!/usr/bin/env bash
+# ============================================================
+#  GALAXY SUBZ x ZAYRON — STEP 30: correct catalog mapping + save-safe UI
+#  1) views/admin/mapping.ejs : Save now submits ONLY the rows you changed,
+#     so a stale page / untouched row can never wipe good mappings again.
+#     Warns if a row is "Reseller bot" with no product chosen.
+#  2) Migration: re-map 54 products to their REAL bot SKU (matched by name).
+#     Left MANUAL on purpose (handled in the Profiles/Full-Accounts step):
+#       Netflix Premium, Prime Video (profile plans), HBO Max 1-Year-5-Profiles.
+#  Backs up the current mapping to table mapping_backup_s30. Auto-rollback.
+# ============================================================
+set -euo pipefail
+APP=/opt/gsz
+[ -f "$APP/views/admin/mapping.ejs" ] || { echo "ABORT: mapping.ejs not found"; exit 1; }
+cd "$APP"
+set -a; . "$APP/.env"; set +a
+
+TS=$(date +%s)
+BK="$APP/.bak-step30-$TS"; mkdir -p "$BK"
+cp views/admin/mapping.ejs "$BK/mapping.ejs"
+restore(){ echo "!! ROLLBACK"; cp "$BK/mapping.ejs" "$APP/views/admin/mapping.ejs" 2>/dev/null||true; pm2 restart gsz >/dev/null 2>&1||true; }
+trap 'restore' ERR
+
+echo "== Galaxy Subz x Zayron — Step 30 (catalog mapping + save-safe) =="
+
+cat > views/admin/mapping.ejs <<'EOF_MAP'
+<%- include('_shell_top', { active:'mapping', title:'Bot mapping' }) %>
+<style>
+  .mapwrap{overflow-x:auto}
+  table.map{min-width:880px}
+  table.map td{vertical-align:middle}
+  table.map select{margin-bottom:0}
+  .plan-name{font-weight:700}
+  .plan-price{color:var(--muted);font-size:12.5px}
+  .src-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .badge.ok{background:#e9fbf1;color:#0b7a42}
+  .badge.warn{background:#fff4e2;color:#9a6400}
+  .badge.bad{background:#fdeceb;color:#b4322c}
+  .badge.mut{background:#eef1fa;color:#5b6688}
+  .botcell[hidden]{display:none}
+  .conn{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.g{background:var(--ok)} .dot.r{background:var(--bad)} .dot.y{background:var(--warn)}
+  tr.mismatch td{background:#fff6f6}
+</style>
+
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<!-- connection status -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div class="conn">
+      <% var dotc = !bot.configured ? 'y' : (bot.reachable ? 'g' : 'r'); %>
+      <span class="dot <%= dotc %>"></span>
+      <div>
+        <b>Reseller bot link:
+          <%= !bot.configured ? 'not configured yet' : (bot.reachable ? 'connected' : 'unreachable') %></b>
+        <div class="sub" style="margin:2px 0 0">
+          <% if (!bot.configured) { %>
+            Add <code>GSZ_BOT_API_URL</code> + <code>GSZ_BOT_API_KEY</code> to <code>.env</code>, then Sync.
+          <% } else if (!bot.reachable) { %>
+            Configured but the API didn't answer<%= bot.error ? ' ('+bot.error+')' : '' %>.
+          <% } else { %>
+            <%= bot.productCount %> products live on the bot.
+          <% } %>
+          · <%= bot.count %> cached<% if (bot.missing) { %> · <span style="color:var(--bad);font-weight:700"><%= bot.missing %> missing</span><% } %>
+          <% if (bot.last_sync) { %> · last sync <%= new Date(bot.last_sync).toLocaleString('en-GB') %><% } %>
+        </div>
+      </div>
+    </div>
+    <form method="post" action="/admin/bot/sync" style="margin:0">
+      <button class="btn btn-g" type="submit">↻ Sync from bot</button>
+    </form>
+  </div>
+</div>
+
+<p class="sub" style="margin:0 0 14px">
+  Choose how each plan is fulfilled. <b>Reseller bot</b> maps to the bot's immutable <code>sku</code> (+ plan &amp; type for IPTV),
+  so renaming or re-ordering products on the bot never breaks it. <b>My inventory</b> delivers from this site's own stock pool.
+  <b>Manual</b> = you deliver by hand. Pick a bot product and the source switches to <b>Reseller bot</b> automatically.
+</p>
+
+<div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+  <button type="button" class="btn btn-g" id="automap">✨ Auto-map by name</button>
+  <span class="sub" id="automap-note">Suggests the matching bot product for every unmapped / mismatched plan. Review, then Save.</span>
+</div>
+
+<form method="post" action="/admin/mapping">
+<% products.forEach(function(p){ var plans=(byProd[p.id]||[]); if(!plans.length) return; %>
+  <div class="card">
+    <h2 style="margin:0 0 2px"><%= p.name %></h2>
+    <div class="sub" style="margin:0 0 14px"><%= p.cat || '—' %> · <%= plans.length %> plan<%= plans.length>1?'s':'' %></div>
+    <div class="mapwrap">
+      <table class="map">
+        <thead><tr>
+          <th style="width:190px">Plan</th><th style="width:150px">Source</th>
+          <th>Bot product</th><th style="width:150px">Bot plan</th><th style="width:130px">Type</th>
+          <th style="width:160px">Status</th>
+        </tr></thead>
+        <tbody>
+        <% plans.forEach(function(pl){ var isBot = pl.source==='bot'; %>
+          <tr data-plan="<%= pl.id %>" data-pname="<%= p.name.replace(/"/g,'&quot;') %>">
+            <td><div class="plan-name"><%= pl.label %></div><div class="plan-price">Rs <%= Math.round(pl.price_pkr).toLocaleString('en-US') %></div></td>
+            <td>
+              <select name="pl[<%= pl.id %>][source]" class="js-src">
+                <option value="manual"    <%= pl.source==='manual'    ?'selected':'' %>>Manual</option>
+                <option value="inventory" <%= pl.source==='inventory' ?'selected':'' %>>My inventory</option>
+                <option value="bot"       <%= pl.source==='bot'       ?'selected':'' %>>Reseller bot</option>
+              </select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_sku]" class="js-sku">
+                <option value="">— choose product —</option>
+                <% bots.forEach(function(b){ %>
+                  <option value="<%= b.sku %>" <%= pl.bot_sku===b.sku?'selected':'' %>>
+                    <%= b.name || b.sku %><%= b.missing?' (MISSING)':'' %> · <%= b.sku %></option>
+                <% }); %>
+              </select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_plan_key]" class="js-plan" data-cur="<%= pl.bot_plan_key||'' %>"></select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_type]" class="js-type" data-cur="<%= pl.bot_type||'' %>"></select>
+            </td>
+            <td><span class="badge mut js-status">—</span></td>
+          </tr>
+        <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% }); %>
+
+  <div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
+    <button class="btn btn-p" type="submit">Save mapping</button>
+    <span class="sub" style="margin-left:12px">Pricing &amp; stock stay live from the bot; this only sets the fulfilment route.</span>
+  </div>
+</form>
+
+<script>
+var BOT = <%- JSON.stringify(botBySku || {}) %>;
+function opt(v,label,sel){ var o=document.createElement('option'); o.value=v; o.textContent=label; if(sel)o.selected=true; return o; }
+
+// ---- name matching (so a wrong SKU is impossible to miss, + auto-map) ----
+function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function toks(s){ return norm(s).split(' ').filter(function(w){ return w.length>1; }); }
+function nameMatch(pName,bName){
+  var a=norm(pName), b=norm(bName);
+  if(!a||!b) return false;
+  if(b.indexOf(a)>=0 || a.indexOf(b)>=0) return true;
+  var pt=toks(pName), bt=toks(bName);
+  if(!pt.length) return false;
+  var common=pt.filter(function(t){ return bt.indexOf(t)>=0; }).length;
+  return (common/pt.length) >= 0.6;
+}
+function bestSku(pName){
+  var pt=toks(pName), best=null, bestScore=0;
+  Object.keys(BOT).forEach(function(sku){
+    var b=BOT[sku]; if(!b||b.missing) return;
+    var bt=toks(b.name||'');
+    var common=pt.length ? pt.filter(function(t){ return bt.indexOf(t)>=0; }).length / pt.length : 0;
+    var score=common;
+    if(norm(b.name).indexOf(norm(pName))>=0) score += 0.5;
+    if(score>bestScore){ bestScore=score; best=sku; }
+  });
+  return bestScore>=0.6 ? best : null;
+}
+
+function fillPlanType(row){
+  var sku=row.querySelector('.js-sku').value;
+  var planSel=row.querySelector('.js-plan'), typeSel=row.querySelector('.js-type');
+  var b=BOT[sku];
+  var curPlan=planSel.getAttribute('data-cur')||'', curType=typeSel.getAttribute('data-cur')||'';
+  planSel.innerHTML=''; typeSel.innerHTML='';
+  var plans=(b&&b.plans)||[], types=(b&&b.types)||[];
+  if(!plans.length){ planSel.appendChild(opt('','— n/a —',true)); planSel.disabled=true; }
+  else { planSel.disabled=false; planSel.appendChild(opt('','— choose —',!curPlan));
+    plans.forEach(function(p){ planSel.appendChild(opt(p.plan_key, p.label+(p.price!=null?(' · Rs '+p.price):''), String(p.plan_key)===curPlan)); }); }
+  if(!types.length){ typeSel.appendChild(opt('','— n/a —',true)); typeSel.disabled=true; }
+  else { typeSel.disabled=false; typeSel.appendChild(opt('','— choose —',!curType));
+    types.forEach(function(t){ typeSel.appendChild(opt(t.key, t.label||t.key, String(t.key)===curType)); }); }
+}
+function status(row){
+  var src=row.querySelector('.js-src').value, el=row.querySelector('.js-status');
+  el.className='badge'; row.classList.remove('mismatch');
+  if(src==='manual'){ el.classList.add('mut'); el.textContent='Manual'; return; }
+  if(src==='inventory'){ el.classList.add('mut'); el.textContent='Own inventory'; return; }
+  var sku=row.querySelector('.js-sku').value, b=BOT[sku];
+  if(!sku){ el.classList.add('warn'); el.textContent='⚠ not mapped'; return; }
+  if(!b){ el.classList.add('warn'); el.textContent='⚠ sync needed'; return; }
+  if(b.missing){ el.classList.add('bad'); el.textContent='⚠ missing on bot'; return; }
+  var pName=row.getAttribute('data-pname')||'';
+  if(pName && !nameMatch(pName, b.name||'')){ el.classList.add('bad'); el.textContent='⚠ name mismatch'; row.classList.add('mismatch'); return; }
+  el.classList.add('ok'); el.textContent=(b.delivery_type||'mapped');
+}
+function sync(row){
+  var src=row.querySelector('.js-src').value;
+  row.querySelectorAll('.botcell').forEach(function(c){ c.hidden = (src!=='bot'); });
+  if(src==='bot') fillPlanType(row);
+  status(row);
+}
+function setBot(row, sku){
+  row.querySelector('.js-src').value='bot';
+  row.querySelectorAll('.botcell').forEach(function(c){ c.hidden=false; });
+  var skuSel=row.querySelector('.js-sku'); skuSel.value=sku;
+  row.querySelector('.js-plan').setAttribute('data-cur','');
+  row.querySelector('.js-type').setAttribute('data-cur','');
+  fillPlanType(row); status(row);
+}
+document.querySelectorAll('tr[data-plan]').forEach(function(row){
+  sync(row);
+  row.querySelector('.js-src').addEventListener('change',function(){
+    // switching away from bot clears any leftover SKU so it can't be saved by mistake
+    if(this.value!=='bot'){
+      row.querySelector('.js-sku').value='';
+      row.querySelector('.js-plan').setAttribute('data-cur','');
+      row.querySelector('.js-type').setAttribute('data-cur','');
+    }
+    sync(row);
+  });
+  row.querySelector('.js-sku').addEventListener('change',function(){
+    // picking a bot product IS a bot mapping — flip the source so what you see is what saves
+    if(this.value){ row.querySelector('.js-src').value='bot'; }
+    row.querySelectorAll('.botcell').forEach(function(c){ c.hidden=false; });
+    row.querySelector('.js-plan').setAttribute('data-cur','');
+    row.querySelector('.js-type').setAttribute('data-cur','');
+    fillPlanType(row); status(row);
+  });
+});
+
+// ---- Auto-map by name ----
+document.getElementById('automap').addEventListener('click',function(){
+  var mapped=0, skipped=0;
+  document.querySelectorAll('tr[data-plan]').forEach(function(row){
+    var src=row.querySelector('.js-src').value;
+    var curSku=row.querySelector('.js-sku').value;
+    var pName=row.getAttribute('data-pname')||'';
+    // only touch rows that are unmapped, or bot-but-mismatched; never overwrite a good match or inventory
+    var isGood = (src==='bot' && curSku && BOT[curSku] && !BOT[curSku].missing && nameMatch(pName, BOT[curSku].name||''));
+    if(src==='inventory' || isGood){ return; }
+    var sku=bestSku(pName);
+    if(sku){ setBot(row, sku); mapped++; } else { skipped++; }
+  });
+  var note=document.getElementById('automap-note');
+  note.textContent='Suggested '+mapped+' mapping'+(mapped===1?'':'s')+(skipped?(' · '+skipped+' had no confident match'):'')+'. Review the rows, then click Save mapping.';
+});
+
+// ---- stale-safe submit: only send the rows the admin actually changed ----
+(function(){
+  var allrows=[].slice.call(document.querySelectorAll('tr[data-plan]'));
+  function val(row,sel){ var el=row.querySelector(sel); return el ? (el.value||'') : ''; }
+  allrows.forEach(function(row){
+    row.dataset.oSrc=val(row,'.js-src'); row.dataset.oSku=val(row,'.js-sku');
+    row.dataset.oPlan=val(row,'.js-plan'); row.dataset.oType=val(row,'.js-type');
+    ['.js-src','.js-sku','.js-plan','.js-type'].forEach(function(s){ var el=row.querySelector(s); if(el) el.addEventListener('change',function(){ row.dataset.touched='1'; }); });
+  });
+  var form=document.querySelector('form[action="/admin/mapping"]');
+  if(form) form.addEventListener('submit', function(e){
+    var warn=[];
+    allrows.forEach(function(row){
+      var changed = row.dataset.touched==='1' || val(row,'.js-src')!==row.dataset.oSrc || val(row,'.js-sku')!==row.dataset.oSku || val(row,'.js-plan')!==row.dataset.oPlan || val(row,'.js-type')!==row.dataset.oType;
+      if(changed && val(row,'.js-src')==='bot' && !val(row,'.js-sku')) warn.push(row.getAttribute('data-pname'));
+      if(!changed){ ['.js-src','.js-sku','.js-plan','.js-type'].forEach(function(s){ var el=row.querySelector(s); if(el) el.disabled=true; }); }
+    });
+    if(warn.length){
+      if(!confirm('These rows are set to Reseller bot but have no product chosen:\n\n'+warn.join(', ')+'\n\nSave anyway? They will show as "not mapped".')){
+        allrows.forEach(function(row){ ['.js-src','.js-sku'].forEach(function(s){ var el=row.querySelector(s); if(el) el.disabled=false; }); });
+        e.preventDefault();
+      }
+    }
+  });
+})();
+</script>
+
+<%- include('_shell_bottom') %>
+EOF_MAP
+
+node -e '
+const ejs=require("ejs"),fs=require("fs");
+try{ ejs.compile(fs.readFileSync("views/admin/mapping.ejs","utf8"),{filename:"views/admin/mapping.ejs"}); console.log("[ok] mapping.ejs compiles"); }
+catch(e){ console.error("ABORT: mapping.ejs",e.message); process.exit(1); }
+' || exit 1
+
+# ---- migration: correct catalog mapping ----
+export PGPASSWORD="$DB_PASS"
+PSQL="psql -P pager=off -h ${DB_HOST:-127.0.0.1} -p ${DB_PORT:-5432} -U $DB_USER -d $DB_NAME -v ON_ERROR_STOP=1"
+echo "-- re-mapping catalog by name --"
+$PSQL <<'SQL'
+BEGIN;
+CREATE TABLE IF NOT EXISTS mapping_backup_s30 AS
+  SELECT pl.id, p.name AS product, pl.label, pl.source AS old_source, pl.bot_sku AS old_sku, now() AS saved
+  FROM product_plans pl JOIN products p ON p.id=pl.product_id;
+-- single-plan products -> their real bot SKU
+UPDATE product_plans pl SET source='bot', bot_sku=m.sku, bot_plan_key=NULL, bot_type=NULL
+FROM (VALUES
+ ('Peacock TV','SKU-00061'),('Hilal Play','SKU-00063'),('BritBox','SKU-00064'),
+ ('Zee5','SKU-00065'),('Crave','SKU-00067'),('ShemarooMe','SKU-00068'),
+ ('KableOne','SKU-00069'),('Eros Now','SKU-00070'),('AMC+','SKU-00071'),
+ ('StarZ','SKU-00072'),('Hotstar','SKU-00084'),('Tabii','SKU-00113'),
+ ('KOCOWA+','SKU-00112'),('MGM+','SKU-00111'),('Hallmark+','SKU-00139'),
+ ('Rakuten Viki','SKU-00152'),('Curiosity Stream','SKU-00153'),('ESPN+','SKU-00073'),
+ ('F1 TV','SKU-00074'),('Disney+ (No Ads)','SKU-00058'),('Hulu (No Ads)','SKU-00059'),
+ ('Paramount+ (No Ads) USA','SKU-00060'),('StarShare TV','SKU-00101'),('B1G TV','SKU-00036'),
+ ('Geo IPTV','SKU-00038'),('5G Live / Zain TV','SKU-00039'),('Mega OTT','SKU-00097'),
+ ('Rolex TV','SKU-00041'),('Filex IPTV','SKU-00042'),('Boss TV','SKU-00043'),
+ ('Zum TV','SKU-00105'),('Trex OTT','SKU-00116'),('Strong 8K','SKU-00117'),
+ ('Nord VPN','SKU-00075'),('Surfshark VPN','SKU-00104'),('Mysterium VPN','SKU-00085'),
+ ('Vypr VPN','SKU-00077'),('CapCut','SKU-00086'),('Envato Elements','SKU-00108'),
+ ('Grammarly','SKU-00079'),('QuillBot','SKU-00080'),('Canva Edu','SKU-00095'),
+ ('Gemini AI Pro','SKU-00115'),('PicsArt','SKU-00081'),('Udemy Premium','SKU-00109'),
+ ('SkillShare','SKU-00082'),('Zoom Pro','SKU-00143'),('Hot Player','SKU-00141'),
+ ('IBO Player','SKU-00119')
+) AS m(product, sku)
+JOIN products p ON p.name=m.product
+WHERE pl.product_id=p.id;
+-- HBO Max: only the 1-month plan -> private screen SKU
+UPDATE product_plans pl SET source='bot', bot_sku='SKU-00057', bot_plan_key=NULL, bot_type=NULL
+FROM products p WHERE pl.product_id=p.id AND p.name='HBO Max' AND pl.label ILIKE '%1 month%';
+-- Opplex TV: all 4 duration plans -> Opplex SKU (per-duration plan_key handled later)
+UPDATE product_plans pl SET source='bot', bot_sku='SKU-00030', bot_plan_key=NULL, bot_type=NULL
+FROM products p WHERE pl.product_id=p.id AND p.name='Opplex TV';
+COMMIT;
+SELECT count(*) AS bot_plans FROM product_plans WHERE source='bot';
+SELECT p.name AS product, pl.label, pl.bot_sku, b.name AS bot_product, b.delivery_type
+FROM product_plans pl JOIN products p ON p.id=pl.product_id JOIN bot_products b ON b.sku=pl.bot_sku
+WHERE pl.source='bot' ORDER BY b.delivery_type, p.name;
+SQL
+echo "[ok] catalog re-mapped"
+
+pm2 restart gsz >/dev/null 2>&1 || pm2 start server.js --name gsz >/dev/null 2>&1
+sleep 2
+BODY=$(curl -fsS "http://127.0.0.1:${PORT:-3900}/" 2>/dev/null || true)
+if grep -q "</html>" <<< "$BODY"; then echo "[ok] site responding on ${PORT:-3900}"; else echo "!! health soft-fail"; fi
+
+trap - ERR
+echo
+echo "==================== STEP 30 DONE ===================="
+echo " Catalog mapped correctly + Save is now change-only (no more wipes)."
+echo " Still Manual (on purpose): Netflix Premium, Prime Video profiles,"
+echo " HBO Max 1-Year. We handle those in the Profiles/Full-Accounts step."
+echo " Backup table: mapping_backup_s30 · file backup: $BK"
+echo "====================================================="

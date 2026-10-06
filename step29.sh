@@ -1,131 +1,370 @@
-mkdir -p /opt/gsz && cat > /tmp/s29.gz.b64 <<'B64_GSZ_29'
-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
-zIeKkT12f829P9/7Dx4z3UkHSQAA
-B64_GSZ_29
-GOT=$(md5sum /tmp/s29.gz.b64 | awk '{print $1}')
-if [ "$GOT" != "07c9ca60a031ec855d0b4a0a797e2656" ]; then
-  echo "!! PASTE INCOMPLETE/CORRUPTED (got=$GOT). Nothing ran. Paste the whole block again."
-else
-  base64 -d /tmp/s29.gz.b64 | gunzip > /opt/gsz/step29.sh
-  S=$(md5sum /opt/gsz/step29.sh | awk '{print $1}')
-  if [ "$S" != "3fa10099a2d380f3d7759868a657f19f" ]; then
-    echo "!! decode mismatch ($S). Paste the block again."
-  else
-    echo "[ok] step29.sh received intact — running it now:"; echo
-    bash /opt/gsz/step29.sh
-  fi
-fi
+#!/usr/bin/env bash
+# ============================================================
+#  GALAXY SUBZ x ZAYRON — STEP 29: mapping Save→Manual fix + hardening
+#  - routes/adminMapping.js : save handler no longer drops a chosen SKU when the
+#    Source dropdown lags on "Manual" — picking a bot product = bot mapping.
+#    A bot row with no SKU stays "bot (not mapped)" instead of reverting.
+#  - views/admin/mapping.ejs :
+#      * picking a bot product auto-switches Source to "Reseller bot"
+#      * switching away from bot clears the SKU (can't be saved by mistake)
+#      * red "name mismatch" flag when a mapped bot product's name doesn't
+#        match the website product (e.g. Eros Now -> Prime Video)
+#      * "Auto-map by name" button suggests the right SKU for every
+#        unmapped / mismatched plan (review, then Save).
+#  Idempotent (full-file replace) + auto-rollback.
+# ============================================================
+set -euo pipefail
+APP=/opt/gsz
+[ -f "$APP/routes/adminMapping.js" ]   || { echo "ABORT: adminMapping.js not found"; exit 1; }
+[ -f "$APP/views/admin/mapping.ejs" ]  || { echo "ABORT: mapping.ejs not found"; exit 1; }
+cd "$APP"
+set -a; . "$APP/.env"; set +a
+
+TS=$(date +%s)
+BK="$APP/.bak-step29-$TS"; mkdir -p "$BK"
+cp routes/adminMapping.js "$BK/adminMapping.js"
+cp views/admin/mapping.ejs "$BK/mapping.ejs"
+restore(){ echo "!! ROLLBACK"; cp "$BK/adminMapping.js" "$APP/routes/adminMapping.js" 2>/dev/null||true; cp "$BK/mapping.ejs" "$APP/views/admin/mapping.ejs" 2>/dev/null||true; pm2 restart gsz >/dev/null 2>&1||true; }
+trap 'restore' ERR
+
+echo "== Galaxy Subz x Zayron — Step 29 (mapping fix + hardening) =="
+
+cat > routes/adminMapping.js <<'EOF_ADMIN'
+'use strict';
+/* Admin: map each site PLAN to how it is fulfilled.
+   source = manual | inventory | bot.
+   For bot plans we store the IMMUTABLE bot_sku (+ bot_plan_key + bot_type),
+   never the serial/name/position — so re-ordering on the bot can't break it. */
+const express = require('express');
+const botapi = require('../lib/botapi');
+
+module.exports = function (pool) {
+  const router = express.Router();
+  function auth(req, res, next) {
+    if (req.session && req.session.admin) return next();
+    return res.redirect('/admin/login');
+  }
+
+  router.get('/mapping', auth, async (req, res) => {
+    try {
+      const products = (await pool.query(
+        `SELECT p.id, p.name, p.slug, c.name AS cat
+           FROM products p LEFT JOIN categories c ON c.id = p.category_id
+          WHERE p.active ORDER BY p.sort, p.id`)).rows;
+      const plans = (await pool.query(
+        `SELECT id, product_id, label, price_pkr, source, bot_sku, bot_plan_key, bot_type
+           FROM product_plans ORDER BY product_id, sort, id`)).rows;
+      const bots = (await pool.query(
+        `SELECT sku, name, serial, delivery_type, price_pkr, is_active,
+                needs, plans, types, missing
+           FROM bot_products ORDER BY missing, name NULLS LAST, sku`)).rows;
+      const invRows = (await pool.query(
+        `SELECT plan_id, count(*)::int n FROM inventory_items
+          WHERE status='available' GROUP BY plan_id`)).rows;
+      const inv = {}; invRows.forEach(r => { inv[r.plan_id] = r.n; });
+      const byProd = {}; plans.forEach(pl => { (byProd[pl.product_id] = byProd[pl.product_id] || []).push(pl); });
+      const botBySku = {}; bots.forEach(b => { botBySku[b.sku] = b; });
+
+      const ping = await botapi.ping();
+      const last = (await pool.query("SELECT value FROM settings WHERE key='bot_last_sync'")).rows[0];
+
+      res.render('admin/mapping', {
+        products, byProd, bots, botBySku, inv,
+        bot: Object.assign({ last_sync: last ? last.value : null, count: bots.length, missing: bots.filter(b => b.missing).length }, ping),
+        flash: req.query.ok || null, active: 'mapping', title: 'Bot mapping'
+      });
+    } catch (e) { res.status(500).send('Mapping error: ' + e.message); }
+  });
+
+  router.post('/mapping', auth, express.urlencoded({ extended: true, limit: '2mb' }), async (req, res) => {
+    const pl = (req.body && req.body.pl) || {};
+    const SRC = ['manual', 'inventory', 'bot'];
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const id of Object.keys(pl)) {
+        const pid = parseInt(id, 10); if (!Number.isFinite(pid)) continue;
+        const r = pl[id] || {};
+        let source = SRC.includes(String(r.source || '')) ? r.source : 'manual';
+        const skuRaw = (String(r.bot_sku || '').trim());
+        // Robustness: choosing a bot product IS a bot mapping. Never let a stale
+        // "Manual" on the Source dropdown silently drop the SKU the admin picked.
+        // (The UI also clears the SKU when the admin switches away from bot, so a
+        //  leftover value can't force bot by mistake.)
+        if (skuRaw) source = 'bot';
+        let sku = null, pk = null, ty = null;
+        if (source === 'bot') {
+          sku = skuRaw || null;
+          pk = (String(r.bot_plan_key || '').trim()) || null;
+          ty = (String(r.bot_type || '').trim()) || null;
+          // keep source='bot' even with no SKU yet, so it stays "bot (not mapped)"
+          // instead of silently reverting to Manual.
+        }
+        await client.query(
+          'UPDATE product_plans SET source=$1, bot_sku=$2, bot_plan_key=$3, bot_type=$4 WHERE id=$5',
+          [source, sku, pk, ty, pid]
+        );
+      }
+      await client.query('COMMIT');
+      res.redirect('/admin/mapping?ok=' + encodeURIComponent('Mapping saved'));
+    } catch (e) {
+      try { await client.query('ROLLBACK'); } catch (x) {}
+      res.status(500).send('Mapping save error: ' + e.message);
+    } finally { client.release(); }
+  });
+
+  return router;
+};
+EOF_ADMIN
+
+cat > views/admin/mapping.ejs <<'EOF_MAP'
+<%- include('_shell_top', { active:'mapping', title:'Bot mapping' }) %>
+<style>
+  .mapwrap{overflow-x:auto}
+  table.map{min-width:880px}
+  table.map td{vertical-align:middle}
+  table.map select{margin-bottom:0}
+  .plan-name{font-weight:700}
+  .plan-price{color:var(--muted);font-size:12.5px}
+  .src-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .badge.ok{background:#e9fbf1;color:#0b7a42}
+  .badge.warn{background:#fff4e2;color:#9a6400}
+  .badge.bad{background:#fdeceb;color:#b4322c}
+  .badge.mut{background:#eef1fa;color:#5b6688}
+  .botcell[hidden]{display:none}
+  .conn{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.g{background:var(--ok)} .dot.r{background:var(--bad)} .dot.y{background:var(--warn)}
+  tr.mismatch td{background:#fff6f6}
+</style>
+
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<!-- connection status -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div class="conn">
+      <% var dotc = !bot.configured ? 'y' : (bot.reachable ? 'g' : 'r'); %>
+      <span class="dot <%= dotc %>"></span>
+      <div>
+        <b>Reseller bot link:
+          <%= !bot.configured ? 'not configured yet' : (bot.reachable ? 'connected' : 'unreachable') %></b>
+        <div class="sub" style="margin:2px 0 0">
+          <% if (!bot.configured) { %>
+            Add <code>GSZ_BOT_API_URL</code> + <code>GSZ_BOT_API_KEY</code> to <code>.env</code>, then Sync.
+          <% } else if (!bot.reachable) { %>
+            Configured but the API didn't answer<%= bot.error ? ' ('+bot.error+')' : '' %>.
+          <% } else { %>
+            <%= bot.productCount %> products live on the bot.
+          <% } %>
+          · <%= bot.count %> cached<% if (bot.missing) { %> · <span style="color:var(--bad);font-weight:700"><%= bot.missing %> missing</span><% } %>
+          <% if (bot.last_sync) { %> · last sync <%= new Date(bot.last_sync).toLocaleString('en-GB') %><% } %>
+        </div>
+      </div>
+    </div>
+    <form method="post" action="/admin/bot/sync" style="margin:0">
+      <button class="btn btn-g" type="submit">↻ Sync from bot</button>
+    </form>
+  </div>
+</div>
+
+<p class="sub" style="margin:0 0 14px">
+  Choose how each plan is fulfilled. <b>Reseller bot</b> maps to the bot's immutable <code>sku</code> (+ plan &amp; type for IPTV),
+  so renaming or re-ordering products on the bot never breaks it. <b>My inventory</b> delivers from this site's own stock pool.
+  <b>Manual</b> = you deliver by hand. Pick a bot product and the source switches to <b>Reseller bot</b> automatically.
+</p>
+
+<div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+  <button type="button" class="btn btn-g" id="automap">✨ Auto-map by name</button>
+  <span class="sub" id="automap-note">Suggests the matching bot product for every unmapped / mismatched plan. Review, then Save.</span>
+</div>
+
+<form method="post" action="/admin/mapping">
+<% products.forEach(function(p){ var plans=(byProd[p.id]||[]); if(!plans.length) return; %>
+  <div class="card">
+    <h2 style="margin:0 0 2px"><%= p.name %></h2>
+    <div class="sub" style="margin:0 0 14px"><%= p.cat || '—' %> · <%= plans.length %> plan<%= plans.length>1?'s':'' %></div>
+    <div class="mapwrap">
+      <table class="map">
+        <thead><tr>
+          <th style="width:190px">Plan</th><th style="width:150px">Source</th>
+          <th>Bot product</th><th style="width:150px">Bot plan</th><th style="width:130px">Type</th>
+          <th style="width:160px">Status</th>
+        </tr></thead>
+        <tbody>
+        <% plans.forEach(function(pl){ var isBot = pl.source==='bot'; %>
+          <tr data-plan="<%= pl.id %>" data-pname="<%= p.name.replace(/"/g,'&quot;') %>">
+            <td><div class="plan-name"><%= pl.label %></div><div class="plan-price">Rs <%= Math.round(pl.price_pkr).toLocaleString('en-US') %></div></td>
+            <td>
+              <select name="pl[<%= pl.id %>][source]" class="js-src">
+                <option value="manual"    <%= pl.source==='manual'    ?'selected':'' %>>Manual</option>
+                <option value="inventory" <%= pl.source==='inventory' ?'selected':'' %>>My inventory</option>
+                <option value="bot"       <%= pl.source==='bot'       ?'selected':'' %>>Reseller bot</option>
+              </select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_sku]" class="js-sku">
+                <option value="">— choose product —</option>
+                <% bots.forEach(function(b){ %>
+                  <option value="<%= b.sku %>" <%= pl.bot_sku===b.sku?'selected':'' %>>
+                    <%= b.name || b.sku %><%= b.missing?' (MISSING)':'' %> · <%= b.sku %></option>
+                <% }); %>
+              </select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_plan_key]" class="js-plan" data-cur="<%= pl.bot_plan_key||'' %>"></select>
+            </td>
+            <td class="botcell" <%= isBot?'':'hidden' %>>
+              <select name="pl[<%= pl.id %>][bot_type]" class="js-type" data-cur="<%= pl.bot_type||'' %>"></select>
+            </td>
+            <td><span class="badge mut js-status">—</span></td>
+          </tr>
+        <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% }); %>
+
+  <div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
+    <button class="btn btn-p" type="submit">Save mapping</button>
+    <span class="sub" style="margin-left:12px">Pricing &amp; stock stay live from the bot; this only sets the fulfilment route.</span>
+  </div>
+</form>
+
+<script>
+var BOT = <%- JSON.stringify(botBySku || {}) %>;
+function opt(v,label,sel){ var o=document.createElement('option'); o.value=v; o.textContent=label; if(sel)o.selected=true; return o; }
+
+// ---- name matching (so a wrong SKU is impossible to miss, + auto-map) ----
+function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function toks(s){ return norm(s).split(' ').filter(function(w){ return w.length>1; }); }
+function nameMatch(pName,bName){
+  var a=norm(pName), b=norm(bName);
+  if(!a||!b) return false;
+  if(b.indexOf(a)>=0 || a.indexOf(b)>=0) return true;
+  var pt=toks(pName), bt=toks(bName);
+  if(!pt.length) return false;
+  var common=pt.filter(function(t){ return bt.indexOf(t)>=0; }).length;
+  return (common/pt.length) >= 0.6;
+}
+function bestSku(pName){
+  var pt=toks(pName), best=null, bestScore=0;
+  Object.keys(BOT).forEach(function(sku){
+    var b=BOT[sku]; if(!b||b.missing) return;
+    var bt=toks(b.name||'');
+    var common=pt.length ? pt.filter(function(t){ return bt.indexOf(t)>=0; }).length / pt.length : 0;
+    var score=common;
+    if(norm(b.name).indexOf(norm(pName))>=0) score += 0.5;
+    if(score>bestScore){ bestScore=score; best=sku; }
+  });
+  return bestScore>=0.6 ? best : null;
+}
+
+function fillPlanType(row){
+  var sku=row.querySelector('.js-sku').value;
+  var planSel=row.querySelector('.js-plan'), typeSel=row.querySelector('.js-type');
+  var b=BOT[sku];
+  var curPlan=planSel.getAttribute('data-cur')||'', curType=typeSel.getAttribute('data-cur')||'';
+  planSel.innerHTML=''; typeSel.innerHTML='';
+  var plans=(b&&b.plans)||[], types=(b&&b.types)||[];
+  if(!plans.length){ planSel.appendChild(opt('','— n/a —',true)); planSel.disabled=true; }
+  else { planSel.disabled=false; planSel.appendChild(opt('','— choose —',!curPlan));
+    plans.forEach(function(p){ planSel.appendChild(opt(p.plan_key, p.label+(p.price!=null?(' · Rs '+p.price):''), String(p.plan_key)===curPlan)); }); }
+  if(!types.length){ typeSel.appendChild(opt('','— n/a —',true)); typeSel.disabled=true; }
+  else { typeSel.disabled=false; typeSel.appendChild(opt('','— choose —',!curType));
+    types.forEach(function(t){ typeSel.appendChild(opt(t.key, t.label||t.key, String(t.key)===curType)); }); }
+}
+function status(row){
+  var src=row.querySelector('.js-src').value, el=row.querySelector('.js-status');
+  el.className='badge'; row.classList.remove('mismatch');
+  if(src==='manual'){ el.classList.add('mut'); el.textContent='Manual'; return; }
+  if(src==='inventory'){ el.classList.add('mut'); el.textContent='Own inventory'; return; }
+  var sku=row.querySelector('.js-sku').value, b=BOT[sku];
+  if(!sku){ el.classList.add('warn'); el.textContent='⚠ not mapped'; return; }
+  if(!b){ el.classList.add('warn'); el.textContent='⚠ sync needed'; return; }
+  if(b.missing){ el.classList.add('bad'); el.textContent='⚠ missing on bot'; return; }
+  var pName=row.getAttribute('data-pname')||'';
+  if(pName && !nameMatch(pName, b.name||'')){ el.classList.add('bad'); el.textContent='⚠ name mismatch'; row.classList.add('mismatch'); return; }
+  el.classList.add('ok'); el.textContent=(b.delivery_type||'mapped');
+}
+function sync(row){
+  var src=row.querySelector('.js-src').value;
+  row.querySelectorAll('.botcell').forEach(function(c){ c.hidden = (src!=='bot'); });
+  if(src==='bot') fillPlanType(row);
+  status(row);
+}
+function setBot(row, sku){
+  row.querySelector('.js-src').value='bot';
+  row.querySelectorAll('.botcell').forEach(function(c){ c.hidden=false; });
+  var skuSel=row.querySelector('.js-sku'); skuSel.value=sku;
+  row.querySelector('.js-plan').setAttribute('data-cur','');
+  row.querySelector('.js-type').setAttribute('data-cur','');
+  fillPlanType(row); status(row);
+}
+document.querySelectorAll('tr[data-plan]').forEach(function(row){
+  sync(row);
+  row.querySelector('.js-src').addEventListener('change',function(){
+    // switching away from bot clears any leftover SKU so it can't be saved by mistake
+    if(this.value!=='bot'){
+      row.querySelector('.js-sku').value='';
+      row.querySelector('.js-plan').setAttribute('data-cur','');
+      row.querySelector('.js-type').setAttribute('data-cur','');
+    }
+    sync(row);
+  });
+  row.querySelector('.js-sku').addEventListener('change',function(){
+    // picking a bot product IS a bot mapping — flip the source so what you see is what saves
+    if(this.value){ row.querySelector('.js-src').value='bot'; }
+    row.querySelectorAll('.botcell').forEach(function(c){ c.hidden=false; });
+    row.querySelector('.js-plan').setAttribute('data-cur','');
+    row.querySelector('.js-type').setAttribute('data-cur','');
+    fillPlanType(row); status(row);
+  });
+});
+
+// ---- Auto-map by name ----
+document.getElementById('automap').addEventListener('click',function(){
+  var mapped=0, skipped=0;
+  document.querySelectorAll('tr[data-plan]').forEach(function(row){
+    var src=row.querySelector('.js-src').value;
+    var curSku=row.querySelector('.js-sku').value;
+    var pName=row.getAttribute('data-pname')||'';
+    // only touch rows that are unmapped, or bot-but-mismatched; never overwrite a good match or inventory
+    var isGood = (src==='bot' && curSku && BOT[curSku] && !BOT[curSku].missing && nameMatch(pName, BOT[curSku].name||''));
+    if(src==='inventory' || isGood){ return; }
+    var sku=bestSku(pName);
+    if(sku){ setBot(row, sku); mapped++; } else { skipped++; }
+  });
+  var note=document.getElementById('automap-note');
+  note.textContent='Suggested '+mapped+' mapping'+(mapped===1?'':'s')+(skipped?(' · '+skipped+' had no confident match'):'')+'. Review the rows, then click Save mapping.';
+});
+</script>
+
+<%- include('_shell_bottom') %>
+EOF_MAP
+
+# ---- validate before restart ----
+node --check routes/adminMapping.js && echo "[ok] adminMapping.js syntax" || { echo "ABORT: adminMapping.js syntax"; exit 1; }
+node -e '
+const ejs=require("ejs"),fs=require("fs");
+try{ ejs.compile(fs.readFileSync("views/admin/mapping.ejs","utf8"),{filename:"views/admin/mapping.ejs"}); console.log("[ok] mapping.ejs compiles"); }
+catch(e){ console.error("ABORT: mapping.ejs",e.message); process.exit(1); }
+' || exit 1
+
+# ---- restart + health ----
+pm2 restart gsz >/dev/null 2>&1 || pm2 start server.js --name gsz >/dev/null 2>&1
+sleep 2
+BODY=$(curl -fsS "http://127.0.0.1:${PORT:-3900}/" 2>/dev/null || true)
+if grep -q "</html>" <<< "$BODY"; then echo "[ok] site responding on ${PORT:-3900}"; else echo "!! health soft-fail (pm2 logs gsz --lines 40)"; fi
+
+trap - ERR
+echo
+echo "==================== STEP 29 DONE ===================="
+echo " Mapping fixed + hardened. Open /admin/mapping:"
+echo "  • pick a bot product → Source auto-sets to Reseller bot"
+echo "  • wrong product shows a red 'name mismatch' flag"
+echo "  • click 'Auto-map by name' to map the rest, review, Save"
+echo " Backup: $BK"
+echo "====================================================="
