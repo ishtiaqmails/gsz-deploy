@@ -7,12 +7,10 @@
 const express = require('express');
 const storefront = require('../lib/storefront');
 const botapi = require('../lib/botapi');
-let mailer = null; try { mailer = require('../lib/mailer'); } catch (e) { mailer = { configured: () => false, send: async () => ({}) }; }
 
 module.exports = function (pool) {
   const router = express.Router();
   const body = express.urlencoded({ extended: true, limit: '64kb' });
-  const wanotify = require('../lib/wanotify')(pool);
 
   function requireLogin(req, res, next) {
     if (req.session && req.session.customer) return next();
@@ -32,7 +30,6 @@ module.exports = function (pool) {
     const link = (await pool.query("SELECT whatsapp_identity_id FROM customer_whatsapp_links WHERE customer_id=$1 AND status='ACTIVE' AND is_primary=true LIMIT 1", [custId])).rows[0];
     return { emailOk: !!c.email_verified, waOk: !!link, identityId: link ? link.whatsapp_identity_id : null, ref: c.ref_code || '', email: c.email || '' };
   }
-  async function setting(k) { const r = await pool.query('SELECT value FROM wa_settings WHERE key=$1', [k]); return r.rows[0] ? r.rows[0].value : ''; }
 
   // ---- public trials page ----
   router.get('/trials', async (req, res) => {
@@ -75,43 +72,13 @@ module.exports = function (pool) {
     finally { c.release(); }
     if (over) return back('You have already used all your free trials for ' + srv.name + '.');
 
-    // generate (graceful)
-    try {
-      if (botapi.configured && botapi.configured()) {
-        const ref = 'TRIAL-' + claimId;
-        let resp = null;
-        try { resp = await botapi.generateTrial({ sku, hours: srv.duration_hours, customer_ref: v.ref, request_id: ref }); } catch (e) { resp = null; }
-        const creds = resp && (resp.credentials || resp.creds);
-        if (resp && resp.ok && creds) {
-          const expires = resp.expires_at ? new Date(resp.expires_at) : new Date(Date.now() + srv.duration_hours * 3600 * 1000);
-          await pool.query("UPDATE trial_claims SET status='active', credentials=$1, bot_ref=$2, expires_at=$3 WHERE id=$4", [String(creds), String(resp.trial_ref || ref), expires, claimId]);
-          await deliver(cust.id, v.identityId, claimId, srv, v);
-          return back('Your ' + srv.name + ' trial is ready — see "My trials" and your WhatsApp.');
-        }
-        await pool.query("UPDATE trial_claims SET bot_ref=$1 WHERE id=$2", [String((resp && resp.error) || 'pending'), claimId]);
-      }
-    } catch (e) { /* leave pending */ }
-    return back('Your ' + srv.name + ' trial is requested — we’ll deliver it to your WhatsApp shortly.');
+    // Request generation (async two-step). Store the request_id; the trial
+    // poller GETs /api/trial-status, then delivers credentials when ready.
+    const ref = 'TRIAL-' + claimId;
+    await pool.query("UPDATE trial_claims SET bot_ref=$1 WHERE id=$2", [ref, claimId]);
+    try { if (botapi.configured && botapi.configured()) await botapi.generateTrial({ sku, hours: srv.duration_hours, customer_ref: v.ref, request_id: ref }); } catch (e) {}
+    return back('Your ' + srv.name + ' trial is being prepared — we’ll send it to your WhatsApp and show it under My trials shortly.');
   });
-
-  async function deliver(custId, identityId, claimId, srv, v) {
-    try {
-      const base = (await setting('site_base_url')) || '';
-      const link = base ? (base.replace(/\/+$/, '') + '/account/trials') : '/account/trials';
-      await wanotify.enqueue({ customer_id: custId, destination_identity_id: identityId, template_key: 'whatsapp.trial_ready',
-        vars: { server_name: srv.name, duration_label: srv.duration_label || (srv.duration_hours + 'h'), secure_link: link }, idempotency_key: 'trial-' + claimId });
-    } catch (e) {}
-    try {
-      if (mailer.configured && mailer.configured() && v.email) {
-        const row = (await pool.query('SELECT credentials FROM trial_claims WHERE id=$1', [claimId])).rows[0] || {};
-        const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #eceef3;border-radius:14px">'
-          + '<h2 style="margin:0 0 6px;color:#0f1424">Your ' + srv.name + ' trial is ready</h2>'
-          + '<p style="color:#5a6276;font-size:14px">Valid for ' + (srv.duration_label || (srv.duration_hours + ' hours')) + '.</p>'
-          + '<pre style="background:#f4f6fb;border-radius:10px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:13.5px">' + String(row.credentials || '') + '</pre></div>';
-        await mailer.send(v.email, 'Your ' + srv.name + ' trial is ready', html);
-      }
-    } catch (e) {}
-  }
 
   // ---- customer's trials ----
   router.get('/account/trials', requireLogin, async (req, res) => {
