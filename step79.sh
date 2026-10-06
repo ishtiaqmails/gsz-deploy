@@ -47,8 +47,8 @@ NODE
 
 # seed the bot send URL (website -> bot) and optionally the verification number
 if [ -n "$VNUM_ARG" ]; then VNUM_CLEAN=$(printf '%s' "$VNUM_ARG" | tr -cd '0-9'); else VNUM_CLEAN=""; fi
-VNUM="$VNUM_CLEAN" node <<'NODE'
-require('dotenv').config({ path: '/opt/gsz/.env' });
+( cd "$GSZ" && VNUM="$VNUM_CLEAN" node <<'NODE'
+require('dotenv').config();
 const { Pool } = require('pg');
 const p = new Pool({ host:process.env.DB_HOST, port:process.env.DB_PORT, database:process.env.DB_NAME, user:process.env.DB_USER, password:process.env.DB_PASS });
 (async()=>{
@@ -59,6 +59,7 @@ const p = new Pool({ host:process.env.DB_HOST, port:process.env.DB_PORT, databas
   await p.end();
 })().catch(e=>{ console.error('   db note: '+e.message); p.end(); });
 NODE
+)
 
 echo "==> npm install (this can take a minute)"
 ( cd "$BOT" && npm install --no-audit --no-fund ) 2>&1 | tail -6
