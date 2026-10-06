@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# step62 — Bulk note: checkboxes on the admin products list + a toolbar to set or
+# clear the product note across all selected products at once.
+set -euo pipefail
+APP=/opt/gsz
+TS=$(date +%Y%m%d-%H%M%S)
+BAK=$APP/.bak-step62-$TS
+mkdir -p "$BAK/routes" "$BAK/views/admin"
+cp "$APP/routes/adminCatalog.js" "$BAK/routes/adminCatalog.js"
+cp "$APP/views/admin/products.ejs" "$BAK/views/admin/products.ejs"
+restore(){ echo "!! rollback"; cp "$BAK/routes/adminCatalog.js" "$APP/routes/adminCatalog.js"; cp "$BAK/views/admin/products.ejs" "$APP/views/admin/products.ejs"; pm2 restart gsz --update-env >/dev/null 2>&1 || true; }
+trap 'restore' ERR
+writef(){ local dest="$APP/$1" b64="$2" md5="$3"; base64 -d "$b64" > "$dest"; local got; got=$(md5sum "$dest"|awk '{print $1}'); echo "   $1 $got $([ "$got" = "$md5" ] && echo OK || echo MISMATCH)"; [ "$got" = "$md5" ] || { echo "!! md5 mismatch $1"; false; }; }
+cat > /tmp/s62_prods.b64 <<'B62_prods'
+PCUtIGluY2x1ZGUoJ19zaGVsbF90b3AnLCB7IGFjdGl2ZToncHJvZHVjdHMnLCB0aXRsZTonUHJvZHVjdHMnIH0pICU+CjxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7Z2FwOjE0cHg7bWFyZ2luLWJvdHRvbTo2cHgiPgogIDxkaXYgc3R5bGU9ImZsZXg6MSI+PHAgY2xhc3M9InN1YiI+QWRkLCBlZGl0LCByZW9yZGVyLCBzaG93L2hpZGUgb3IgcmVtb3ZlIHByb2R1Y3RzLiBUaGUgb3JkZXIgaGVyZSBpcyB0aGUgb3JkZXIgY3VzdG9tZXJzIHNlZS48L3A+PC9kaXY+CiAgPGEgY2xhc3M9ImJ0biBidG4tcCIgaHJlZj0iL2FkbWluL3Byb2R1Y3RzL25ldyI+KyBBZGQgcHJvZHVjdDwvYT4KPC9kaXY+CjwlIGlmIChmbGFzaCkgeyAlPjxkaXYgY2xhc3M9ImZsYXNoIj48JT0gZmxhc2ggJT48L2Rpdj48JSB9ICU+Cjxmb3JtIGlkPSJidWxrZiIgbWV0aG9kPSJwb3N0IiBhY3Rpb249Ii9hZG1pbi9wcm9kdWN0cy9idWxrIj48L2Zvcm0+CjxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjEwcHg7YWxpZ24taXRlbXM6Y2VudGVyO2ZsZXgtd3JhcDp3cmFwO21hcmdpbi1ib3R0b206MTRweCI+CiAgPGIgc3R5bGU9ImZvbnQtc2l6ZToxNHB4Ij5CdWxrIG5vdGU6PC9iPgogIDxpbnB1dCBmb3JtPSJidWxrZiIgdHlwZT0idGV4dCIgbmFtZT0ibm90ZSIgcGxhY2Vob2xkZXI9Ik5vdGUgdG8gYXBwbHkgdG8gdGhlIHNlbGVjdGVkIHByb2R1Y3RzIiBzdHlsZT0iZmxleDoxO21pbi13aWR0aDoyMjBweDttYXJnaW46MCI+CiAgPGJ1dHRvbiBmb3JtPSJidWxrZiIgbmFtZT0ib3AiIHZhbHVlPSJzZXQiIGNsYXNzPSJidG4gYnRuLXAiIHR5cGU9InN1Ym1pdCI+QXBwbHkgdG8gc2VsZWN0ZWQ8L2J1dHRvbj4KICA8YnV0dG9uIGZvcm09ImJ1bGtmIiBuYW1lPSJvcCIgdmFsdWU9ImNsZWFyIiBjbGFzcz0iYnRuIGJ0bi1nIiB0eXBlPSJzdWJtaXQiPkNsZWFyIG5vdGUgb24gc2VsZWN0ZWQ8L2J1dHRvbj4KPC9kaXY+CjxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJwYWRkaW5nOjA7b3ZlcmZsb3c6aGlkZGVuIj4KICA8dGFibGU+CiAgICA8dGhlYWQ+PHRyPjx0aCBzdHlsZT0id2lkdGg6MzRweCI+PGlucHV0IHR5cGU9ImNoZWNrYm94IiBpZD0ic2VsYWxsIiB0aXRsZT0iU2VsZWN0IGFsbCI+PC90aD48dGggc3R5bGU9IndpZHRoOjcwcHgiPk9yZGVyPC90aD48dGg+UHJvZHVjdDwvdGg+PHRoPkNhdGVnb3J5PC90aD48dGg+RnJvbTwvdGg+PHRoPlRyZW5kaW5nPC90aD48dGg+U3RhdHVzPC90aD48dGggc3R5bGU9InRleHQtYWxpZ246cmlnaHQiPkFjdGlvbnM8L3RoPjwvdHI+PC90aGVhZD4KICAgIDx0Ym9keT4KICAgIDwlIHJvd3MuZm9yRWFjaChmdW5jdGlvbihyLCBpKXsgJT4KICAgICAgPHRyPgogICAgICAgIDx0ZD48aW5wdXQgdHlwZT0iY2hlY2tib3giIG5hbWU9ImlkcyIgdmFsdWU9IjwlPSByLmlkICU+IiBmb3JtPSJidWxrZiI+PC90ZD4KICAgICAgICA8dGQgc3R5bGU9IndoaXRlLXNwYWNlOm5vd3JhcCI+CiAgICAgICAgICA8Zm9ybSBtZXRob2Q9InBvc3QiIGFjdGlvbj0iL2FkbWluL3Byb2R1Y3RzLzwlPSByLmlkICU+L21vdmU/ZGlyPXVwIiBzdHlsZT0iZGlzcGxheTppbmxpbmUiPjxidXR0b24gY2xhc3M9ImJ0biBidG4tZyIgc3R5bGU9InBhZGRpbmc6NXB4IDlweCIgdHlwZT0ic3VibWl0IiB0aXRsZT0iTW92ZSB1cCIgPCU9IGk9PT0wPydkaXNhYmxlZCc6JycgJT4+4oaRPC9idXR0b24+PC9mb3JtPgogICAgICAgICAgPGZvcm0gbWV0aG9kPSJwb3N0IiBhY3Rpb249Ii9hZG1pbi9wcm9kdWN0cy88JT0gci5pZCAlPi9tb3ZlP2Rpcj1kb3duIiBzdHlsZT0iZGlzcGxheTppbmxpbmUiPjxidXR0b24gY2xhc3M9ImJ0biBidG4tZyIgc3R5bGU9InBhZGRpbmc6NXB4IDlweCIgdHlwZT0ic3VibWl0IiB0aXRsZT0iTW92ZSBkb3duIiA8JT0gaT09PShyb3dzLmxlbmd0aC0xKT8nZGlzYWJsZWQnOicnICU+PuKGkzwvYnV0dG9uPjwvZm9ybT4KICAgICAgICA8L3RkPgogICAgICAgIDx0ZCBzdHlsZT0iZm9udC13ZWlnaHQ6NjAwIj48JT0gci5uYW1lICU+PC90ZD4KICAgICAgICA8dGQgc3R5bGU9ImNvbG9yOnZhcigtLW11dGVkKSI+PCU9IHIuY2F0IHx8ICfigJQnICU+PC90ZD4KICAgICAgICA8dGQ+UnMgPCU9IHIucHJpY2UgPyBNYXRoLnJvdW5kKHIucHJpY2UpLnRvTG9jYWxlU3RyaW5nKCdlbi1VUycpIDogJ+KAlCcgJT48L3RkPgogICAgICAgIDx0ZD4KICAgICAgICAgIDxmb3JtIG1ldGhvZD0icG9zdCIgYWN0aW9uPSIvYWRtaW4vcHJvZHVjdHMvPCU9IHIuaWQgJT4vdHJlbmRpbmciIHN0eWxlPSJkaXNwbGF5OmlubGluZSI+CiAgICAgICAgICAgIDxidXR0b24gY2xhc3M9ImJ0biBidG4tZyIgc3R5bGU9InBhZGRpbmc6NnB4IDExcHg7PCU9IHIudHJlbmRpbmcgPyAnY29sb3I6I2Y1YjMwMTtmb250LXdlaWdodDo3MDAnIDogJ2NvbG9yOnZhcigtLW11dGVkKScgJT4iIHR5cGU9InN1Ym1pdCIgdGl0bGU9IjwlPSByLnRyZW5kaW5nID8gJ1JlbW92ZSBmcm9tIFRyZW5kaW5nJyA6ICdNYXJrIGFzIFRyZW5kaW5nJyAlPiI+PCU9IHIudHJlbmRpbmcgPyAn4piFIFRyZW5kaW5nJyA6ICfimIYgTWFyaycgJT48L2J1dHRvbj4KICAgICAgICAgIDwvZm9ybT4KICAgICAgICA8L3RkPgogICAgICAgIDx0ZD48JSBpZiAoci5oaWRkZW4gfHwgIXIuYWN0aXZlKSB7ICU+PHNwYW4gc3R5bGU9ImNvbG9yOiNiNDIzMTg7Zm9udC13ZWlnaHQ6NjAwIj5IaWRkZW48L3NwYW4+PCUgfSBlbHNlIHsgJT48c3BhbiBzdHlsZT0iY29sb3I6IzBiN2E0Mjtmb250LXdlaWdodDo2MDAiPkxpdmU8L3NwYW4+PCUgfSAlPjwvdGQ+CiAgICAgICAgPHRkIHN0eWxlPSJ0ZXh0LWFsaWduOnJpZ2h0O3doaXRlLXNwYWNlOm5vd3JhcCI+CiAgICAgICAgICA8YSBjbGFzcz0iYnRuIGJ0bi1nIiBzdHlsZT0icGFkZGluZzo2cHggMTFweCIgaHJlZj0iL2FkbWluL3Byb2R1Y3RzLzwlPSByLmlkICU+L2VkaXQiPkVkaXQ8L2E+CiAgICAgICAgICA8Zm9ybSBtZXRob2Q9InBvc3QiIGFjdGlvbj0iL2FkbWluL3Byb2R1Y3RzLzwlPSByLmlkICU+L3RvZ2dsZSIgc3R5bGU9ImRpc3BsYXk6aW5saW5lIj48YnV0dG9uIGNsYXNzPSJidG4gYnRuLWciIHN0eWxlPSJwYWRkaW5nOjZweCAxMXB4IiB0eXBlPSJzdWJtaXQiPjwlPSAoci5oaWRkZW58fCFyLmFjdGl2ZSkgPyAnU2hvdycgOiAnSGlkZScgJT48L2J1dHRvbj48L2Zvcm0+CiAgICAgICAgICA8Zm9ybSBtZXRob2Q9InBvc3QiIGFjdGlvbj0iL2FkbWluL3Byb2R1Y3RzLzwlPSByLmlkICU+L2RlbGV0ZSIgc3R5bGU9ImRpc3BsYXk6aW5saW5lIiBvbnN1Ym1pdD0icmV0dXJuIGNvbmZpcm0oJ0RlbGV0ZSB0aGlzIHByb2R1Y3QgcGVybWFuZW50bHk/JykiPjxidXR0b24gY2xhc3M9ImJ0biBidG4tZyIgc3R5bGU9InBhZGRpbmc6NnB4IDExcHg7Y29sb3I6I2I0MjMxOCIgdHlwZT0ic3VibWl0Ij5EZWxldGU8L2J1dHRvbj48L2Zvcm0+CiAgICAgICAgPC90ZD4KICAgICAgPC90cj4KICAgIDwlIH0pOyAlPgogICAgPC90Ym9keT4KICA8L3RhYmxlPgo8L2Rpdj4KPHNjcmlwdD4KKGZ1bmN0aW9uKCl7dmFyIHNhPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdzZWxhbGwnKTtpZighc2EpcmV0dXJuO3NhLmFkZEV2ZW50TGlzdGVuZXIoJ2NoYW5nZScsZnVuY3Rpb24oKXtkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCdpbnB1dFtuYW1lPSJpZHMiXScpLmZvckVhY2goZnVuY3Rpb24oYyl7Yy5jaGVja2VkPXNhLmNoZWNrZWQ7fSk7fSk7fSkoKTsKPC9zY3JpcHQ+CjwlLSBpbmNsdWRlKCdfc2hlbGxfYm90dG9tJykgJT4K
+B62_prods
+writef "views/admin/products.ejs" /tmp/s62_prods.b64 "0193d7a3d260fbff98243a2be967cfff"
+rm -f /tmp/s62_prods.b64
+
+echo "==> add /products/bulk route"
+node <<'NODE'
+const fs=require('fs'); const f='/opt/gsz/routes/adminCatalog.js';
+let s=fs.readFileSync(f,'utf8');
+const a="    res.redirect('/admin/products?ok=Trending+updated');\n  });";
+const add="\n  // Bulk: set or clear the product note on all selected products.\n  router.post('/products/bulk', auth, body, async (req, res) => {\n    const ids = [].concat(req.body.ids || []).map(x => parseInt(x, 10)).filter(Boolean);\n    if (!ids.length) return res.redirect('/admin/products?ok=No+products+selected');\n    const op = req.body.op;\n    if (op === 'set') { const note = (req.body.note || '').trim(); await pool.query('UPDATE products SET note=$1 WHERE id = ANY($2)', [note, ids]); }\n    else if (op === 'clear') { await pool.query('UPDATE products SET note=NULL WHERE id = ANY($1)', [ids]); }\n    res.redirect('/admin/products?ok=' + ids.length + '+product(s)+updated');\n  });";
+if(s.indexOf("router.post('/products/bulk'")>=0){ console.log('   skip (already)'); }
+else { if(s.indexOf(a)<0){ console.error('!! anchor missing (trending route)'); process.exit(2); } s=s.replace(a, a+add); fs.writeFileSync(f,s); console.log('   bulk route added'); }
+NODE
+
+echo "==> node --check + ejs compile"
+node --check "$APP/routes/adminCatalog.js"
+node -e 'const ejs=require("/opt/gsz/node_modules/ejs"),fs=require("fs");ejs.compile(fs.readFileSync("/opt/gsz/views/admin/products.ejs","utf8"),{filename:"/opt/gsz/views/admin/products.ejs"});console.log("   compiled products.ejs");'
+grep -q "router.post('/products/bulk'" "$APP/routes/adminCatalog.js" || { echo "!! bulk route missing"; false; }
+
+echo "==> pm2 restart"; pm2 restart gsz --update-env >/dev/null; sleep 3
+grep -q '</html>' <<<"$(curl -s -m 15 http://127.0.0.1:3900/ || true)" || { echo "!! home broken"; false; }
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://127.0.0.1:3900/admin/products || true)
+echo "   /admin/products -> HTTP $CODE"
+[ "$CODE" = "302" ] || [ "$CODE" = "200" ] || { echo "!! admin products error $CODE"; false; }
+trap - ERR
+echo "==> step62 OK — bulk note live. Backup: $BAK"
