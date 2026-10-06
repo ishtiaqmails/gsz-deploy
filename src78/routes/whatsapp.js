@@ -161,12 +161,9 @@ module.exports = function (pool) {
       await c.query("UPDATE whatsapp_verification_sessions SET status='VERIFIED', whatsapp_identity_id=$2, completed_at=now(), updated_at=now() WHERE id=$1", [sess.id, identity.id]);
       await c.query('COMMIT');
       await audit('WHATSAPP_VERIFICATION_COMPLETED', { customer_id: sess.customer_id, identity_id: identity.id });
-      try {
-        const cust = (await pool.query('SELECT ref_code FROM customers WHERE id=$1', [sess.customer_id])).rows[0] || {};
-        await pool.query("INSERT INTO wa_notifications(customer_id,destination_identity_id,template_key,vars,idempotency_key) VALUES($1,$2,'whatsapp.verification_success',$3,$4) ON CONFLICT(idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING",
-          [sess.customer_id, identity.id, JSON.stringify({ site_name: 'Galaxy Subz × Zayron', customer_reference: cust.ref_code || '' }), 'verif-ok-' + sess.id]);
-      } catch (e) {}
-      const reply = renderTpl(await tpl('whatsapp.verification_success'), { site_name: 'Galaxy Subz × Zayron', customer_reference: '' });
+      // The bot's immediate reply below IS the confirmation — do not also enqueue
+      // it to the outbox, or the customer receives it twice (and the 2nd one late).
+      const reply = renderTpl(await tpl('whatsapp.verification_success'), { site_name: 'Galaxy Subz × Zayron' });
       return res.json({ ok: true, action: 'VERIFIED', reply });
     } catch (e) {
       try { await c.query('ROLLBACK'); } catch (_) {}

@@ -101,6 +101,8 @@ async function start() {
         if (!m.message || (m.key && m.key.fromMe)) continue;
         const jid = (m.key && m.key.remoteJid) || '';
         if (!jid || jid.endsWith('@g.us') || jid === 'status@broadcast' || jid.endsWith('@newsletter')) continue; // DMs only
+        const ts = Number(m.messageTimestamp) || 0;                 // skip stale/history messages (keeps live replies fast)
+        if (ts && (Date.now() / 1000 - ts) > 90) continue;
         const text = extractText(m).trim();
         const ident = buildIdentity(m.key);
         const resp = await postWebhook('/internal/whatsapp/incoming', { lid: ident.lid || null, pnJid: ident.pnJid || null, phone: ident.phone || null, jid: ident.jid, text });
