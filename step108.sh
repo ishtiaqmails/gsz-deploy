@@ -41,7 +41,7 @@ node -e "const ejs=require('$GSZ/node_modules/ejs');['views/partials/store_top.e
 
 # ---- migrate ----
 echo "==> migrating db"
-( cd "$GSZ" && node "$TMP/migrate_step108.js" )
+( cd "$GSZ" && NODE_PATH="$GSZ/node_modules" node "$TMP/migrate_step108.js" )
 
 # ---- restart ----
 echo "==> restarting app"
@@ -59,7 +59,7 @@ grep -q 'code-chip' <<<"$HP" && echo "    promo chip renders: OK" || echo "    p
 VR=$(curl -s 'http://127.0.0.1:3900/api/coupon/validate?code=__nope__&p=__none__&region=PK' || true)
 grep -q '"ok":false' <<<"$VR" && echo "    validate endpoint live: OK" || { echo "    validate endpoint FAILED: $VR"; false; }
 
-SLUG=$(cd "$GSZ" && node -e "require('dotenv/config');const{Pool}=require('pg');const p=new Pool({host:process.env.DB_HOST||'127.0.0.1',port:+(process.env.DB_PORT||5432),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});p.query(\"SELECT slug FROM products WHERE active AND NOT hidden ORDER BY id LIMIT 1\").then(function(r){console.log(r.rows[0]?r.rows[0].slug:'');return p.end();}).catch(function(){console.log('')})" 2>/dev/null || true)
+SLUG=$(cd "$GSZ" && NODE_PATH="$GSZ/node_modules" node -e "require('dotenv/config');const{Pool}=require('pg');const p=new Pool({host:process.env.DB_HOST||'127.0.0.1',port:+(process.env.DB_PORT||5432),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});p.query(\"SELECT slug FROM products WHERE active AND NOT hidden ORDER BY id LIMIT 1\").then(function(r){console.log(r.rows[0]?r.rows[0].slug:'');return p.end();}).catch(function(){console.log('')})" 2>/dev/null || true)
 if [ -n "$SLUG" ]; then
   DV=$(curl -s "http://127.0.0.1:3900/api/coupon/validate?ctx=single&region=PK&code=GALAXY10&p=$SLUG" || true)
   if grep -q '"ok":true' <<<"$DV"; then echo "    GALAXY10 applies on '$SLUG': OK"; else echo "    GALAXY10 check on '$SLUG': $DV (non-fatal — code may be off/limited)"; fi
