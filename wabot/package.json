@@ -1,0 +1,14 @@
+{
+  "name": "gsz-wabot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Galaxy Subz x Zayron dedicated WhatsApp verification bot",
+  "main": "bot.js",
+  "scripts": { "start": "node bot.js" },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "@hapi/boom": "^10.0.1",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
