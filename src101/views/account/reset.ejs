@@ -1,0 +1,24 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="auth">
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="auth-card">
+      <span class="auth-badge"><span class="dot"></span>Set a new password</span>
+      <h1>Reset password</h1>
+      <p class="lead">Enter the 6-digit code we sent to your email and/or WhatsApp, then choose a new password.</p>
+      <% if (sent) { %><div class="okmsg">If an account exists, the reset code is on its way. Check your WhatsApp and email (and spam).</div><% } %>
+      <% if (error) { %><div class="err"><%= error %></div><% } %>
+      <form method="post" action="/reset" autocomplete="off">
+        <label class="fld" for="code">Reset code</label>
+        <input id="code" class="code-in" type="text" name="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
+        <label class="fld" for="password">New password</label>
+        <input id="password" type="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+        <label class="fld" for="password2">Confirm new password</label>
+        <input id="password2" type="password" name="password2" placeholder="Re-enter new password" required autocomplete="new-password">
+        <button class="btn btn-p btn-full" type="submit">Change password</button>
+      </form>
+      <p class="alt"><a href="/forgot">Didn't get a code? Try again</a></p>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
