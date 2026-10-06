@@ -1,0 +1,28 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="auth">
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="auth-card">
+      <span class="auth-badge"><span class="dot"></span>Create your account</span>
+      <h1>Sign up</h1>
+      <p class="lead">One account for your orders, downloads and free trials. We'll verify your email and WhatsApp to keep things secure.</p>
+      <% if (error) { %><div class="err"><%= error %></div><% } %>
+      <form method="post" action="/signup" autocomplete="on">
+        <label class="fld" for="name">Full name</label>
+        <input id="name" type="text" name="name" value="<%= form.name || '' %>" placeholder="Your name" required autocomplete="name">
+        <label class="fld" for="email">Email address</label>
+        <input id="email" type="email" name="email" value="<%= form.email || '' %>" placeholder="you@email.com" required autocomplete="email">
+        <label class="fld" for="wa">WhatsApp number</label>
+        <input id="wa" type="tel" name="wa" value="<%= form.wa || '' %>" placeholder="e.g. 923001234567" required autocomplete="tel">
+        <p class="hint">Include your country code (no + or spaces). You'll verify this later.</p>
+        <label class="fld" for="password">Password</label>
+        <input id="password" type="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+        <label class="fld" for="password2">Confirm password</label>
+        <input id="password2" type="password" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+        <button class="btn btn-p btn-full" type="submit">Create account</button>
+      </form>
+      <p class="alt">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>

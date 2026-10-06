@@ -1,0 +1,43 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>Hi, <%= (c.name||'there').split(' ')[0] %></h1>
+        <p class="sub">Welcome to your account.</p>
+      </div>
+      <form method="post" action="/logout" style="margin:0"><button class="btn btn-g" type="submit">Sign out</button></form>
+    </div>
+
+    <% if (ok === 'email') { %><div class="okmsg" style="max-width:760px">Your email is verified — you're all set.</div><% } %>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h2>Your profile</h2>
+        <div class="drow"><span class="k">Name</span><span class="v"><%= c.name %></span></div>
+        <div class="drow"><span class="k">Email</span><span class="v">
+          <%= c.email %>
+          <% if (c.email_verified) { %><span class="vbadge ok" style="margin-left:8px">Verified</span>
+          <% } else { %><a href="/account/verify-email" class="vbadge no" style="margin-left:8px;text-decoration:none">Verify now</a><% } %>
+        </span></div>
+        <div class="drow"><span class="k">WhatsApp</span><span class="v">
+          <%= c.wa_number ? ('+'+c.wa_number) : '—' %>
+          <% if (c.wa_verified) { %><span class="vbadge ok" style="margin-left:8px">Verified</span>
+          <% } else { %><span class="vbadge no" style="margin-left:8px">Not verified yet</span><% } %>
+        </span></div>
+      </div>
+
+      <div class="dash-card">
+        <h2>Your orders</h2>
+        <p class="soon">Your orders and downloads will show up here once you place one. <a href="/" style="color:var(--b);font-weight:600">Browse products →</a></p>
+      </div>
+
+      <div class="dash-card">
+        <h2>Free trials</h2>
+        <p class="soon">Eligible IPTV trials will appear here. Verify your email and WhatsApp to unlock them.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
