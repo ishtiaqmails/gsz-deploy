@@ -1,0 +1,52 @@
+<%- include('partials/store_top') %>
+<%- include('partials/auth_style') %>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>Free IPTV trials</h1>
+        <p class="sub">Try a server free before you buy. Trials need a verified account — it keeps them fair for everyone.</p>
+      </div>
+      <% if (me) { %><a class="btn btn-g" href="/account/trials">My trials</a><% } else { %><a class="btn btn-g" href="/login?next=/trials">Sign in</a><% } %>
+    </div>
+
+    <% if (flash) { %><div class="okmsg" style="max-width:760px"><%= flash %></div><% } %>
+
+    <% if (me && (!me.emailOk || !me.waOk)) { %>
+      <div class="note" style="max-width:760px">To claim a trial, verify your account first:
+        <% if (!me.emailOk) { %> <a href="/account/verify-email" style="color:#f2b24a;font-weight:700">verify email</a><% } %>
+        <% if (!me.emailOk && !me.waOk) { %> &amp;<% } %>
+        <% if (!me.waOk) { %> <a href="/account/whatsapp" style="color:#f2b24a;font-weight:700">verify WhatsApp</a><% } %>.
+      </div>
+    <% } %>
+
+    <% if (!servers.length) { %>
+      <div class="dash-card"><p class="soon">No trials available right now — check back soon.</p></div>
+    <% } else { %>
+      <div class="dash-grid">
+        <% servers.forEach(function(s){ var u = used[s.sku]||0; var left = Math.max(0, (s.max_per_customer||1)-u); %>
+          <div class="dash-card">
+            <h2><%= s.name %></h2>
+            <div class="drow"><span class="k">Trial length</span><span class="v"><%= s.duration_label || (s.duration_hours + ' hours') %></span></div>
+            <div class="drow"><span class="k">Per customer</span><span class="v"><%= s.max_per_customer %></span></div>
+            <div style="margin-top:14px">
+              <% if (!me) { %>
+                <a class="btn btn-p" href="/login?next=/trials">Sign in to claim</a>
+              <% } else if (!me.emailOk || !me.waOk) { %>
+                <a class="btn btn-g" href="<%= !me.waOk ? '/account/whatsapp' : '/account/verify-email' %>">Verify to claim</a>
+              <% } else if (left <= 0) { %>
+                <span class="vbadge no">Already claimed</span>
+              <% } else { %>
+                <form method="post" action="/trials/claim" style="margin:0">
+                  <input type="hidden" name="sku" value="<%= s.sku %>">
+                  <button class="btn btn-p" type="submit">Get free trial</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</main>
+<%- include('partials/store_bottom') %>

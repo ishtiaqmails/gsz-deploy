@@ -1,0 +1,35 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<% function stCls(s){ s=String(s||'').toLowerCase(); if(s==='active') return 'ok'; if(s==='rejected'||s==='expired'||s==='failed') return 'bad'; return 'no'; }
+   function expLabel(e){ if(!e) return ''; var d=new Date(e); var now=new Date(); if(d<now) return 'expired'; var h=Math.round((d-now)/3600000); return h>=24?(Math.round(h/24)+'d left'):(h+'h left'); } %>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>My trials</h1>
+        <p class="sub">Your free trials and their details.</p>
+      </div>
+      <a class="btn btn-g" href="/trials">Get another</a>
+    </div>
+
+    <div class="dash-grid">
+      <% if (!rows.length) { %>
+        <div class="dash-card"><p class="soon">You haven't claimed any trials yet. <a href="/trials" style="color:var(--b);font-weight:600">Browse free trials →</a></p></div>
+      <% } else { rows.forEach(function(t){ %>
+        <div class="dash-card">
+          <h2><%= t.server_name || t.trial_type %></h2>
+          <div class="drow"><span class="k">Status</span><span class="v"><span class="vbadge <%= stCls(t.status) %>"><%= t.status %></span> <% if (t.expires_at) { %><span style="color:var(--muted);font-size:12.5px;margin-left:8px"><%= expLabel(t.expires_at) %></span><% } %></span></div>
+          <% if (t.status === 'active' && t.credentials) { %>
+            <p class="fld" style="margin:16px 0 8px">Your trial details</p>
+            <div style="background:var(--bg0);border:1px solid var(--line-2);border-radius:12px;padding:14px 15px;color:var(--ink);font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;font-family:var(--display,monospace)"><%= t.credentials %></div>
+          <% } else if (t.status === 'pending') { %>
+            <p class="soon" style="margin-top:12px">Your trial is being prepared — we'll message it to your WhatsApp as soon as it's ready.</p>
+          <% } else if (t.status === 'expired') { %>
+            <p class="soon" style="margin-top:12px">This trial has ended.</p>
+          <% } %>
+        </div>
+      <% }); } %>
+    </div>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
