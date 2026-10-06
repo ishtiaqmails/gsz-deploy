@@ -1,0 +1,94 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<%
+  function maskNum(p){ p=String(p||''); if(p.length<6) return p||'—'; return p.slice(0,5)+' •••• '+p.slice(-4); }
+%>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>WhatsApp</h1>
+        <p class="sub">Verify your WhatsApp to unlock free trials and get order updates.</p>
+      </div>
+      <a class="btn btn-g" href="/account">← Back to account</a>
+    </div>
+
+    <div class="dash-grid">
+      <% if (st.verified) { %>
+        <div class="dash-card">
+          <h2>WhatsApp status</h2>
+          <div class="drow"><span class="k">Status</span><span class="v"><span class="vbadge ok">Verified ✓</span></span></div>
+          <div class="drow"><span class="k">Number</span><span class="v"><%= st.phone ? maskNum(st.phone) : 'Captured on verification' %></span></div>
+          <div class="drow"><span class="k">Used for</span><span class="v" style="font-weight:500;color:var(--muted)">Order updates · Account notifications · Security</span></div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn-g" href="/account/whatsapp/change">Change WhatsApp</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="dash-card">
+          <h2>Verify your WhatsApp</h2>
+          <% if (!cfg.enabled || !cfg.hasNumber) { %>
+            <div class="note">WhatsApp verification is temporarily unavailable. Please check back shortly.</div>
+          <% } else { %>
+            <p class="soon" style="margin-bottom:16px">Tap the button below. We'll open a WhatsApp chat with a one-time message already written — just press <b style="color:var(--ink)">send</b>. No need to type your number.</p>
+            <div id="waStart">
+              <button class="btn btn-p" id="waBtn" type="button" style="padding:12px 20px">Verify with WhatsApp</button>
+            </div>
+            <div id="waFlow" style="display:none;margin-top:4px">
+              <div class="okmsg" style="margin-bottom:14px">Chat ready. In WhatsApp, just press <b>send</b> on the message below.</div>
+              <div class="drow" style="border:0"><span class="k">Message to send</span><span class="v" id="waCode" style="font-family:var(--display);letter-spacing:1px"></span></div>
+              <a class="btn btn-p" id="waOpen" href="#" target="_blank" rel="noopener" style="width:100%;justify-content:center;margin:12px 0 4px">Open WhatsApp</a>
+              <p class="hint" id="waWait" style="margin-top:12px">Waiting for your WhatsApp message… this updates automatically.</p>
+            </div>
+            <div id="waDone" style="display:none;margin-top:4px">
+              <div class="okmsg">✓ WhatsApp verified! Redirecting…</div>
+            </div>
+            <div id="waErr" class="err" style="display:none;margin-top:14px"></div>
+          <% } %>
+        </div>
+      <% } %>
+
+      <div class="dash-card">
+        <h2>Why verify?</h2>
+        <p class="soon">A verified WhatsApp lets us send your order status and login details instantly, keeps your account secure, and is required to claim free IPTV trials. We only use it for your orders and account — not spam.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var btn=document.getElementById('waBtn'); if(!btn) return;
+  var flow=document.getElementById('waFlow'), start=document.getElementById('waStart'),
+      codeEl=document.getElementById('waCode'), openA=document.getElementById('waOpen'),
+      done=document.getElementById('waDone'), err=document.getElementById('waErr'), wait=document.getElementById('waWait');
+  var poll=null;
+  function showErr(m){ if(err){err.style.display='block';err.textContent=m||'Something went wrong. Please try again.';} if(start)start.style.display='';}
+  function stopPoll(){ if(poll){clearInterval(poll);poll=null;} }
+  btn.addEventListener('click',function(){
+    btn.disabled=true; if(err)err.style.display='none';
+    fetch('/api/whatsapp/verification/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+      .then(function(x){
+        btn.disabled=false;
+        if(x.d && x.d.already){ location.href='/account/whatsapp'; return; }
+        if(!x.ok){ showErr(x.d && x.d.message); return; }
+        var d=x.d;
+        if(start)start.style.display='none';
+        if(flow)flow.style.display='block';
+        if(codeEl)codeEl.textContent=d.text;
+        if(openA)openA.href=d.waLink;
+        if(openA){ try{ window.open(d.waLink,'_blank'); }catch(e){} }
+        stopPoll();
+        poll=setInterval(function(){
+          fetch('/api/whatsapp/verification/'+d.id+'/status').then(function(r){return r.json();}).then(function(s){
+            if(!s||!s.status) return;
+            if(s.status==='VERIFIED'){ stopPoll(); if(flow)flow.style.display='none'; if(done)done.style.display='block'; setTimeout(function(){location.href='/account/whatsapp';},1400); }
+            else if(s.status==='EXPIRED'||s.status==='FAILED'){ stopPoll(); if(flow)flow.style.display='none'; showErr(s.status==='EXPIRED'?'That code expired. Tap Verify with WhatsApp to try again.':'We could not verify that WhatsApp. Tap to try again, or contact support.'); }
+          }).catch(function(){});
+        },3000);
+      }).catch(function(){ btn.disabled=false; showErr(); });
+  });
+})();
+</script>
+<%- include('../partials/store_bottom') %>
