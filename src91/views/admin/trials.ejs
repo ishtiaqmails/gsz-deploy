@@ -1,0 +1,31 @@
+<%- include('_shell_top', { active:'trials', title:'Trials' }) %>
+<p class="sub">Turn free trials on per IPTV server, set each server's trial length, and cap how many trials one customer can take. Trials require a verified account (email + WhatsApp) and are enforced per customer identity.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<% rows.forEach(function(r){ %><form id="tf_<%= r.sku %>" method="post" action="/admin/trials/save"></form><% }); %>
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>IPTV server</th><th style="width:80px">Trials</th><th>Duration label</th><th style="width:100px">Hours</th><th style="width:130px">Max / customer</th><th style="width:90px"></th></tr></thead>
+    <tbody>
+    <% rows.forEach(function(r){ %>
+      <tr>
+        <td>
+          <b><%= r.name %></b>
+          <div style="color:var(--muted);font-size:12px"><%= r.sku %></div>
+          <input type="hidden" name="sku" value="<%= r.sku %>" form="tf_<%= r.sku %>">
+        </td>
+        <td>
+          <label style="display:inline-flex;align-items:center;gap:8px;font-weight:600">
+            <input type="checkbox" name="enabled" value="1" form="tf_<%= r.sku %>" <%= r.enabled ? 'checked' : '' %> style="width:auto;margin:0">On
+          </label>
+        </td>
+        <td><input type="text" name="duration_label" value="<%= r.duration_label || '' %>" placeholder="e.g. 24-hour trial" form="tf_<%= r.sku %>" style="margin:0"></td>
+        <td><input type="number" name="duration_hours" value="<%= (r.duration_hours==null?24:r.duration_hours) %>" min="1" max="2160" form="tf_<%= r.sku %>" style="margin:0"></td>
+        <td><input type="number" name="max_per_customer" value="<%= (r.max_per_customer==null?1:r.max_per_customer) %>" min="1" max="99" form="tf_<%= r.sku %>" style="margin:0"></td>
+        <td style="text-align:right"><button class="btn btn-p" type="submit" form="tf_<%= r.sku %>">Save</button></td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<% if (!rows.length) { %><div class="card">No IPTV servers found in bot mapping. Once IPTV products are mapped (delivery type <b>iptv</b>), they'll appear here.</div><% } %>
+<%- include('_shell_bottom') %>
