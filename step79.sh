@@ -52,7 +52,7 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const p = new Pool({ host:process.env.DB_HOST, port:process.env.DB_PORT, database:process.env.DB_NAME, user:process.env.DB_USER, password:process.env.DB_PASS });
 (async()=>{
-  await p.query("INSERT INTO wa_settings(key,value) VALUES('wa_bot_send_url','http://127.0.0.1:8095') ON CONFLICT(key) DO NOTHING");
+  await p.query("INSERT INTO wa_settings(key,value) VALUES('wa_bot_send_url','http://127.0.0.1:8095/send') ON CONFLICT(key) DO NOTHING");
   const v = process.env.VNUM || '';
   if (v) { await p.query("INSERT INTO wa_settings(key,value) VALUES('wa_verify_number',$1) ON CONFLICT(key) DO UPDATE SET value=$1, updated_at=now()", [v]); console.log('   verify number set to '+v); }
   else { console.log('   verify number unchanged (pass it as an arg to set it)'); }
