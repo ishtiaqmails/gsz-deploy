@@ -1,0 +1,59 @@
+<%- include('_shell_top', { active:'coupons', title:'Discount codes' }) %>
+<p class="sub">Create discount codes customers enter at checkout. Mark one as <b>featured</b> to show it in the site's top promo bar.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="card">
+  <h2 style="margin-bottom:14px"><%= edit ? ('Edit code · ' + edit.code) : 'Add a discount code' %></h2>
+  <form method="post" action="/admin/coupons/save">
+    <% if (edit) { %><input type="hidden" name="id" value="<%= edit.id %>"><% } %>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 16px">
+      <div><label class="fld">Code</label><input type="text" name="code" value="<%= edit ? edit.code : '' %>" placeholder="GALAXY10" required style="text-transform:uppercase"></div>
+      <div><label class="fld">Type</label>
+        <select name="kind"><option value="percent" <%= (edit&&edit.kind==='percent')||!edit?'selected':'' %>>Percentage %</option><option value="fixed" <%= edit&&edit.kind==='fixed'?'selected':'' %>>Fixed Rs</option></select>
+      </div>
+      <div><label class="fld">Value (10 = 10% or Rs 10)</label><input type="number" step="0.01" min="0" name="value" value="<%= edit ? edit.value : '' %>" required></div>
+      <div><label class="fld">Min order (Rs, optional)</label><input type="number" step="1" min="0" name="min_order_pkr" value="<%= edit && edit.min_order_pkr ? Math.round(edit.min_order_pkr) : '' %>"></div>
+      <div><label class="fld">Max discount (Rs, optional)</label><input type="number" step="1" min="0" name="max_discount_pkr" value="<%= edit && edit.max_discount_pkr ? Math.round(edit.max_discount_pkr) : '' %>"></div>
+      <div><label class="fld">Usage limit (optional)</label><input type="number" step="1" min="0" name="usage_limit" value="<%= edit && edit.usage_limit ? edit.usage_limit : '' %>"></div>
+      <div><label class="fld">Expires (optional)</label><input type="datetime-local" name="expires_at" value="<%= edit ? toDTLocal(edit.expires_at) : '' %>"></div>
+    </div>
+    <div style="display:flex;gap:20px;align-items:center;margin:6px 0 14px">
+      <label style="display:inline-flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="active" value="1" <%= !edit || edit.active ? 'checked' : '' %> style="width:auto;margin:0">Active</label>
+      <label style="display:inline-flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="featured" value="1" <%= edit && edit.featured ? 'checked' : '' %> style="width:auto;margin:0">Show in top promo bar</label>
+    </div>
+    <button class="btn btn-p" type="submit"><%= edit ? 'Save changes' : 'Add code' %></button>
+    <% if (edit) { %><a class="btn btn-g" href="/admin/coupons">Cancel</a><% } %>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Code</th><th>Discount</th><th>Rules</th><th>Used</th><th>Status</th><th>Promo bar</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="7" style="color:var(--muted);padding:18px">No discount codes yet.</td></tr><% } %>
+    <% rows.forEach(function(c){ %>
+      <tr>
+        <td><b><%= c.code %></b></td>
+        <td><%= c.kind==='percent' ? (c.value+'%') : ('Rs '+Math.round(c.value).toLocaleString('en-US')) %></td>
+        <td style="color:var(--muted);font-size:13px">
+          <%= c.min_order_pkr ? ('Min Rs '+Math.round(c.min_order_pkr).toLocaleString('en-US')+' ') : '' %>
+          <%= c.max_discount_pkr ? ('· Max Rs '+Math.round(c.max_discount_pkr).toLocaleString('en-US')+' ') : '' %>
+          <%= c.usage_limit ? ('· Limit '+c.usage_limit+' ') : '' %>
+          <%= c.expires_at ? ('· Ends '+new Date(c.expires_at).toLocaleDateString('en-GB')) : '' %>
+        </td>
+        <td><%= c.used_count || 0 %></td>
+        <td><% if (c.active) { %><span style="color:#0b7a42;font-weight:600">Active</span><% } else { %><span style="color:#b42318;font-weight:600">Off</span><% } %></td>
+        <td><% if (c.featured) { %><span style="color:var(--brand);font-weight:700">Featured ★</span><% } else { %><span style="color:var(--muted)">—</span><% } %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-g" style="padding:6px 11px" href="/admin/coupons?edit=<%= c.id %>">Edit</a>
+          <form method="post" action="/admin/coupons/<%= c.id %>/toggle" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= c.active ? 'Disable' : 'Enable' %></button></form>
+          <% if (c.featured) { %><form method="post" action="/admin/coupons/<%= c.id %>/unfeature" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit">Unfeature</button></form>
+          <% } else { %><form method="post" action="/admin/coupons/<%= c.id %>/feature" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit">Feature</button></form><% } %>
+          <form method="post" action="/admin/coupons/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this code?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>
