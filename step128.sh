@@ -7,8 +7,8 @@ GSZ=/opt/gsz; TS=$(date +%Y%m%d-%H%M%S); BK="$GSZ/.bak-step128-$TS"; TMP=$(mktem
 PATCHED=(lib/mailer.js routes/checkout.js); NEW=(lib/pdfdocs.js)
 echo "==> step128: Invoice + Receipt PDFs in email"
 echo "==> ensuring pdfkit is installed"
-( cd "$GSZ" && npm install pdfkit --no-audit --no-fund --silent ) || { echo "!! npm install pdfkit failed. Nothing changed."; exit 1; }
-node -e "require('$GSZ/node_modules/pdfkit')" || { echo "!! pdfkit not loadable. Nothing changed."; exit 1; }
+( cd "$GSZ" && npm install pdfkit --no-audit --no-fund ) || { echo "!! npm install pdfkit failed (network?). Nothing changed."; exit 1; }
+( cd "$GSZ" && node -e "require('pdfkit')" >/dev/null 2>&1 ) || { echo "!! pdfkit not loadable after install. Nothing changed."; exit 1; }
 mkdir -p "$BK"; for f in "${PATCHED[@]}"; do mkdir -p "$BK/$(dirname "$f")"; cp "$GSZ/$f" "$BK/$f"; done
 HAD_PDF=0; [ -f "$GSZ/lib/pdfdocs.js" ] && { HAD_PDF=1; cp "$GSZ/lib/pdfdocs.js" "$BK/pdfdocs.js"; }
 echo "    backup: $BK"
