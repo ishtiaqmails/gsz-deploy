@@ -35,7 +35,7 @@ node --check "$GSZ/$F"
 
 BEFORE=$(du -sh "$IMG" 2>/dev/null | cut -f1)
 echo "==> optimizing existing images (dir was $BEFORE)"
-node "$TMP/optimize.js" "$IMG"
+NODE_PATH="$GSZ/node_modules" node "$TMP/optimize.js" "$IMG"
 AFTER=$(du -sh "$IMG" 2>/dev/null | cut -f1)
 
 echo "==> restarting app"
