@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+GSZ=/opt/gsz
+F="$GSZ/views/admin/mapping.ejs"
+TS=$(date +%Y%m%d-%H%M%S)
+BK="$F.bak-step157-$TS"
+echo "==> step157: version mapping clarity (#6)"
+[ -f "$F" ] || { echo "!! $F not found"; exit 1; }
+cp "$F" "$BK"; echo "    backup: $BK"
+
+restore(){ echo "!! error — restoring"; cp "$BK" "$F" 2>/dev/null || true; }
+trap 'restore' ERR
+
+PATCHER=$(mktemp /tmp/patch_step157.XXXXXX.js)
+echo "J3VzZSBzdHJpY3QnOwovKiBzdGVwMTU3IOKAlCAjNiB2ZXJzaW9uIG1hcHBpbmcgY2xhcml0eS4gVGhlIFR5cGUgY29sdW1uIGFscmVhZHkgbWFwcyBhIHBsYW4gdG8gYQogICBib3QgdmVyc2lvbiAoRmFtaWx5L0FkdWx0KSBieSB0aGUgYm90J3MgSU1NVVRBQkxFIGtleSwgc28gZGVsaXZlcnkgY2FuJ3QgYmUKICAgd3JvbmcuIFRoaXMgbWFrZXMgdGhlIHNjcmVlbiBzYXkgc286IGJsYW5rIFR5cGUgPSBjdXN0b21lciBwaWNrcyB0aGUgdmVyc2lvbgogICBvbiB0aGUgcGFnZTsgYSBzZXQgVHlwZSA9IGxvY2tlZCB0byB0aGF0IHZlcnNpb247IHRoZSBTdGF0dXMgYmFkZ2Ugc3BlbGxzIG91dAogICB3aGljaCwgcGVyIHBsYW4uIFB1cmUgVUkgY2xhcml0eSDigJQgbm8gY2hhbmdlIHRvIGhvdyBhbnl0aGluZyBpcyBkZWxpdmVyZWQuCiAgIElkZW1wb3RlbnQuICovCmNvbnN0IGZzID0gcmVxdWlyZSgnZnMnKTsgY29uc3QgcGF0aCA9IHJlcXVpcmUoJ3BhdGgnKTsKY29uc3QgUk9PVCA9IHByb2Nlc3MuYXJndlsyXTsgaWYgKCFST09UKSB7IGNvbnNvbGUuZXJyb3IoJ3VzYWdlOiBub2RlIHBhdGNoX3N0ZXAxNTcuanMgPGdzei1yb290PicpOyBwcm9jZXNzLmV4aXQoMSk7IH0KZnVuY3Rpb24gcGF0Y2gocmVsLCBlZGl0cykgewogIGNvbnN0IGZpbGUgPSBwYXRoLmpvaW4oUk9PVCwgcmVsKTsgbGV0IHMgPSBmcy5yZWFkRmlsZVN5bmMoZmlsZSwgJ3V0ZjgnKTsKICBmb3IgKGNvbnN0IGUgb2YgZWRpdHMpIHsKICAgIGlmIChzLmluZGV4T2YoZS5ndWFyZCkgPj0gMCkgeyBjb25zb2xlLmxvZygnc2tpcCAoYWxyZWFkeSk6ICcgKyByZWwgKyAnIDo6ICcgKyBlLm5hbWUpOyBjb250aW51ZTsgfQogICAgY29uc3QgZmlyc3QgPSBzLmluZGV4T2YoZS5maW5kKTsKICAgIGlmIChmaXJzdCA8IDApIHRocm93IG5ldyBFcnJvcignQU5DSE9SIE1JU1M6ICcgKyByZWwgKyAnIDo6ICcgKyBlLm5hbWUpOwogICAgaWYgKHMuaW5kZXhPZihlLmZpbmQsIGZpcnN0ICsgMSkgPj0gMCkgdGhyb3cgbmV3IEVycm9yKCdBTkNIT1IgTk9UIFVOSVFVRTogJyArIHJlbCArICcgOjogJyArIGUubmFtZSk7CiAgICBzID0gcy5zbGljZSgwLCBmaXJzdCkgKyBlLnJlcGxhY2UgKyBzLnNsaWNlKGZpcnN0ICsgZS5maW5kLmxlbmd0aCk7CiAgICBjb25zb2xlLmxvZygncGF0Y2hlZDogJyArIHJlbCArICcgOjogJyArIGUubmFtZSk7CiAgfQogIGZzLndyaXRlRmlsZVN5bmMoZmlsZSwgcyk7Cn0KCi8qIDEpIGludHJvIGV4cGxhaW5lciBzZW50ZW5jZSAqLwpjb25zdCBFMV9GSU5EID0gIlBpY2sgYSBib3QgcHJvZHVjdCBhbmQgdGhlIHNvdXJjZSBzd2l0Y2hlcyB0byA8Yj5SZXNlbGxlciBib3Q8L2I+IGF1dG9tYXRpY2FsbHkuIjsKY29uc3QgRTFfUkVQTCA9ICJQaWNrIGEgYm90IHByb2R1Y3QgYW5kIHRoZSBzb3VyY2Ugc3dpdGNoZXMgdG8gPGI+UmVzZWxsZXIgYm90PC9iPiBhdXRvbWF0aWNhbGx5LiA8Yj5WZXJzaW9ucyAoSVBUVik6PC9iPiBsZWF2ZSBhIHBsYW4ncyA8Yj5UeXBlPC9iPiBibGFuayBzbyB0aGUgY3VzdG9tZXIgcGlja3MgdGhlIHZlcnNpb24gKGUuZy4gRmFtaWx5IC8gQWR1bHQpIG9uIHRoZSBwcm9kdWN0IHBhZ2UsIG9yIHNldCBhIDxiPlR5cGU8L2I+IHRvIGxvY2sgdGhlIHBsYW4gdG8gb25lIHZlcnNpb24g4oCUIGRlbGl2ZXJ5IGFsd2F5cyB1c2VzIHRoZSBib3QncyBpbW11dGFibGUgdmVyc2lvbiBrZXksIHNvIGl0IGNhbid0IGJlIG1pcy1kZWxpdmVyZWQuIjsKCi8qIDIpIGNsZWFyZXIgZW1wdHkgVHlwZSBvcHRpb24gKi8KY29uc3QgRTJfRklORCA9ICJ0eXBlU2VsLmFwcGVuZENoaWxkKG9wdCgnJywn4oCUIGNob29zZSDigJQnLCFjdXJUeXBlKSk7IjsKY29uc3QgRTJfUkVQTCA9ICJ0eXBlU2VsLmFwcGVuZENoaWxkKG9wdCgnJywn4oCUIEN1c3RvbWVyIGNob29zZXMgdmVyc2lvbiDigJQnLCFjdXJUeXBlKSk7IjsKCi8qIDMpIFN0YXR1cyBiYWRnZSBzcGVsbHMgb3V0IHZlcnNpb24gYmVoYXZpb3VyICovCmNvbnN0IEUzX0ZJTkQgPSAiZWwuY2xhc3NMaXN0LmFkZCgnb2snKTsgZWwudGV4dENvbnRlbnQ9KGIuZGVsaXZlcnlfdHlwZXx8J21hcHBlZCcpOyI7CmNvbnN0IEUzX1JFUEwgPQoiZWwuY2xhc3NMaXN0LmFkZCgnb2snKTtcbiIgKwoiICAgIHZhciB0U2VsPXJvdy5xdWVyeVNlbGVjdG9yKCcuanMtdHlwZScpOyB2YXIgblR5cGVzPSgoYiYmYi50eXBlcyl8fFtdKS5sZW5ndGg7XG4iICsKIiAgICBpZihuVHlwZXM+MSAmJiAhdFNlbC52YWx1ZSl7IGVsLnRleHRDb250ZW50PSdcXHUyNzEzIGN1c3RvbWVyIHBpY2tzIHZlcnNpb24nOyB9XG4iICsKIiAgICBlbHNlIGlmKHRTZWwudmFsdWUpeyB2YXIgdmw9Jyc7ICgoYiYmYi50eXBlcyl8fFtdKS5mb3JFYWNoKGZ1bmN0aW9uKHQpeyBpZihTdHJpbmcodC5rZXkpPT09dFNlbC52YWx1ZSkgdmw9KHQubGFiZWx8fHQua2V5KTsgfSk7IGVsLnRleHRDb250ZW50PSdcXHUyNzEzIGxvY2tlZDogJysodmx8fHRTZWwudmFsdWUpOyB9XG4iICsKIiAgICBlbHNlIHsgZWwudGV4dENvbnRlbnQ9KGIuZGVsaXZlcnlfdHlwZXx8J21hcHBlZCcpOyB9IjsKCnBhdGNoKCd2aWV3cy9hZG1pbi9tYXBwaW5nLmVqcycsIFsKICB7IG5hbWU6ICdpbnRyby12ZXJzaW9ucycsIGd1YXJkOiAnVmVyc2lvbnMgKElQVFYpOicsIGZpbmQ6IEUxX0ZJTkQsIHJlcGxhY2U6IEUxX1JFUEwgfSwKICB7IG5hbWU6ICd0eXBlLWVtcHR5LWxhYmVsJywgZ3VhcmQ6ICdDdXN0b21lciBjaG9vc2VzIHZlcnNpb24nLCBmaW5kOiBFMl9GSU5ELCByZXBsYWNlOiBFMl9SRVBMIH0sCiAgeyBuYW1lOiAnc3RhdHVzLXZlcnNpb24nLCBndWFyZDogJ2N1c3RvbWVyIHBpY2tzIHZlcnNpb24nLCBmaW5kOiBFM19GSU5ELCByZXBsYWNlOiBFM19SRVBMIH0KXSk7Cgpjb25zb2xlLmxvZygnQUxMIFBBVENIRVMgQVBQTElFRCcpOwo=" | base64 -d > "$PATCHER"
+echo "==> applying"
+NODE_PATH="$GSZ/node_modules" node "$PATCHER" "$GSZ"
+
+echo "==> validating"
+NODE_PATH="$GSZ/node_modules" node -e "const ejs=require('ejs'),fs=require('fs');ejs.compile(fs.readFileSync('$F','utf8'),{filename:'$F'});console.log('    ejs ok')"
+
+echo "==> restarting"
+pm2 restart gsz >/dev/null 2>&1 || pm2 restart gsz
+CODE=000
+for i in $(seq 1 25); do sleep 1; CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3900/ || echo 000); [ "$CODE" = "200" ] && break; done
+[ "$CODE" = "200" ] || { echo "    homepage $CODE after ${i}s"; false; }
+echo "    homepage 200: OK (after ${i}s)"
+
+rm -f "$PATCHER"
+trap - ERR
+echo ""
+echo "==> step157 OK  Bot mapping now shows versions clearly: leave a plan's Type blank = customer picks the version on the page; set a Type = locked to that version. The Status badge now reads '✓ customer picks version' or '✓ locked: <version>' per plan — so what you see is exactly what delivers."
