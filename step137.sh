@@ -3,7 +3,7 @@
 # or jumps to the top: the grid + pager swap in place and prices repaint via the
 # storefront's own formatter (app.js paintPrices exposed; cache tag -> v=27).
 # Patches public/js/app.js, views/partials/store_bottom.ejs, views/category.ejs.
-# No migration. Idempotent; restores on failure.
+# No migration. Idempotent; restores on failure. Robust health check (polls ~25s).
 set -euo pipefail
 GSZ=/opt/gsz; TS=$(date +%Y%m%d-%H%M%S); BK="$GSZ/.bak-step137-$TS"; TMP=$(mktemp -d)
 FILES=(public/js/app.js views/partials/store_bottom.ejs views/category.ejs)
@@ -16,7 +16,10 @@ echo "J3VzZSBzdHJpY3QnOwovKiBzdGVwMTM3IHBhdGNoZXIg4oCUIG5vLXJlbG9hZCBjYXRlZ29yeS
 echo "==> applying"; node "$TMP/p.js" "$GSZ"
 echo "==> validating"; node --check "$GSZ/public/js/app.js"
 node -e "const ejs=require('$GSZ/node_modules/ejs');['views/partials/store_bottom.ejs','views/category.ejs'].forEach(function(f){ejs.compile(require('fs').readFileSync('$GSZ/'+f,'utf8'),{filename:'$GSZ/'+f});console.log('    ejs ok '+f)})"
-echo "==> restarting"; pm2 restart gsz >/dev/null 2>&1 || pm2 restart gsz; sleep 2
-CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3900/ || true); [ "$CODE" = "200" ] && echo "    homepage 200: OK" || { echo "    homepage $CODE"; false; }
+echo "==> restarting"; pm2 restart gsz >/dev/null 2>&1 || pm2 restart gsz
+echo "==> waiting for app to come up"
+CODE=000
+for i in $(seq 1 25); do sleep 1; CODE=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3900/ || true); [ "$CODE" = "200" ] && break; done
+[ "$CODE" = "200" ] && echo "    homepage 200: OK (after ${i}s)" || { echo "    homepage $CODE after ${i}s"; false; }
 trap - ERR; rm -rf "$TMP"
 echo ""; echo "==> step137 OK ✅  Category pagination no longer reloads or jumps to the top — pages swap in place with prices intact. (Hard-refresh your browser once to pick up app.js v=27.)"
