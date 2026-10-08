@@ -1,0 +1,39 @@
+<%- include('_shell_top', { active:'messages', title:'Bot messages' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<div class="dcards">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M4 5h16v10H9l-4 4V5z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Messages</span><b class="dval"><%= rows.length %></b><span class="dsub">editable templates</span></div></div>
+  <div class="dcard" style="--t:#8a2bff"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Languages</span><b class="dval"><%= langs.length %></b><span class="dsub">available</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Sent together</span><b class="dval"><%= enabled.length %></b><span class="dsub">enabled now</span></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom:6px">Languages sent in each message</h2>
+  <p class="hint" style="margin:0 0 12px">Enabled languages are sent together in one message. Use <code>{{'{{'}}variable{{'}}'}}</code> placeholders (e.g. <code>{{'{{'}}order_number{{'}}'}}</code>) — filled in automatically.</p>
+  <form method="post" action="/admin/messages/langs" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <% langs.forEach(function(l){ %>
+      <label style="display:inline-flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" name="lang" value="<%= l.code %>" <%= enabled.indexOf(l.code)>=0?'checked':'' %> style="width:auto;margin:0"><%= l.name %></label>
+    <% }); %>
+    <button class="btn btn-p" type="submit" style="margin-left:auto">Save languages</button>
+  </form>
+</div>
+
+<% rows.forEach(function(r){ var L = (r.langs && typeof r.langs==='object') ? r.langs : {}; %>
+  <div class="card">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h2 style="margin:0"><%= names[r.key] || r.key %></h2>
+      <code style="color:var(--muted);font-size:12px"><%= r.key %></code>
+    </div>
+    <form method="post" action="/admin/messages/save">
+      <input type="hidden" name="key" value="<%= r.key %>">
+      <% langs.forEach(function(l){ var val = (L[l.code]!=null)?L[l.code]:(l.code==='en'?(r.body||''):''); %>
+        <label class="fld"><%= l.name %><% if (enabled.indexOf(l.code)<0) { %> <span style="color:var(--muted);font-weight:500">(not currently sent)</span><% } %></label>
+        <textarea name="lang_<%= l.code %>" rows="2" <%= l.rtl?'dir="rtl"':'' %> style="margin-bottom:12px"><%= val %></textarea>
+      <% }); %>
+      <button class="btn btn-p" type="submit">Save message</button>
+    </form>
+  </div>
+<% }); %>
+<%- include('_shell_bottom') %>

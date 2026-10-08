@@ -1,0 +1,79 @@
+<%- include('_shell_top', { active:'netflix', title:'Netflix stock' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  var pp = (typeof portalProducts!=='undefined' && portalProducts) ? portalProducts : [];
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function tierBadge(t){ var c=t==='full'?['#efe6ff','#6c23c9']:(t==='tv'?['#e8f0ff','#1b6fd6']:['#e7f8ee','#0b7a42']); return '<span class="spill" style="background:'+c[0]+';color:'+c[1]+'">'+t.toUpperCase()+'</span>'; }
+  var freeTot=0, asgTot=0;
+  data.forEach(function(g){ g.plans.forEach(function(pl){ if(pl.full){ freeTot+=(pl.portalFree||0); } else { freeTot+=(pl.free||0); asgTot+=(pl.assigned||0); } }); });
+%>
+<div class="dcards">
+  <div class="dcard" style="--t:#8a2bff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m8 8 8 8M16 8l-8 8"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Netflix products</span><b class="dval"><%= data.length %></b><span class="dsub">managed here</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Free stock</span><b class="dval"><%= freeTot %></b><span class="dsub">ready to deliver</span></div></div>
+  <div class="dcard" style="--t:#1b6fd6"><span class="dic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Assigned</span><b class="dval"><%= asgTot %></b><span class="dsub">delivered</span></div></div>
+</div>
+
+<% if (!data.length) { %>
+  <div class="card dempty" style="padding:22px">No Netflix-enabled products yet. (Enable a product's <code>nf_enabled</code> to manage it here.)</div>
+<% } %>
+<% data.forEach(function(group){ %>
+  <div class="card" style="margin-bottom:8px"><h2 style="margin:0"><%= group.product.name %></h2></div>
+  <% group.plans.forEach(function(pl){ %>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 style="margin:0;font-size:15px"><%= pl.label %></h2>
+        <%- tierBadge(pl.tier) %>
+        <% if (pl.full) { %>
+          <span style="margin-left:auto;color:var(--muted);font-size:13px">Fulfilled from portal<% if (pl.portalFree!=null) { %> · <b style="color:var(--ink)"><%= pl.portalFree %></b> free<% } %></span>
+        <% } else { %>
+          <span style="margin-left:auto;color:var(--muted);font-size:13px"><b style="color:var(--ink)"><%= pl.free %></b> free · <%= pl.assigned %> assigned</span>
+        <% } %>
+      </div>
+
+      <% if (pl.full) { %>
+        <p class="hint" style="margin:0 0 10px">This full-account plan is delivered from the Accounts Portal. Pick which portal product its accounts come from:</p>
+        <form method="post" action="/admin/netflix/plan/<%= pl.id %>/portal" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select name="portal_product_id" style="max-width:320px;margin:0">
+            <option value="">— not set —</option>
+            <% pp.forEach(function(x){ %><option value="<%= x.id %>" <%= (pl.portal_product_id==x.id)?'selected':'' %>><%= esc(x.name) %> (<%= x.free %> free)</option><% }); %>
+          </select>
+          <button class="btn btn-p" type="submit">Save</button>
+          <% if (pl.portal_product_id!=null && !pl.portalName) { %><span style="color:#b42318;font-size:12.5px">Portal product #<%= pl.portal_product_id %> not found / portal unreachable</span><% } %>
+        </form>
+      <% } else { %>
+        <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--hair)">
+        <table style="margin:0">
+          <thead><tr><th>Account email</th><th>Profile</th><th>PIN</th><th style="width:110px">Status</th><th style="width:90px"></th></tr></thead>
+          <tbody>
+          <% if (!pl.units.length) { %><tr><td colspan="5" style="color:var(--muted);padding:16px">No stock yet — add your first below.</td></tr><% } %>
+          <% pl.units.forEach(function(u){ var cr=u.credentials||{}; %>
+            <tr>
+              <td><%= u.account_email %></td>
+              <td><%= cr.profile || '—' %></td>
+              <td><%= cr.pin || '—' %></td>
+              <td><% if (u.assigned) { %><span class="spill" style="background:#e8f0ff;color:#1b6fd6">Assigned</span><% } else { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Free</span><% } %></td>
+              <td style="text-align:right">
+                <% if (!u.assigned) { %><form method="post" action="/admin/netflix/stock/<%= u.id %>/delete" style="margin:0" onsubmit="return confirm('Remove this free stock unit?')"><button class="btn btn-g" type="submit" style="padding:6px 11px;font-size:12.5px;color:#b42318">Delete</button></form><% } %>
+              </td>
+            </tr>
+          <% }); %>
+          </tbody>
+        </table>
+        </div>
+        <form method="post" action="/admin/netflix/stock/add" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end">
+          <input type="hidden" name="plan_id" value="<%= pl.id %>">
+          <input type="hidden" name="product_id" value="<%= group.product.id %>">
+          <div><label class="fld">Account email</label><input type="text" name="account_email" placeholder="account@gmail.com" style="margin:0" required></div>
+          <div><label class="fld">Password</label><input type="text" name="password" placeholder="password" style="margin:0"></div>
+          <div><label class="fld">Profile</label><input type="text" name="profile" placeholder="Profile name" style="margin:0"></div>
+          <div><label class="fld">PIN</label><input type="text" name="pin" placeholder="1234" style="margin:0"></div>
+          <button class="btn btn-p" type="submit">Add stock</button>
+        </form>
+      <% } %>
+    </div>
+  <% }); %>
+<% }); %>
+<%- include('_shell_bottom') %>

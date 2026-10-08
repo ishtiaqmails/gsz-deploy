@@ -1,0 +1,45 @@
+<%- include('_shell_top', { active:'payments', title:'Payments' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<% var on=rows.filter(function(m){return m.active;}).length; %>
+<div class="dcards">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Methods</span><b class="dval"><%= rows.length %></b><span class="dsub">configured</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Shown at checkout</span><b class="dval"><%= on %></b><span class="dsub">active</span></div></div>
+  <div class="dcard" style="--t:#737e9c"><span class="dic"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 21 12a9 9 0 0 1-1.1 2.3M6.1 6.1A9 9 0 0 0 3 12a9 9 0 0 0 12 8.5"/><path d="m2 2 20 20"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= rows.length-on %></b><span class="dsub">off</span></div></div>
+</div>
+
+<form method="post" action="/admin/payments">
+  <% rows.forEach(function(m){ %>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <h2 style="margin:0"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap;margin:0">
+        <input type="checkbox" name="m[<%= m.id %>][active]" <%= m.active ? 'checked' : '' %> style="width:auto;margin:0"> Show at checkout
+      </label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 110px 170px;gap:14px">
+      <div><label class="fld">Display name</label><input type="text" name="m[<%= m.id %>][name]" value="<%= m.name %>"></div>
+      <div><label class="fld">Currency</label><input type="text" name="m[<%= m.id %>][currency]" value="<%= m.currency %>"></div>
+      <div><label class="fld">Show to region</label>
+        <select name="m[<%= m.id %>][scope]">
+          <option value="all"    <%= m.scope==='all'    ? 'selected' : '' %>>All regions</option>
+          <option value="pk"     <%= m.scope==='pk'     ? 'selected' : '' %>>Pakistan only</option>
+          <option value="global" <%= m.scope==='global' ? 'selected' : '' %>>Global (outside PK)</option>
+        </select>
+      </div>
+    </div>
+    <label class="fld">Receiving details (shown to customer)</label>
+    <textarea name="m[<%= m.id %>][details]" rows="3" placeholder="e.g. Account title: Muhammad Ishtiaq&#10;Account no: 0000-0000000000&#10;IBAN: PK00XXXX0000000000000000"><%= m.details %></textarea>
+    <label class="fld">Instructions (optional)</label>
+    <textarea name="m[<%= m.id %>][instructions]" rows="2"><%= m.instructions %></textarea>
+    <input type="hidden" name="m[<%= m.id %>][sort]" value="<%= m.sort %>">
+  </div>
+  <% }); %>
+  <div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
+    <button class="btn btn-p" type="submit">Save payment details</button>
+    <span class="sub" style="margin-left:12px">Changes go live on checkout immediately.</span>
+  </div>
+</form>
+<%- include('_shell_bottom') %>

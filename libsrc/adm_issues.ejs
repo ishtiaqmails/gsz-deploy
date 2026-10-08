@@ -1,0 +1,60 @@
+<%- include('_shell_top', { active:'issues', title:'Issues' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  var K  = (typeof kinds!=='undefined'&&kinds)?kinds:{};
+  var cn = (typeof counts!=='undefined'&&counts)?counts:{};
+  function nb(s){ return cn[s]||0; }
+  function spill(s){ s=String(s||'').toLowerCase(); var col=(s==='resolved'||s==='replaced')?['#e7f6ec','#12883f']:(s==='rejected'?['#fdeceb','#b42318']:['#fcf5df','#8a6d00']); return '<span class="spill" style="background:'+col[0]+';color:'+col[1]+'">'+s+'</span>'; }
+%>
+<div class="dcards c4">
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Open</span><b class="dval"><%= nb('open') %></b><span class="dsub <%= nb('open')>0?'alert':'' %>"><%= nb('open')>0?'need attention':'all clear' %></span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Resolved</span><b class="dval"><%= nb('resolved') %></b><span class="dsub">closed</span></div></div>
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 2v6h6M21 22v-6h-6"/><path d="M21 12a9 9 0 0 0-15-6.7L3 8M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Replaced</span><b class="dval"><%= nb('replaced') %></b><span class="dsub">re-delivered</span></div></div>
+  <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Rejected</span><b class="dval"><%= nb('rejected') %></b><span class="dsub">declined</span></div></div>
+</div>
+
+<div class="chips">
+  <% ['open','resolved','replaced','rejected','all'].forEach(function(s){ %>
+    <a class="chip <%= filter===s?'on':'' %>" href="/admin/issues?status=<%= s %>"><%= s.charAt(0).toUpperCase()+s.slice(1) %><% if(s!=='all'&&nb(s)){ %><span class="n"><%= nb(s) %></span><% } %></a>
+  <% }); %>
+</div>
+
+<% if (!rows.length) { %><div class="card dempty" style="padding:22px">No issues in this view.</div><% } else { %>
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th style="width:120px">Reported</th><th>Order</th><th>Customer</th><th>Problem</th><th style="width:240px">Action</th></tr></thead>
+    <tbody>
+    <% rows.forEach(function(r){ %>
+      <tr>
+        <td style="white-space:nowrap;font-size:12.5px;color:var(--muted)"><% try { %><%= new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %><% } catch(e) {} %></td>
+        <td>
+          <b><%= r.o_product || r.order_no || '—' %></b>
+          <div style="color:var(--muted);font-size:12px"><%= r.order_no || (r.order_id?('#'+r.order_id):'') %><%= r.o_plan?(' · '+r.o_plan):'' %></div>
+        </td>
+        <td style="font-size:13px"><%= r.c_name || '' %><div style="color:var(--muted);font-size:12px"><%= r.c_email || r.customer_email || '' %><%= r.c_wa?(' · +'+r.c_wa):'' %></div></td>
+        <td style="font-size:13px;max-width:320px">
+          <span style="font-weight:600"><%= K[r.kind]||r.kind %></span>
+          <div style="white-space:pre-line;color:var(--muted);margin-top:2px"><%= r.message %></div>
+        </td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <% ['resolved','replaced','rejected','open'].forEach(function(st){ if(st===r.status) return; %>
+              <form method="post" action="/admin/issues/<%= r.id %>/status" style="margin:0">
+                <input type="hidden" name="status" value="<%= st %>"><input type="hidden" name="back" value="<%= filter %>">
+                <button class="btn btn-p" type="submit" style="padding:6px 11px;font-size:12.5px;<%= st==='rejected'?'background:#b42318':'' %>"><%= st==='open'?'Reopen':(st.charAt(0).toUpperCase()+st.slice(1)) %></button>
+              </form>
+            <% }); %>
+          </div>
+          <div style="margin-top:6px">now: <%- spill(r.status) %></div>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+<%- include('_shell_bottom') %>
