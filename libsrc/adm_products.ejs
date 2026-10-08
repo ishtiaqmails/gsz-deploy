@@ -1,0 +1,95 @@
+<%- include('_shell_top', { active:'products', title:'Products' }) %>
+<style>
+  #prodTable tr.dragging{opacity:.5;background:#f3f5fb}
+  #prodTable td.drag{width:30px;text-align:center;color:var(--muted);cursor:grab}
+  #prodTable td.drag svg{width:18px;height:18px;vertical-align:middle;pointer-events:none}
+  #prodSaved{display:inline-block;margin-left:10px;font-size:13px;color:#0b7a42;opacity:0;transition:opacity .2s}
+  #prodSaved.on{opacity:1}
+  .bulkwrap summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
+  .bulkwrap summary::-webkit-details-marker{display:none}
+  .bulkwrap[open] summary .chev{transform:rotate(90deg)}
+  .bulkwrap summary .chev{transition:.15s;color:var(--muted)}
+  .bulkrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+</style>
+<%
+  var total=rows.length;
+  var live=rows.filter(function(r){return r.active && !r.hidden;}).length;
+  var hidden=total-live;
+  var trending=rows.filter(function(r){return r.trending;}).length;
+%>
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+  <div style="flex:1"><p class="sub" style="margin:0">Add, edit, show/hide or remove products. <b>Drag the handle</b> to reorder — this is the order customers see.</p></div>
+  <a class="btn btn-p" href="/admin/products/new">+ Add product</a>
+</div>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="dcards c4">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total products</span><b class="dval"><%= total %></b><span class="dsub">in catalog</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Live</span><b class="dval"><%= live %></b><span class="dsub">visible on site</span></div></div>
+  <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 21 12a9 9 0 0 1-1.1 2.3M6.1 6.1A9 9 0 0 0 3 12a9 9 0 0 0 12 8.5"/><path d="m2 2 20 20"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= hidden %></b><span class="dsub">not shown</span></div></div>
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="m12 2 2.6 6.3L21 9l-5 4.3L17.5 20 12 16.5 6.5 20 8 13.3 3 9l6.4-.7L12 2Z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Trending</span><b class="dval"><%= trending %></b><span class="dsub">featured picks</span></div></div>
+</div>
+
+<form id="bulkf" method="post" action="/admin/products/bulk"></form>
+<details class="card bulkwrap" style="margin-bottom:16px">
+  <summary><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>Bulk actions on selected products</summary>
+  <div class="bulkrow">
+    <b style="font-size:13.5px;min-width:90px">Set note:</b>
+    <input form="bulkf" type="text" name="note" placeholder="Note to apply to the selected products" style="flex:1;min-width:220px;margin:0">
+    <button form="bulkf" name="op" value="set" class="btn btn-p" type="submit">Apply</button>
+    <button form="bulkf" name="op" value="clear" class="btn btn-g" type="submit">Clear note</button>
+  </div>
+  <div class="bulkrow">
+    <b style="font-size:13.5px;min-width:90px">Add download:</b>
+    <input form="bulkf" type="text" name="dl_label" placeholder="Label (e.g. Download APK)" style="min-width:160px;margin:0">
+    <input form="bulkf" type="text" name="dl_url" placeholder="https://..." style="flex:1;min-width:200px;margin:0">
+    <button form="bulkf" name="op" value="add-download" class="btn btn-p" type="submit">Add to selected</button>
+  </div>
+</details>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:14px 18px 0"><span class="fld" style="margin:0">Catalog order</span><span id="prodSaved">Order saved ✓</span></div>
+  <table id="prodTable">
+    <thead><tr><th style="width:34px"><input type="checkbox" id="selall" title="Select all"></th><th style="width:30px" title="Drag to reorder"></th><th>Product</th><th>Category</th><th>From</th><th>Trending</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="8" style="color:var(--muted);padding:24px 18px">No products yet. <a href="/admin/products/new" style="color:var(--brand);font-weight:600">Add your first →</a></td></tr><% } %>
+    <% rows.forEach(function(r, i){ %>
+      <tr data-id="<%= r.id %>">
+        <td><input type="checkbox" name="ids" value="<%= r.id %>" form="bulkf"></td>
+        <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
+        <td style="font-weight:600"><%= r.name %></td>
+        <td style="color:var(--muted)"><%= r.cat || '—' %></td>
+        <td style="white-space:nowrap;font-weight:700">Rs <%= r.price ? Math.round(r.price).toLocaleString('en-US') : '—' %></td>
+        <td>
+          <form method="post" action="/admin/products/<%= r.id %>/trending" style="display:inline">
+            <button class="btn btn-g" style="padding:6px 11px;<%= r.trending ? 'color:#c8890a;font-weight:700' : 'color:var(--muted)' %>" type="submit" title="<%= r.trending ? 'Remove from Trending' : 'Mark as Trending' %>"><%= r.trending ? '★ Trending' : '☆ Mark' %></button>
+          </form>
+        </td>
+        <td>
+          <% if (r.hidden || !r.active) { %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span>
+          <% } else { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } %>
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-g" style="padding:6px 11px" href="/admin/products/<%= r.id %>/edit">Edit</a>
+          <form method="post" action="/admin/products/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= (r.hidden||!r.active) ? 'Show' : 'Hide' %></button></form>
+          <form method="post" action="/admin/products/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this product permanently?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<script src="/static/js/admin-sort.js?v=1"></script>
+<script>
+(function(){var sa=document.getElementById('selall');if(sa)sa.addEventListener('change',function(){document.querySelectorAll('input[name="ids"]').forEach(function(c){c.checked=sa.checked;});});})();
+adminSort({
+  tbody: '#prodTable tbody', handle: '.drag', idAttr: 'data-id',
+  endpoint: '/admin/products/reorder',
+  onsaved: function (d) { if (d && d.ok) { var s = document.getElementById('prodSaved'); if (s) { s.classList.add('on'); setTimeout(function () { s.classList.remove('on'); }, 1600); } } }
+});
+</script>
+<%- include('_shell_bottom') %>
