@@ -1,0 +1,165 @@
+<%- include('_shell_top', { active:'products', title: (prod ? 'Edit product' : 'Add product') }) %>
+<style>
+  .pe-wrap{max-width:900px}
+  .prow{border:1px solid var(--hair);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+  .prow-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .prow-top .pdrag{flex:none;cursor:grab;color:var(--muted);user-select:none;font-size:17px;line-height:1}
+  .prow-top .pf-label{flex:2 1 150px;margin:0}
+  .prow-top .pf-price,.prow-top .pf-old{flex:1 1 95px;margin:0}
+  .prow-top .prow-del{flex:none;padding:7px 10px}
+  .prow-opt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .prow-opt .full{grid-column:1/-1}
+  .prow-opt label{font-size:12px;color:var(--muted)}
+  .prow-opt input{margin:4px 0 0}
+  @media(max-width:600px){.prow-opt{grid-template-columns:1fr}}
+  .frow{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
+  .frow .fcol{flex:1;display:flex;flex-direction:column;gap:6px}
+  .frow input{margin:0}
+  .frow .frow-del{flex:none;padding:7px 10px}
+  .dlrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .dlrow .dl-label{flex:1 1 150px;margin:0}
+  .dlrow .dl-url{flex:2 1 200px;margin:0}
+  .dlrow .dlrow-del{flex:none;padding:7px 10px}
+  .pe-actions{display:flex;gap:10px;position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 70%,transparent);padding:16px 0 6px;margin-top:4px}
+</style>
+<div class="pe-wrap">
+<a class="btn btn-g" href="/admin/products" style="margin-bottom:14px">← All products</a>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<% if (prod) { %>
+<div class="card">
+  <h2 style="margin-bottom:6px">Product image</h2>
+  <p class="hint">Shown on the product card and page. Recommended: <b>800 × 800 px</b> (square) — PNG, JPG or WebP.</p>
+  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <% if (prod.image) { %>
+      <img src="/static/img/<%= prod.image %>?v=<%= Date.now() %>" style="width:120px;height:120px;object-fit:cover;border-radius:12px;border:1px solid var(--hair)">
+    <% } else { %>
+      <div style="width:120px;height:120px;border-radius:12px;background:repeating-linear-gradient(45deg,#eef2fe,#eef2fe 8px,#e3e8f6 8px,#e3e8f6 16px);display:grid;place-items:center;color:var(--muted);font-size:12px">No image</div>
+    <% } %>
+    <div style="flex:1;min-width:220px">
+      <form method="post" action="/admin/products/<%= prod.id %>/image" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*" required style="font-size:13px;margin-bottom:10px">
+        <div><button class="btn btn-p" type="submit"><%= prod.image ? 'Replace image' : 'Upload image' %></button></div>
+      </form>
+      <% if (prod.image) { %>
+      <form method="post" action="/admin/products/<%= prod.id %>/image/remove" style="margin-top:8px"><button class="btn btn-g" style="color:#b42318" type="submit">Remove image</button></form>
+      <% } %>
+    </div>
+  </div>
+</div>
+<% } else { %>
+<div class="card"><h2>Product image</h2><p class="hint" style="margin:0">Save the product first, then re-open it to upload its image (recommended 800 × 800 px).</p></div>
+<% } %>
+
+<form method="post" action="/admin/products/save">
+  <% if (prod) { %><input type="hidden" name="id" value="<%= prod.id %>"><% } %>
+  <div class="card">
+    <h2 style="margin-bottom:12px">Details</h2>
+    <label class="fld">Product name</label>
+    <input type="text" name="name" value="<%= prod ? prod.name : '' %>" required>
+    <label class="fld">Category</label>
+    <select name="category_id">
+      <% cats.forEach(function(c){ %><option value="<%= c.id %>" <%= (prod && prod.category_id===c.id)?'selected':'' %>><%= c.name %></option><% }); %>
+    </select>
+    <label class="fld">Short description (shown on cards)</label>
+    <input type="text" name="short_desc" value="<%= prod ? (prod.short_desc||'') : '' %>">
+    <label class="fld">Delivery label (e.g. “Instant delivery”, “Line in minutes”)</label>
+    <input type="text" name="delivery" value="<%= prod ? (prod.delivery||'') : '' %>">
+    <label class="fld">Long description (shown on the product page)</label>
+    <textarea name="long_desc" rows="5"><%= prod ? (prod.long_desc||'') : '' %></textarea>
+    <label class="fld">Availability note (country restriction) — blank if it works everywhere</label>
+    <input type="text" name="geo_note" value="<%= prod ? (prod.geo_note||'') : '' %>" placeholder="e.g. Not available in UAE &amp; Pakistan — VPN required">
+    <label class="fld">Product note (shown on the product page)</label>
+    <input type="text" name="note" value="<%= prod ? (prod.note||'') : '' %>" placeholder="e.g. Delivered within 10 minutes · works on 1 device">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">
+      <div><label class="fld">Limited-time offer ends at (optional)</label><input type="datetime-local" name="offer_ends" value="<%= (prod && prod.offer_ends) ? new Date(prod.offer_ends).toISOString().slice(0,16) : '' %>"></div>
+      <div><label class="fld">Offer label (optional)</label><input type="text" name="offer_label" value="<%= prod ? (prod.offer_label||'') : '' %>" placeholder="e.g. Flash sale"></div>
+    </div>
+    <p class="hint">Set an end time to show a live countdown + “Limited time” badge on the product page.</p>
+    <label class="fld">Warranty / replacement policy (optional)</label>
+    <input type="text" name="warranty" value="<%= prod ? (prod.warranty||'') : '' %>" placeholder="e.g. 7-day replacement warranty">
+    <label class="fld">Post-delivery instructions (optional)</label>
+    <textarea name="instructions" rows="3" placeholder="Sent on WhatsApp a few seconds after delivery — e.g. how to log in, device limits."><%= prod ? (prod.instructions||'') : '' %></textarea>
+    <p class="hint">Delivered as a second WhatsApp message ~4s after the account details.</p>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-top:4px"><input type="checkbox" name="hidden" style="width:auto;margin:0" <%= (prod && prod.hidden)?'checked':'' %>> Hide this product from the site</label>
+  </div>
+
+  <div class="card">
+    <h2>Plans &amp; pricing</h2>
+    <p class="hint">Each plan has a label, price (PKR), and an optional “before” price to show a discount. <b>Drag ⠿ to reorder.</b></p>
+    <div id="plans">
+      <% (plans.length?plans:[{label:'',price_pkr:'',old_pkr:''}]).forEach(function(pl){ %>
+        <div class="prow">
+          <input type="hidden" name="plan_id" value="<%= pl.id || '' %>">
+          <div class="prow-top">
+            <span class="pdrag" title="Drag to reorder">⠿</span>
+            <input class="pf-label" type="text" name="plan_label" placeholder="e.g. 1 Month" value="<%= pl.label||'' %>">
+            <input class="pf-price" type="number" step="0.01" name="plan_price" placeholder="Price" value="<%= pl.price_pkr||'' %>">
+            <input class="pf-old" type="number" step="0.01" name="plan_old" placeholder="Was (opt)" value="<%= pl.old_pkr||'' %>">
+            <button type="button" class="btn btn-g prow-del" onclick="this.closest('.prow').remove()">✕</button>
+          </div>
+          <div class="prow-opt">
+            <label>Available from (optional)<input type="datetime-local" name="plan_from" value="<%= pl.avail_from ? new Date(pl.avail_from).toISOString().slice(0,16) : '' %>"></label>
+            <label>Available until (optional)<input type="datetime-local" name="plan_until" value="<%= pl.avail_until ? new Date(pl.avail_until).toISOString().slice(0,16) : '' %>"></label>
+            <label class="full">Warranty for this plan (optional)<input type="text" name="plan_warranty" value="<%= pl.warranty||'' %>" placeholder="overrides the product warranty, e.g. 30 days"></label>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+    <button type="button" class="btn btn-g" onclick="addPlan()">+ Add plan</button>
+  </div>
+
+  <div class="card">
+    <h2>FAQs (optional)</h2>
+    <p class="hint">Shown as an accordion on the product page.</p>
+    <div id="faqs">
+      <% (faqs.length?faqs:[]).forEach(function(f){ %>
+        <div class="frow">
+          <div class="fcol">
+            <input type="text" name="faq_q" placeholder="Question" value="<%= f.q||'' %>">
+            <input type="text" name="faq_a" placeholder="Answer" value="<%= f.a||'' %>">
+          </div>
+          <button type="button" class="btn btn-g frow-del" onclick="this.closest('.frow').remove()">✕</button>
+        </div>
+      <% }); %>
+    </div>
+    <button type="button" class="btn btn-g" onclick="addFaq()">+ Add FAQ</button>
+  </div>
+
+  <div class="card">
+    <h2>Download buttons (optional)</h2>
+    <p class="hint">Customer download buttons on the product page — a label and a link (APK, setup guide, etc.).</p>
+    <div id="dls">
+      <% (typeof downloads!=='undefined' && downloads.length ? downloads : []).forEach(function(d){ %>
+        <div class="dlrow">
+          <input class="dl-label" type="text" name="dl_label" placeholder="Label (e.g. Download APK)" value="<%= d.label||'' %>">
+          <input class="dl-url" type="text" name="dl_url" placeholder="https://..." value="<%= d.url||'' %>">
+          <button type="button" class="btn btn-g dlrow-del" onclick="this.closest('.dlrow').remove()">✕</button>
+        </div>
+      <% }); %>
+    </div>
+    <button type="button" class="btn btn-g" onclick="addDl()">+ Add download</button>
+  </div>
+
+  <div class="pe-actions"><button class="btn btn-p" type="submit">Save product</button><a class="btn btn-g" href="/admin/products">Cancel</a></div>
+</form>
+</div>
+<script>
+function addPlan(){var d=document.createElement('div');d.className='prow';
+  d.innerHTML='<input type="hidden" name="plan_id" value=""><div class="prow-top"><span class="pdrag" title="Drag to reorder">⠿</span><input class="pf-label" type="text" name="plan_label" placeholder="e.g. 1 Month"><input class="pf-price" type="number" step="0.01" name="plan_price" placeholder="Price"><input class="pf-old" type="number" step="0.01" name="plan_old" placeholder="Was (opt)"><button type="button" class="btn btn-g prow-del" onclick="this.closest(\'.prow\').remove()">✕</button></div><div class="prow-opt"><label>Available from (optional)<input type="datetime-local" name="plan_from"></label><label>Available until (optional)<input type="datetime-local" name="plan_until"></label><label class="full">Warranty for this plan (optional)<input type="text" name="plan_warranty" placeholder="overrides the product warranty, e.g. 30 days"></label></div>';
+  document.getElementById('plans').appendChild(d);}
+function addFaq(){var d=document.createElement('div');d.className='frow';
+  d.innerHTML='<div class="fcol"><input type="text" name="faq_q" placeholder="Question"><input type="text" name="faq_a" placeholder="Answer"></div><button type="button" class="btn btn-g frow-del" onclick="this.closest(\'.frow\').remove()">✕</button>';
+  document.getElementById('faqs').appendChild(d);}
+function addDl(){var d=document.createElement('div');d.className='dlrow';
+  d.innerHTML='<input class="dl-label" type="text" name="dl_label" placeholder="Label (e.g. Download APK)"><input class="dl-url" type="text" name="dl_url" placeholder="https://..."><button type="button" class="btn btn-g dlrow-del" onclick="this.closest(\'.dlrow\').remove()">✕</button>';
+  document.getElementById('dls').appendChild(d);}
+/*plansDragReorder*/(function(){
+  var box=document.getElementById('plans'); if(!box) return; var drag=null;
+  box.addEventListener('mousedown',function(e){ var h=e.target.closest('.pdrag'); if(h){ var row=h.closest('.prow'); if(row) row.draggable=true; } });
+  box.addEventListener('dragstart',function(e){ drag=e.target.closest('.prow'); if(drag){ e.dataTransfer.effectAllowed='move'; drag.style.opacity='.45'; } });
+  box.addEventListener('dragend',function(){ if(drag){ drag.style.opacity=''; drag.draggable=false; drag=null; } });
+  box.addEventListener('dragover',function(e){ e.preventDefault(); if(!drag) return; var rows=[].slice.call(box.querySelectorAll('.prow')).filter(function(r){return r!==drag;}); var after=null; for(var i=0;i<rows.length;i++){ var b=rows[i].getBoundingClientRect(); if(e.clientY < b.top + b.height/2){ after=rows[i]; break; } } if(after) box.insertBefore(drag, after); else box.appendChild(drag); });
+})();
+</script>
+<%- include('_shell_bottom') %>
