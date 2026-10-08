@@ -1,5 +1,4 @@
 <%- include('_shell_top', { active:'inventory', title:'Inventory' }) %>
-<p class="sub">Your own-stock engine. Define each product's <b>fields</b>, then stock any <b>plan</b> — paste one entry per line per field (bulk). Paid orders auto-deliver a free unit and mark it sold.</p>
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
 <%
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

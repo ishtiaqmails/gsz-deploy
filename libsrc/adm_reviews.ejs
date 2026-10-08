@@ -1,0 +1,58 @@
+<%- include('_shell_top', { active:'reviews', title:'Reviews' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<% var appr=rows.filter(function(r){return r.approved;}).length; var pend=rows.length-appr;
+   var avg=rows.length?(rows.reduce(function(a,r){return a+(r.stars||0);},0)/rows.length):0; %>
+<div class="dcards c4">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M4 5h16v10H9l-4 4V5z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total reviews</span><b class="dval"><%= rows.length %></b><span class="dsub">all</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Approved</span><b class="dval"><%= appr %></b><span class="dsub">live on site</span></div></div>
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Pending</span><b class="dval"><%= pend %></b><span class="dsub <%= pend>0?'alert':'' %>"><%= pend>0?'awaiting approval':'none waiting' %></span></div></div>
+  <div class="dcard" style="--t:#e0459a"><span class="dic"><svg viewBox="0 0 24 24"><path d="m12 2 2.6 6.3L21 9l-5 4.3L17.5 20 12 16.5 6.5 20 8 13.3 3 9l6.4-.7L12 2Z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Avg rating</span><b class="dval"><%= avg?avg.toFixed(1):'—' %></b><span class="dsub">out of 5</span></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom:12px">Add a review</h2>
+  <form method="post" action="/admin/reviews/save" style="display:grid;grid-template-columns:1fr 1fr 90px;gap:10px;align-items:end">
+    <div><label class="fld">Author</label><input type="text" name="author" placeholder="e.g. Ahsan R." required style="margin:0"></div>
+    <div><label class="fld">Location</label><input type="text" name="location" placeholder="e.g. Karachi" style="margin:0"></div>
+    <div><label class="fld">Stars</label>
+      <select name="stars" style="margin:0"><% for(var i=5;i>=1;i--){ %><option value="<%= i %>"><%= i %></option><% } %></select></div>
+    <div style="grid-column:1/4"><label class="fld">Review</label><textarea name="body" rows="2" placeholder="What the customer said" required></textarea></div>
+    <label style="grid-column:1/3;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600"><input type="checkbox" name="approved" checked style="width:auto;margin:0"> Approved (show on site)</label>
+    <button class="btn btn-p" type="submit" style="grid-column:3/4">Add review</button>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Author / Location</th><th style="width:70px">Stars</th><th>Review</th><th style="width:90px">Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="5" style="color:var(--muted);padding:22px 16px">No reviews yet.</td></tr><% } %>
+    <% rows.forEach(function(r){ %>
+      <tr>
+        <td>
+          <form id="rvf<%= r.id %>" method="post" action="/admin/reviews/save"></form>
+          <input form="rvf<%= r.id %>" type="hidden" name="id" value="<%= r.id %>">
+          <input form="rvf<%= r.id %>" type="text" name="author" value="<%= r.author || '' %>" required style="margin:0 0 6px;font-weight:600;min-width:130px">
+          <input form="rvf<%= r.id %>" type="text" name="location" value="<%= r.location || '' %>" placeholder="Location" style="margin:0;min-width:130px">
+        </td>
+        <td>
+          <select form="rvf<%= r.id %>" name="stars" style="margin:0"><% for(var i=5;i>=1;i--){ %><option value="<%= i %>" <%= (r.stars===i)?'selected':'' %>><%= i %></option><% } %></select>
+        </td>
+        <td><input form="rvf<%= r.id %>" type="text" name="body" value="<%= (r.body||'').replace(/"/g,'&quot;') %>" style="margin:0;width:100%;min-width:220px"></td>
+        <td><% if (r.approved) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } else { %><span class="spill" style="background:#fff2db;color:#9a6400">Pending</span><% } %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <input form="rvf<%= r.id %>" type="hidden" name="approved" value="<%= r.approved ? 'on' : '' %>">
+          <button form="rvf<%= r.id %>" class="btn btn-p" style="padding:6px 11px" type="submit">Save</button>
+          <form method="post" action="/admin/reviews/<%= r.id %>/approve" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= r.approved ? 'Unapprove' : 'Approve' %></button></form>
+          <form method="post" action="/admin/reviews/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this review?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>

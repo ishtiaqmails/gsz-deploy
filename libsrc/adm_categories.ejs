@@ -1,0 +1,63 @@
+<%- include('_shell_top', { active:'categories', title:'Categories' }) %>
+<style>
+  #catTable tr.dragging{opacity:.5;background:#f3f5fb}
+  #catTable td.drag{width:30px;text-align:center;color:var(--muted);cursor:grab}
+  #catTable td.drag svg{width:18px;height:18px;vertical-align:middle;pointer-events:none}
+  #catSaved{display:inline-block;margin-left:10px;font-size:13px;color:#0b7a42;opacity:0;transition:opacity .2s}
+  #catSaved.on{opacity:1}
+</style>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<% var live=rows.filter(function(r){return r.active;}).length; var prods=rows.reduce(function(a,r){return a+(r.n||0);},0); %>
+<div class="dcards">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="11" width="18" height="4" rx="1"/><rect x="3" y="18" width="12" height="4" rx="1"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Categories</span><b class="dval"><%= rows.length %></b><span class="dsub">total</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Live</span><b class="dval"><%= live %></b><span class="dsub">shown on site</span></div></div>
+  <div class="dcard" style="--t:#8a2bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Products</span><b class="dval"><%= prods %></b><span class="dsub">across categories</span></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom:12px">Add a category</h2>
+  <form method="post" action="/admin/categories/save" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+    <div><label class="fld">Name</label><input type="text" name="name" placeholder="e.g. Music" required style="margin:0"></div>
+    <div><label class="fld">Tag (small label)</label><input type="text" name="tag" placeholder="e.g. Streaming" style="margin:0"></div>
+    <button class="btn btn-p" type="submit">Add</button>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:14px 18px 0"><span class="fld" style="margin:0">Order &amp; manage</span><span id="catSaved">Order saved ✓</span><span style="color:var(--muted);font-size:12.5px;margin-left:8px">— drag ⠿ to reorder</span></div>
+  <table id="catTable">
+    <thead><tr><th style="width:30px"></th><th>Category</th><th>Tag</th><th>Products</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% rows.forEach(function(r){ %>
+      <tr data-id="<%= r.id %>">
+        <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
+        <td>
+          <form id="catf<%= r.id %>" method="post" action="/admin/categories/save"></form>
+          <input form="catf<%= r.id %>" type="hidden" name="id" value="<%= r.id %>">
+          <input form="catf<%= r.id %>" type="text" name="name" value="<%= r.name %>" required style="margin:0;font-weight:600;min-width:140px">
+        </td>
+        <td><input form="catf<%= r.id %>" type="text" name="tag" value="<%= r.tag || '' %>" placeholder="—" style="margin:0;min-width:120px"></td>
+        <td><%= r.n %></td>
+        <td><% if (r.active) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } else { %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span><% } %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <button form="catf<%= r.id %>" class="btn btn-p" style="padding:6px 11px" type="submit">Save</button>
+          <form method="post" action="/admin/categories/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= r.active ? 'Hide' : 'Show' %></button></form>
+          <form method="post" action="/admin/categories/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete category “<%= r.name %>”?<%= r.n>0 ? ('\\n\\n'+r.n+' product(s) will become uncategorized (they are NOT deleted).') : '' %>')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<script src="/static/js/admin-sort.js?v=1"></script>
+<script>
+  adminSort({
+    tbody: '#catTable tbody', handle: '.drag', idAttr: 'data-id',
+    endpoint: '/admin/categories/reorder',
+    onsaved: function (d) { if (d && d.ok) { var s = document.getElementById('catSaved'); if (s) { s.classList.add('on'); setTimeout(function () { s.classList.remove('on'); }, 1600); } } }
+  });
+</script>
+<%- include('_shell_bottom') %>
