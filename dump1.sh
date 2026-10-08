@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+GSZ=/opt/gsz; cd "$GSZ"
+echo "### views/product.ejs ###"; cat -n views/product.ejs
+echo "### routes/checkout.js ###"; cat -n routes/checkout.js
+echo "### DB: players + bot plans/types ###"
+NODE_PATH="$GSZ/node_modules" node -e "require('dotenv').config({path:'$GSZ/.env'});const{Pool}=require('pg');const p=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:process.env.DB_NAME,user:process.env.DB_USER,password:process.env.DB_PASS});(async()=>{const q=async(l,s)=>{try{const r=await p.query(s);console.log('--- '+l+' ---');console.log(JSON.stringify(r.rows,null,1));}catch(e){console.log(l+' ERR '+e.message);}};await q('plans 53,54','select * from product_plans where product_id in (53,54) order by product_id,sort,id');await q('bot_products for those skus','select sku,name,delivery_type,price_pkr,needs,plans,types from bot_products where sku in (select bot_sku from product_plans where product_id in (53,54) and bot_sku is not null)');await q('any bot plans/types present','select sku,name,delivery_type,plans,types from bot_products where (jsonb_typeof(plans)=\$\$array\$\$ and jsonb_array_length(plans)>0) or (jsonb_typeof(types)=\$\$array\$\$ and jsonb_array_length(types)>0) limit 6');await p.end();})();"
