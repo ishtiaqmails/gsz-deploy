@@ -87,7 +87,7 @@ function renderBlock(b, opts) {
       return '<div class="cs-table-wrap"><table class="cs-table">' + head + body + '</table>' + (b.caption ? ('<div class="cs-cap">' + b.caption + '</div>') : '') + '</div>';
     }
     case 'image':
-      return '<figure class="cs-fig' + (b.banner ? ' cs-banner' : '') + '"><img loading="lazy" src="' + esc(b.src) + '" alt="' + b.alt + '">' + (b.caption ? ('<figcaption>' + b.caption + '</figcaption>') : '') + '</figure>';
+      return '<figure class="cs-fig' + (b.banner ? ' cs-banner' : '') + '"><img loading="lazy" src="' + esc(b.src) + '" alt="' + b.alt + '" onerror="var f=this.closest(\'figure\'); if(f) f.style.display=\'none\'">' + (b.caption ? ('<figcaption>' + b.caption + '</figcaption>') : '') + '</figure>';
     case 'imagetext':
       return '<div class="cs-imgtext cs-' + b.position + '"><div class="cs-it-img"><img loading="lazy" src="' + esc(b.src) + '" alt="' + b.alt + '"></div><div class="cs-it-txt">' + b.content + '</div></div>';
     case 'youtube':

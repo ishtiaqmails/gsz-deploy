@@ -50,7 +50,7 @@ module.exports = function (pool) {
   function cardHtml(p, base) {
     const href = canonPath(p);
     const img = p.featured_image
-      ? ('<img class="cl-img" loading="lazy" src="' + esc(p.featured_image) + '" alt="' + esc(p.title) + '">')
+      ? ('<img class="cl-img" loading="lazy" src="' + esc(p.featured_image) + '" alt="' + esc(p.title) + '" onerror="this.outerHTML=\'<div class=&quot;cl-img cl-ph&quot;><span>' + esc(p.title.slice(0, 1).toUpperCase()) + '</span></div>\'">')
       : ('<div class="cl-img cl-ph"><span>' + esc(p.title.slice(0, 1).toUpperCase()) + '</span></div>');
     return '<a class="cl-card" href="' + esc(href) + '">' + img +
       '<div class="cl-body"><span class="cl-type">' + esc(TYPE_LABEL[p.type] || 'Article') + '</span>' +

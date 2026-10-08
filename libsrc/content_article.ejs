@@ -13,7 +13,7 @@
         <span><%= post.reading_time %> min read</span>
         <% if (updated) { %><span>·</span><span>Updated <%= updated %></span><% } %>
       </div>
-      <% if (post.featured_image) { %><div class="cs-hero-img"><img src="<%= post.featured_image %>" alt="<%= post.title %>"></div><% } %>
+      <% if (post.featured_image) { %><div class="cs-hero-img"><img src="<%= post.featured_image %>" alt="<%= post.title %>" onerror="var p=this.closest('.cs-hero-img'); if(p) p.style.display='none'"></div><% } %>
     </div>
     <div class="cs-layout">
       <article class="cs-article">
