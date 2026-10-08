@@ -67,7 +67,7 @@ module.exports = function (pool) {
         const types = PREFIX_TYPES[prefix];
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const per = 12; const off = (page - 1) * per;
-        const where = ["status='published'"]; const params = [];
+        const where = ["(status='published' OR (status='scheduled' AND scheduled_at IS NOT NULL AND scheduled_at<=now()))"]; const params = [];
         if (types) { params.push(types); where.push('type = ANY($' + params.length + ')'); }
         const w = where.join(' AND ');
         const total = (await pool.query('SELECT count(*)::int n FROM cs_posts WHERE ' + w, params)).rows[0].n;
@@ -93,7 +93,9 @@ module.exports = function (pool) {
       try {
         const slug = String(req.params.slug || '').toLowerCase();
         const post = (await pool.query('SELECT * FROM cs_posts WHERE slug=$1', [slug])).rows[0];
-        if (!post || post.status !== 'published') {
+        const isAdmin = !!(req.session && req.session.admin);
+        const live = post && (post.status === 'published' || (post.status === 'scheduled' && post.scheduled_at && new Date(post.scheduled_at) <= new Date()));
+        if (!post || (!live && !isAdmin)) {
           // redirect manager
           const rd = (await pool.query('SELECT to_path,code FROM cs_redirects WHERE from_path=$1', [req.path])).rows[0];
           if (rd) return res.redirect(rd.code || 301, rd.to_path);
@@ -122,7 +124,7 @@ module.exports = function (pool) {
         let relArticles = [];
         const man = (post.related && typeof post.related === 'object') ? post.related : {};
         relArticles = (await pool.query(
-          "SELECT type,slug,title,excerpt,featured_image,reading_time,published_at FROM cs_posts WHERE status='published' AND id<>$1 AND (category_id=$2 OR type=$3) ORDER BY COALESCE(published_at,created_at) DESC LIMIT 3",
+          "SELECT type,slug,title,excerpt,featured_image,reading_time,published_at FROM cs_posts WHERE (status='published' OR (status='scheduled' AND scheduled_at IS NOT NULL AND scheduled_at<=now())) AND id<>$1 AND (category_id=$2 OR type=$3) ORDER BY COALESCE(published_at,created_at) DESC LIMIT 3",
           [post.id, post.category_id, post.type])).rows;
         let relatedHtml = '';
         if (relArticles.length) relatedHtml += '<h3>Keep reading</h3><div class="cl-grid">' + relArticles.map(function (p) { return cardHtml(p, base); }).join('') + '</div>';

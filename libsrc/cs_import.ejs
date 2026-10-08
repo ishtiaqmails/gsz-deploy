@@ -1,0 +1,67 @@
+<%- include('_shell_top', { active: active, title: title }) %>
+<style>
+  .cim-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.5;min-height:300px;white-space:pre;overflow:auto}
+  .cim-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--hair)}
+  .cim-dot{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+  .cim-ex{background:#f7f9fe;border:1px solid var(--hair);border-radius:11px;padding:12px 14px;font-size:12.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow:auto;max-height:200px}
+</style>
+<p class="sub">Paste a content package (one object, or an array of objects) exactly as drafted in ChatGPT. It's validated, sanitized and saved. Importing a slug that already exists updates that post.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<% if (result) { %>
+  <div class="card">
+    <h2 style="margin-bottom:10px"><%= result.ok ? '✓ Import complete' : 'Import finished with problems' %></h2>
+    <% if (result.errors) { %>
+      <div style="color:#b42318;font-weight:600"><% result.errors.forEach(function(e){ %><div><%= e %></div><% }); %></div>
+    <% } else { %>
+      <% result.items.forEach(function(it){ %>
+        <div class="cim-row">
+          <span class="cim-dot" style="background:<%= it.ok?'#16b765':'#e0453f' %>"><%= it.ok?'✓':'!' %></span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700"><%= it.title %></div>
+            <% if (it.ok) { %>
+              <div style="color:var(--muted);font-size:13px"><%= it.existed?'Updated':'Created' %> · <%= it.type %> · <%= it.blocks %> blocks · <%= it.reading %> min · <b style="color:<%= it.status==='published'?'#0b7a42':'#667' %>"><%= it.status %></b></div>
+              <div style="margin-top:7px;display:flex;gap:8px;flex-wrap:wrap">
+                <a class="btn btn-g" style="padding:6px 11px" href="/admin/cstudio/posts/<%= it.id %>/edit">Open editor</a>
+                <a class="btn btn-g" style="padding:6px 11px" href="<%= it.path %>" target="_blank"><%= it.status==='published'?'View ↗':'Preview ↗' %></a>
+              </div>
+              <% if (it.warnings && it.warnings.length) { %><div style="color:#8a5a00;font-size:12.5px;margin-top:6px">Notes: <%= it.warnings.join(' · ') %></div><% } %>
+            <% } else { %>
+              <div style="color:#b42318;font-size:13px"><%= (it.errors||[]).join(' · ') %></div>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
+    <div style="margin-top:16px"><a class="btn btn-g" href="/admin/cstudio/posts">Go to all posts →</a></div>
+  </div>
+<% } %>
+
+<div class="card">
+  <form method="post" action="/admin/cstudio/import">
+    <label class="fld">Content package JSON</label>
+    <textarea name="json" class="cim-mono" spellcheck="false" placeholder='{ "type": "comparison", "title": "…", "slug": "…", "blocks": [ … ] }'><%= raw %></textarea>
+    <label style="display:inline-flex;gap:8px;align-items:center;font-weight:600;margin:4px 0 14px"><input type="checkbox" name="publish" value="1" style="width:auto;margin:0">Publish immediately (otherwise saved as draft)</label>
+    <div><button class="btn btn-p" type="submit">Validate &amp; import</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Expected shape</h2>
+  <p class="hint">Minimum fields — everything else is optional and auto-filled.</p>
+  <div class="cim-ex">{
+  "type": "comparison",          // article | guide | tutorial | review | comparison | buying_guide | news | troubleshooting | faq | knowledge
+  "title": "Best IPTV Players in 2026",
+  "slug": "best-iptv-players-2026",   // optional — auto from title
+  "excerpt": "A hands-on comparison…",
+  "category": "IPTV Players",
+  "tags": ["IPTV", "Players"],
+  "seo": { "title": "…", "description": "…", "focus": "best iptv player 2026" },
+  "blocks": [
+    { "type": "heading", "level": 2, "content": "At a glance" },
+    { "type": "paragraph", "content": "…" },
+    { "type": "product", "productId": "zayron-player" }
+  ]
+}</div>
+</div>
+<%- include('_shell_bottom') %>

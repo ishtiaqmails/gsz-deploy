@@ -1,0 +1,122 @@
+<%- include('_shell_top', { active: active, title: title }) %>
+<style>
+  .cse-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+  @media(max-width:980px){.cse-grid{grid-template-columns:1fr}}
+  .cse-err{background:#fdecec;color:#b42318;border:1px solid #f4c7c3;border-radius:11px;padding:12px 15px;font-size:14px;font-weight:600;margin-bottom:18px}
+  .cse-warn{background:#fff7e6;color:#8a5a00;border:1px solid #f3dca3;border-radius:11px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+  .cse-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.5;min-height:360px;white-space:pre;overflow:auto}
+  .cse-badge{display:inline-block;font-weight:700;font-size:12px;padding:3px 9px;border-radius:20px}
+  .cse-help{color:var(--muted);font-size:12px;margin:-6px 0 12px}
+</style>
+
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+  <a class="btn btn-g" href="/admin/cstudio/posts">← All posts</a>
+  <% if (post.id) { %>
+    <% if (post.status==='published') { %><span class="cse-badge" style="background:#e7f8ee;color:#0b7a42">● Live</span>
+    <% } else if (post.status==='scheduled') { %><span class="cse-badge" style="background:#fff2db;color:#b26a00">◷ Scheduled</span>
+    <% } else { %><span class="cse-badge" style="background:#eef1f6;color:#667">○ Draft</span><% } %>
+    <a class="btn btn-g" href="/<%= prefixOf(post.type) %>/<%= post.slug %>" target="_blank"><%= post.status==='published'?'View live ↗':'Preview ↗' %></a>
+  <% } %>
+</div>
+
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<% if (errorMsg) { %><div class="cse-err"><%= errorMsg %></div><% } %>
+<% if (warnings && warnings.length) { %><div class="cse-warn">Imported with notes: <%= warnings.join(' · ') %></div><% } %>
+
+<form method="post" action="/admin/cstudio/posts/save">
+  <input type="hidden" name="id" value="<%= post.id || '' %>">
+  <div class="cse-grid">
+    <!-- MAIN -->
+    <div>
+      <div class="card">
+        <label class="fld">Title</label>
+        <input type="text" name="title" value="<%= post.title || '' %>" placeholder="Best IPTV Players in 2026" required>
+        <label class="fld">URL slug</label>
+        <input type="text" name="slug" value="<%= post.slug || '' %>" placeholder="best-iptv-players-2026">
+        <p class="cse-help">Live at <b>/<%= prefixOf(post.type||'article') %>/<span id="slugPrev"><%= post.slug || 'your-slug' %></span></b> · leave blank to auto-generate from the title. Changing a live slug auto-creates a 301 from the old URL.</p>
+        <label class="fld">Excerpt</label>
+        <textarea name="excerpt" rows="2" placeholder="One or two sentences shown on listing cards and used as the meta description fallback."><%= post.excerpt || '' %></textarea>
+      </div>
+
+      <div class="card">
+        <h2>Content blocks</h2>
+        <p class="hint">The article body as a JSON array of blocks (this is exactly what ChatGPT produces). Paste or edit here. On save it's validated and the reading time is recalculated.</p>
+        <textarea name="blocks" class="cse-mono" spellcheck="false"><%= blocksText %></textarea>
+        <p class="cse-help">Supported blocks: heading, paragraph, list, quote, callout, proscons, steps, faq, table, image, imagetext, youtube, vimeo, button, cta, product, productgrid, categorycard, stats, code, divider, spacer, toc, related.</p>
+      </div>
+
+      <div class="card">
+        <h2>SEO</h2>
+        <p class="hint">Overrides the automatic tags. Leave blank to use the title/excerpt.</p>
+        <label class="fld">Meta title</label>
+        <input type="text" name="seo_title" value="<%= (post.seo&&post.seo.title)||'' %>" maxlength="70" placeholder="≤ 60 chars ideal">
+        <label class="fld">Meta description</label>
+        <textarea name="seo_description" rows="2" maxlength="320" placeholder="≤ 155 chars ideal"><%= (post.seo&&post.seo.description)||'' %></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">
+          <div><label class="fld">Focus keyword</label><input type="text" name="seo_focus" value="<%= (post.seo&&post.seo.focus)||'' %>" placeholder="best iptv player 2026"></div>
+          <div><label class="fld">Robots</label>
+            <select name="seo_robots">
+              <% var rb=(post.seo&&post.seo.robots)||'index,follow'; %>
+              <option value="index,follow" <%= rb==='index,follow'?'selected':'' %>>index, follow (default)</option>
+              <option value="noindex,follow" <%= rb==='noindex,follow'?'selected':'' %>>noindex, follow</option>
+              <option value="noindex,nofollow" <%= rb==='noindex,nofollow'?'selected':'' %>>noindex, nofollow</option>
+            </select>
+          </div>
+        </div>
+        <label class="fld">Canonical URL (optional)</label>
+        <input type="text" name="seo_canonical" value="<%= (post.seo&&post.seo.canonical)||'' %>" placeholder="leave blank to self-canonical">
+        <label class="fld">OG / social image (optional)</label>
+        <input type="text" name="seo_ogimage" value="<%= (post.seo&&post.seo.ogImage)||'' %>" placeholder="/static/img/… or full URL">
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <div class="card">
+        <h2>Publish</h2>
+        <label class="fld">Status</label>
+        <select name="status" id="statusSel">
+          <% ['draft','published','scheduled'].forEach(function(x){ %><option value="<%= x %>" <%= (post.status||'draft')===x?'selected':'' %>><%= x.charAt(0).toUpperCase()+x.slice(1) %></option><% }); %>
+        </select>
+        <div id="schedWrap" style="display:<%= post.status==='scheduled'?'block':'none' %>">
+          <label class="fld">Go live at</label>
+          <input type="datetime-local" name="scheduled_at" value="<%= dtLocal(post.scheduled_at) %>">
+          <p class="cse-help">Publishes automatically at this time — no action needed.</p>
+        </div>
+        <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:4px">Save post</button>
+      </div>
+
+      <div class="card">
+        <h2>Classification</h2>
+        <label class="fld">Type</label>
+        <select name="type" id="typeSel">
+          <% TYPES.forEach(function(x){ %><option value="<%= x %>" <%= (post.type||'article')===x?'selected':'' %>><%= TYPE_LABEL[x] %></option><% }); %>
+        </select>
+        <label class="fld">Author</label>
+        <select name="author_id">
+          <% authors.forEach(function(a){ %><option value="<%= a.id %>" <%= post.author_id===a.id?'selected':'' %>><%= a.name %><%= a.role?(' — '+a.role):'' %></option><% }); %>
+        </select>
+        <label class="fld">Category</label>
+        <input type="text" name="category" value="<%= catName %>" placeholder="e.g. IPTV Players">
+        <label class="fld">Tags (comma separated)</label>
+        <input type="text" name="tags" value="<%= tagStr %>" placeholder="IPTV, Players, Comparison">
+      </div>
+
+      <div class="card">
+        <h2>Featured image</h2>
+        <input type="text" name="featured_image" value="<%= post.featured_image || '' %>" placeholder="/static/img/banner.jpg or full URL">
+        <p class="cse-help">Shown as the hero and on listing cards. Leave blank for a clean letter placeholder.</p>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+(function(){
+  var sel=document.getElementById('statusSel'),w=document.getElementById('schedWrap');
+  if(sel&&w) sel.addEventListener('change',function(){ w.style.display=sel.value==='scheduled'?'block':'none'; });
+  var slug=document.querySelector('input[name=slug]'),pv=document.getElementById('slugPrev');
+  if(slug&&pv) slug.addEventListener('input',function(){ pv.textContent=slug.value||'your-slug'; });
+})();
+</script>
+<%- include('_shell_bottom') %>

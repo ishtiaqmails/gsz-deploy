@@ -1,0 +1,63 @@
+<%- include('_shell_top', { active: active, title: title }) %>
+<p class="sub">Every article, guide, review and news post. Search, filter, edit, preview or change status.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="qrow">
+  <a class="btn btn-p" href="/admin/cstudio/import">＋ Import from JSON</a>
+  <a class="btn btn-g" href="/admin/cstudio/posts/new">Write a new post</a>
+</div>
+
+<div class="card">
+  <form method="get" action="/admin/cstudio/posts" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:0 12px;align-items:end;margin:0">
+    <div><label class="fld">Search title or slug</label><input type="text" name="q" value="<%= q %>" placeholder="e.g. iptv player" style="margin-bottom:0"></div>
+    <div><label class="fld">Status</label>
+      <select name="status" style="margin-bottom:0">
+        <option value="">All statuses</option>
+        <% ['published','draft','scheduled'].forEach(function(x){ %><option value="<%= x %>" <%= st===x?'selected':'' %>><%= x.charAt(0).toUpperCase()+x.slice(1) %></option><% }); %>
+      </select>
+    </div>
+    <div><label class="fld">Type</label>
+      <select name="type" style="margin-bottom:0">
+        <option value="">All types</option>
+        <% TYPES.forEach(function(x){ %><option value="<%= x %>" <%= ty===x?'selected':'' %>><%= TYPE_LABEL[x] %></option><% }); %>
+      </select>
+    </div>
+    <div><button class="btn btn-p" type="submit" style="height:40px">Filter</button></div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Views</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="6" style="color:var(--muted);padding:20px">No posts match. <a href="/admin/cstudio/posts" style="color:var(--brand)">Clear filters</a></td></tr><% } %>
+    <% rows.forEach(function(p){ %>
+      <tr>
+        <td>
+          <a href="/admin/cstudio/posts/<%= p.id %>/edit" style="font-weight:600;color:var(--ink)"><%= p.title %></a>
+          <div style="color:var(--muted);font-size:12px">/<%= prefixOf(p.type) %>/<%= p.slug %></div>
+        </td>
+        <td style="color:var(--muted)"><%= TYPE_LABEL[p.type] || p.type %></td>
+        <td>
+          <% if (p.status==='published') { %><span style="color:#0b7a42;font-weight:700">● Live</span>
+          <% } else if (p.status==='scheduled') { %><span style="color:#b26a00;font-weight:700">◷ <%= p.scheduled_at ? new Date(p.scheduled_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Scheduled' %></span>
+          <% } else { %><span style="color:var(--muted);font-weight:700">○ Draft</span><% } %>
+        </td>
+        <td><%= (p.views||0).toLocaleString('en-US') %></td>
+        <td style="color:var(--muted);font-size:13px"><%= new Date(p.updated_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-g" style="padding:6px 11px" href="/admin/cstudio/posts/<%= p.id %>/edit">Edit</a>
+          <a class="btn btn-g" style="padding:6px 11px" href="/<%= prefixOf(p.type) %>/<%= p.slug %>" target="_blank"><%= p.status==='published'?'View ↗':'Preview ↗' %></a>
+          <% if (p.status==='published') { %>
+            <form method="post" action="/admin/cstudio/posts/<%= p.id %>/status" style="display:inline"><input type="hidden" name="to" value="draft"><button class="btn btn-g" style="padding:6px 11px" type="submit">Unpublish</button></form>
+          <% } else { %>
+            <form method="post" action="/admin/cstudio/posts/<%= p.id %>/status" style="display:inline"><input type="hidden" name="to" value="published"><button class="btn btn-g" style="padding:6px 11px;color:#0b7a42" type="submit">Publish</button></form>
+          <% } %>
+          <form method="post" action="/admin/cstudio/posts/<%= p.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this post permanently?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>

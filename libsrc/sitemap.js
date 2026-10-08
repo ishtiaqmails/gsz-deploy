@@ -40,13 +40,14 @@ module.exports = function (pool) {
       prods.forEach(function (p) { add('/product/' + p.slug, '', 'weekly', '0.8'); });
 
       // 4) content hubs — /blog always, typed hubs only when they hold posts
-      const hubs = (await pool.query("SELECT type, max(COALESCE(updated_at,published_at,created_at)) mx FROM cs_posts WHERE status='published' GROUP BY type")).rows;
+      const LIVE = "(status='published' OR (status='scheduled' AND scheduled_at IS NOT NULL AND scheduled_at<=now()))";
+      const hubs = (await pool.query("SELECT type, max(COALESCE(updated_at,published_at,created_at)) mx FROM cs_posts WHERE " + LIVE + " GROUP BY type")).rows;
       add('/blog', '', 'weekly', '0.6');
       const seen = { blog: 1 };
       hubs.forEach(function (h) { const pre = TYPE_PREFIX[h.type] || 'blog'; if (!seen[pre]) { seen[pre] = 1; add('/' + pre, iso(h.mx), 'weekly', '0.6'); } });
 
       // 5) published articles, per-type canonical URL, newest first
-      const posts = (await pool.query("SELECT type, slug, COALESCE(updated_at,published_at,created_at) lm FROM cs_posts WHERE status='published' ORDER BY lm DESC")).rows;
+      const posts = (await pool.query("SELECT type, slug, COALESCE(updated_at,published_at,created_at) lm FROM cs_posts WHERE " + LIVE + " ORDER BY lm DESC")).rows;
       posts.forEach(function (p) { const pre = TYPE_PREFIX[p.type] || 'blog'; add('/' + pre + '/' + p.slug, iso(p.lm), 'monthly', '0.7'); });
 
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +

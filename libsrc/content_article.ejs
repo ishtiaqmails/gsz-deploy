@@ -3,6 +3,8 @@
 <div class="cs-prog" id="csProg"></div>
 <section class="section" style="padding-top:0">
   <div class="wrap">
+    <% var __notLive = post.status==='draft' || (post.status==='scheduled' && (!post.scheduled_at || new Date(post.scheduled_at) > new Date())); %>
+    <% if (__notLive) { %><div style="margin:14px 0;padding:10px 16px;border-radius:12px;background:rgba(255,186,8,.12);border:1px solid rgba(255,186,8,.35);color:#ffd24d;font-weight:600;font-size:14px">Preview — this <%= post.status %> post is not visible to the public yet.</div><% } %>
     <div class="cs-head">
       <div class="cs-crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/<%= prefix %>"><%= prefixTitle %></a></div>
       <span class="cs-eye"><span class="d"></span><%= typeLabel %></span>

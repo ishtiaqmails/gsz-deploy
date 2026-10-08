@@ -1,0 +1,46 @@
+<%- include('_shell_top', { active: active, title: title }) %>
+<p class="sub">Your blog &amp; knowledge engine — import articles drafted in ChatGPT, publish, and manage SEO. All content is separate from your store and never touches it.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="stats">
+  <div class="stat" style="--c:linear-gradient(118deg,#8a2bff,#2a7bff)"><div class="lbl">Total posts</div><b><%= stats.total %></b></div>
+  <div class="stat" style="--c:#16b765"><div class="lbl">Published</div><b><%= stats.pub %></b></div>
+  <div class="stat" style="--c:#f5a623"><div class="lbl">Drafts</div><b><%= stats.draft %></b></div>
+  <div class="stat" style="--c:#2a7bff"><div class="lbl">Total views</div><b><%= stats.views.toLocaleString('en-US') %></b></div>
+</div>
+
+<div class="qrow">
+  <a class="btn btn-p" href="/admin/cstudio/import">＋ Import from JSON</a>
+  <a class="btn btn-g" href="/admin/cstudio/posts/new">Write a new post</a>
+  <a class="btn btn-g" href="/admin/cstudio/posts">All posts</a>
+  <a class="btn btn-g" href="/admin/cstudio/redirects">Redirects</a>
+  <a class="btn btn-g" href="/blog" target="_blank">View blog ↗</a>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:16px 22px;border-bottom:1px solid var(--hair)"><h2>Recently updated</h2></div>
+  <table>
+    <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Views</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!recent.length) { %><tr><td colspan="6" style="color:var(--muted);padding:20px">No posts yet — start with <a href="/admin/cstudio/import" style="color:var(--brand);font-weight:600">Import from JSON</a>.</td></tr><% } %>
+    <% recent.forEach(function(p){ %>
+      <tr>
+        <td><a href="/admin/cstudio/posts/<%= p.id %>/edit" style="font-weight:600;color:var(--ink)"><%= p.title %></a></td>
+        <td style="color:var(--muted)"><%= TYPE_LABEL[p.type] || p.type %></td>
+        <td>
+          <% if (p.status==='published') { %><span style="color:#0b7a42;font-weight:700">● Live</span>
+          <% } else if (p.status==='scheduled') { %><span style="color:#b26a00;font-weight:700">◷ Scheduled</span>
+          <% } else { %><span style="color:var(--muted);font-weight:700">○ Draft</span><% } %>
+        </td>
+        <td><%= (p.views||0).toLocaleString('en-US') %></td>
+        <td style="color:var(--muted);font-size:13px"><%= new Date(p.updated_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-g" style="padding:6px 11px" href="/admin/cstudio/posts/<%= p.id %>/edit">Edit</a>
+          <a class="btn btn-g" style="padding:6px 11px" href="/<%= prefixOf(p.type) %>/<%= p.slug %>" target="_blank"><%= p.status==='published'?'View ↗':'Preview ↗' %></a>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>

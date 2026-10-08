@@ -1,0 +1,38 @@
+<%- include('_shell_top', { active: active, title: title }) %>
+<p class="sub">Send old or changed URLs to new ones so links and Google rankings never break. Renaming a live post's slug adds one of these automatically.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="card">
+  <h2 style="margin-bottom:14px">Add a redirect</h2>
+  <form method="post" action="/admin/cstudio/redirects/save">
+    <div style="display:grid;grid-template-columns:1fr 1fr 150px auto;gap:0 14px;align-items:end">
+      <div><label class="fld">From (old path)</label><input type="text" name="from_path" placeholder="/blog/old-slug" required style="margin-bottom:0"></div>
+      <div><label class="fld">To (new path or URL)</label><input type="text" name="to_path" placeholder="/comparisons/new-slug" required style="margin-bottom:0"></div>
+      <div><label class="fld">Type</label>
+        <select name="code" style="margin-bottom:0"><option value="301">301 permanent</option><option value="302">302 temporary</option></select>
+      </div>
+      <div><button class="btn btn-p" type="submit" style="height:40px">Add</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>From</th><th>To</th><th>Type</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="5" style="color:var(--muted);padding:20px">No redirects yet.</td></tr><% } %>
+    <% rows.forEach(function(r){ %>
+      <tr>
+        <td style="font-family:ui-monospace,Menlo,monospace;font-size:13px"><%= r.from_path %></td>
+        <td style="font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--brand)"><%= r.to_path %></td>
+        <td><%= r.code %></td>
+        <td style="color:var(--muted);font-size:13px"><%= new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) %></td>
+        <td style="text-align:right">
+          <form method="post" action="/admin/cstudio/redirects/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Remove this redirect?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Remove</button></form>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>
