@@ -1,0 +1,21 @@
+<%- include('partials/store_top') %>
+<link rel="stylesheet" href="/static/css/content.css?v=1">
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="cl-hero">
+      <span class="cs-eye"><span class="d"></span>Content</span>
+      <h1 class="cs-title-h"><%= hubTitle %></h1>
+    </div>
+    <% if (cardsHtml && cardsHtml.indexOf('cl-card') >= 0) { %>
+      <div class="cl-grid"><%- cardsHtml %></div>
+      <% if (pages > 1) { %>
+        <div class="cs-pager">
+          <% for (var i=1;i<=pages;i++){ %><a class="<%= i===page?'on':'' %>" href="/<%= hubPrefix %>?page=<%= i %>"><%= i %></a><% } %>
+        </div>
+      <% } %>
+    <% } else { %>
+      <div style="padding:30px 0 70px;color:var(--muted)"><%- cardsHtml || 'No posts yet — check back soon.' %></div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/store_bottom') %>

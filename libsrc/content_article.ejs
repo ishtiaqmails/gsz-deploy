@@ -1,0 +1,29 @@
+<%- include('partials/store_top') %>
+<link rel="stylesheet" href="/static/css/content.css?v=1">
+<div class="cs-prog" id="csProg"></div>
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="cs-head">
+      <div class="cs-crumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/<%= prefix %>"><%= prefixTitle %></a></div>
+      <span class="cs-eye"><span class="d"></span><%= typeLabel %></span>
+      <h1 class="cs-title-h"><%= post.title %></h1>
+      <div class="cs-meta-top">
+        <span class="av"><%= (authorName||'G').trim().charAt(0).toUpperCase() %></span>
+        <span><%= authorName %></span><span>·</span>
+        <span><%= post.reading_time %> min read</span>
+        <% if (updated) { %><span>·</span><span>Updated <%= updated %></span><% } %>
+      </div>
+      <% if (post.featured_image) { %><div class="cs-hero-img"><img src="<%= post.featured_image %>" alt="<%= post.title %>"></div><% } %>
+    </div>
+    <div class="cs-layout">
+      <article class="cs-article">
+        <% if (tocHtml) { %><div class="cs-toc-mob"><%- tocHtml %></div><% } %>
+        <%- bodyHtml %>
+        <%- relatedHtml %>
+      </article>
+      <aside class="cs-side"><%- tocHtml %></aside>
+    </div>
+  </div>
+</section>
+<script>/*reading progress*/(function(){var p=document.getElementById('csProg'),a=document.querySelector('.cs-article');if(!p||!a)return;function u(){var h=a.offsetHeight-window.innerHeight,top=a.offsetTop;var d=h>0?((window.scrollY-top)/h):0;p.style.width=(Math.min(1,Math.max(0,d))*100)+'%';}window.addEventListener('scroll',u,{passive:true});window.addEventListener('resize',u);u();})();</script>
+<%- include('partials/store_bottom') %>

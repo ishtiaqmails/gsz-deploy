@@ -1,0 +1,32 @@
+{
+  "type": "comparison",
+  "title": "Best IPTV Players in 2026: Zayron, IBO & Hot Player Compared",
+  "slug": "best-iptv-players-2026",
+  "excerpt": "A hands-on comparison of the top IPTV players we sell and support — features, device support, setup difficulty and who each one is for.",
+  "featuredImage": "/static/img/banner-iptv.jpg",
+  "category": "IPTV Players",
+  "tags": ["IPTV", "Players", "Zayron Player", "Comparison"],
+  "seo": {
+    "title": "Best IPTV Players in 2026 — Zayron vs IBO vs Hot Player",
+    "description": "Compare the best IPTV players for 2026: Zayron Player, IBO Player and Hot Player. Features, supported devices, setup and pricing — tested and supported by Galaxy Subz × Zayron.",
+    "focus": "best iptv player 2026"
+  },
+  "blocks": [
+    { "type": "toc" },
+    { "type": "paragraph", "content": "Choosing the right IPTV player makes the difference between a smooth living-room experience and constant buffering. We activate and support all three of the players below every day, so this comparison is based on <b>real setups</b>, not spec sheets." },
+    { "type": "callout", "variant": "tip", "title": "Quick verdict", "content": "For most people on an Android TV box or Firestick, <b>Zayron Player</b> gives the smoothest experience and the easiest activation. Choose IBO if you already own it; choose Hot Player for lightweight older devices." },
+    { "type": "heading", "level": 2, "content": "At a glance" },
+    { "type": "table", "headers": ["Player", "Best for", "Devices", "Setup"], "rows": [["Zayron Player", "Most users", "Android TV, Firestick, Phone", "Easiest"], ["IBO Player", "Existing IBO owners", "Android, Smart TV", "Easy"], ["Hot Player", "Older / low-RAM devices", "Android, TV boxes", "Easy"]], "highlightRows": [0], "caption": "All three are MAC-activation players we support directly." },
+    { "type": "heading", "level": 2, "content": "Zayron Player" },
+    { "type": "paragraph", "content": "Our own <b>Galaxy × Zayron</b> player is built for stability on real TVs. It handles large playlists without lag and has the cleanest on-screen layout of the three." },
+    { "type": "proscons", "pros": ["Smoothest playback on TV boxes", "One-tap MAC activation", "Clean, fast interface", "Direct support from us"], "cons": ["Android-first (no native iOS yet)"] },
+    { "type": "product", "productId": "zayron-player" },
+    { "type": "heading", "level": 2, "content": "How to activate any of these players" },
+    { "type": "steps", "items": [ { "title": "Install the app", "content": "Download the player on your device and open it once to see your device MAC address." }, { "title": "Send us the MAC", "content": "Order the activation and enter your MAC at checkout (or message us on WhatsApp)." }, { "title": "Load your playlist", "content": "We activate within minutes — then add your IPTV line and start watching." } ] },
+    { "type": "callout", "variant": "warn", "title": "Avoid", "content": "Don’t buy activations from unknown sellers — a wrong MAC lock can waste the licence. We verify every activation before delivery." },
+    { "type": "heading", "level": 2, "content": "Frequently asked questions" },
+    { "type": "faq", "items": [ { "q": "Do these players include an IPTV subscription?", "a": "No — the player is the app/licence. You add any IPTV line (we sell those separately)." }, { "q": "Can I move my activation to a new device?", "a": "Yes, message us on WhatsApp and we’ll help you re-activate on the new device’s MAC." } ] },
+    { "type": "cta", "title": "Ready to set up your player?", "content": "We’ll activate it in minutes and help you load your playlist.", "button": { "label": "Explore Zayron Player", "destination": { "type": "product", "value": "zayron-player" }, "style": "primary", "size": "lg", "trackingId": "BLOG-IPTV-PLAYERS-ZAYRON" } },
+    { "type": "related" }
+  ]
+}

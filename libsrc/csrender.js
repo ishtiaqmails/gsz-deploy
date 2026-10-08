@@ -116,8 +116,8 @@ function renderBlock(b, opts) {
       return '<pre class="cs-code"><code>' + b.content + '</code></pre>';
     case 'divider': return '<hr class="cs-hr">';
     case 'spacer': return '<div class="cs-spacer cs-' + b.size + '"></div>';
-    case 'toc': return opts.tocHtml || '';
-    case 'related': return opts.relatedHtml || '';
+    case 'toc': return '';      // TOC is placed by the page template (sidebar + mobile), not inline
+    case 'related': return '';  // Related is placed by the page template, after the article
     default: return '';
   }
 }
