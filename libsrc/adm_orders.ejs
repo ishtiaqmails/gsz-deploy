@@ -1,0 +1,64 @@
+<%- include('_shell_top', { active:'orders', title:'Orders' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  function money(c,disp,pkr){ if(c==='Rs'||!c) return 'Rs '+Math.round(Number(disp||pkr)||0).toLocaleString('en-US'); return c+' '+Number(disp||0); }
+  var SB={ delivered:['#e7f8ee','#0b7a42'], delivering:['#e8f0ff','#1f5fd0'], approved:['#e8f0ff','#1f5fd0'], paid:['#e8f0ff','#1f5fd0'],
+           verifying:['#fff2db','#b26a00'], pending:['#fff2db','#b26a00'], rejected:['#fdecec','#b42318'], cancelled:['#eef1f6','#667'] };
+  function spill(st){ var c=SB[st]||['#eef1f6','#667']; return '<span class="spill" style="background:'+c[0]+';color:'+c[1]+'">'+st+'</span>'; }
+  var needs=(counts.pending||0)+(counts.verifying||0);
+  var CH=[['','All'],['pending','Pending'],['verifying','Verifying'],['approved','Approved'],['delivering','Delivering'],['delivered','Delivered'],['rejected','Rejected']];
+  function chipHref(s){ return '/admin/orders'+(s?('?status='+s):'')+(q?((s?'&':'?')+'q='+encodeURIComponent(q)):''); }
+%>
+
+<div class="dcards c4">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total orders</span><b class="dval"><%= agg.grand.toLocaleString('en-US') %></b><span class="dsub"><%= total.toLocaleString('en-US') %> shown</span></div></div>
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Needs action</span><b class="dval"><%= needs %></b><span class="dsub <%= needs>0?'alert':'' %>"><%= needs>0?'pending / verifying':'all caught up' %></span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Delivered</span><b class="dval"><%= (counts.delivered||0).toLocaleString('en-US') %></b><span class="dsub">completed</span></div></div>
+  <div class="dcard" style="--t:#8a2bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">This month</span><b class="dval">Rs <%= Math.round(Number(agg.rev_month)||0).toLocaleString('en-US') %></b><span class="dsub">paid revenue</span></div></div>
+</div>
+
+<form class="srch" method="get" action="/admin/orders">
+  <% if (status) { %><input type="hidden" name="status" value="<%= status %>"><% } %>
+  <input type="text" name="q" value="<%= q %>" placeholder="Search order no, email, WhatsApp or product…">
+  <button class="btn btn-p" type="submit">Search</button>
+  <% if (q) { %><a class="btn btn-g" href="/admin/orders<%= status?('?status='+status):'' %>">Clear</a><% } %>
+</form>
+
+<div class="chips">
+  <% CH.forEach(function(c){ var on=(status===c[0]); var n=c[0]?(counts[c[0]]||0):null; %>
+    <a class="chip <%= on?'on':'' %>" href="<%= chipHref(c[0]) %>"><%= c[1] %><% if(n!==null){ %><span class="n"><%= n %></span><% } %></a>
+  <% }); %>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Order</th><th>Product</th><th>Customer</th><th>Amount</th><th>Method</th><th>Status</th><th style="text-align:right">Open</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="7" style="color:var(--muted);padding:24px 16px">No orders match.</td></tr><% } %>
+    <% rows.forEach(function(r){ %>
+      <tr>
+        <td style="font-weight:700;white-space:nowrap"><%= r.order_no || ('#'+r.id) %><div style="font-size:12px;color:var(--muted);font-weight:500"><%= new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></div></td>
+        <td><%= r.product_name %><div style="font-size:12px;color:var(--muted)"><%= r.plan_label %></div></td>
+        <td style="font-size:13px"><%= r.email %><div style="color:var(--muted)"><%= r.whatsapp %></div></td>
+        <td style="white-space:nowrap;font-weight:700"><%= money(r.currency, r.amount_display, r.amount_pkr) %></td>
+        <td style="font-size:13px;color:var(--muted)"><%= r.method_name %></td>
+        <td><%- spill(r.status) %></td>
+        <td style="text-align:right"><a class="btn btn-g" style="padding:6px 12px" href="/admin/orders/<%= r.id %>">View</a></td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<% if (typeof pages!=='undefined' && pages>1) { var qs=function(p){ return '/admin/orders?'+(status?('status='+status+'&'):'')+(q?('q='+encodeURIComponent(q)+'&'):'')+'page='+p; }; %>
+<div style="display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+  <% if (page>1) { %><a class="btn btn-g" href="<%= qs(page-1) %>">← Prev</a><% } %>
+  <% for(var pn=1; pn<=pages; pn++){ %><a class="btn <%= pn===page?'btn-p':'btn-g' %>" style="min-width:40px;justify-content:center" href="<%= qs(pn) %>"><%= pn %></a><% } %>
+  <% if (page<pages) { %><a class="btn btn-g" href="<%= qs(page+1) %>">Next →</a><% } %>
+</div>
+<% } %>
+<%- include('_shell_bottom') %>

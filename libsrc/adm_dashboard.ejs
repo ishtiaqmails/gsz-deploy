@@ -1,43 +1,4 @@
 <%- include('_shell_top', { active:'dashboard', title:'Dashboard' }) %>
-<style>
-  .dcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
-  @media(max-width:1100px){.dcards{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:470px){.dcards{grid-template-columns:1fr}}
-  .dcard{display:flex;gap:14px;align-items:center;background:#fff;border-radius:16px;padding:17px 18px;box-shadow:0 1px 2px rgba(15,24,54,.04),0 16px 34px -26px rgba(15,24,54,.28);position:relative;overflow:hidden}
-  .dcard:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--t)}
-  .dic{width:48px;height:48px;border-radius:13px;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--t) 14%,#fff);color:var(--t)}
-  .dic svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .dmeta{display:flex;flex-direction:column;min-width:0}
-  .dlbl{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700}
-  .dval{font-family:'Schibsted Grotesk',sans-serif;font-size:25px;font-weight:800;letter-spacing:-.02em;line-height:1.18;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dsub{font-size:12.5px;color:var(--muted);font-weight:600}
-  .dsub.alert{color:#b26a00}
-
-  .dacts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
-  @media(max-width:820px){.dacts{grid-template-columns:repeat(2,1fr)}}
-  .dact{display:flex;align-items:center;gap:11px;background:#fff;border-radius:13px;padding:14px 16px;font-weight:700;font-size:14px;box-shadow:inset 0 0 0 1px var(--hair);transition:.16s}
-  .dact:hover{box-shadow:inset 0 0 0 1.5px var(--brand);color:var(--brand);transform:translateY(-1px)}
-  .dact svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-
-  .dpanels{display:grid;grid-template-columns:1.25fr 1fr;gap:18px}
-  @media(max-width:860px){.dpanels{grid-template-columns:1fr}}
-  .dpanel{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(15,24,54,.04),0 16px 34px -26px rgba(15,24,54,.28);overflow:hidden}
-  .dph{display:flex;align-items:center;gap:9px;padding:15px 18px;border-bottom:1px solid var(--hair)}
-  .dph b{font-size:15px}
-  .dph .sp{flex:1}
-  .dph a{font-size:13px;color:var(--brand);font-weight:700}
-  .dph svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .drow{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--hair)}
-  .drow:first-of-type{border-top:0}
-  .drow .main{flex:1;min-width:0}
-  .drow .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .drow .s{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dbadge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
-  .damt{font-weight:800;font-size:14px;white-space:nowrap}
-  .dempty{padding:22px 18px;color:var(--muted);font-size:14px}
-  .pill{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap}
-</style>
-
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
 <%
   function money(v){ return 'Rs ' + Math.round(Number(v)||0).toLocaleString('en-US'); }
