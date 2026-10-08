@@ -1,0 +1,121 @@
+<%- include('_shell_top', { active:'inventory', title:'Inventory' }) %>
+<p class="sub">Your own-stock engine. Define each product's <b>fields</b>, then stock any <b>plan</b> — paste one entry per line per field (bulk). Paid orders auto-deliver a free unit and mark it sold.</p>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function rs(n){ return 'Rs ' + Math.round(Number(n)||0).toLocaleString('en-US'); }
+%>
+<div class="dcards">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Stock products</span><b class="dval"><%= d.stats.products %></b><span class="dsub">with own inventory</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Available items</span><b class="dval"><%= d.stats.units.toLocaleString('en-US') %></b><span class="dsub">ready to auto-deliver</span></div></div>
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Stock value</span><b class="dval"><%= rs(d.stats.value) %></b><span class="dsub">available units</span></div></div>
+</div>
+
+<details class="card">
+  <summary style="cursor:pointer;font-weight:700;font-size:15px;list-style:none">⚙️ Set up stock (fields &amp; plans)</summary>
+  <div style="margin-top:14px">
+    <h2 style="font-size:15px">Set a product's fields</h2>
+    <p class="hint">Comma-separated, in delivery order — e.g. <code>Email, Password, Screen No, Pin</code>. This turns a product into a stock product and defines what each unit holds.</p>
+    <form method="post" action="/admin/inventory/product/fields" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <div style="min-width:220px;flex:1"><label class="fld">Product</label>
+        <select name="product_id" style="margin:0" required>
+          <option value="">— pick a product —</option>
+          <% d.allProducts.forEach(function(p){ %><option value="<%= p.id %>"><%= esc(p.name) %></option><% }); %>
+        </select>
+      </div>
+      <div style="flex:2;min-width:240px"><label class="fld">Fields</label><input type="text" name="fields" placeholder="Email, Password, Screen No, Pin" style="margin:0"></div>
+      <button class="btn btn-p" type="submit">Save fields</button>
+    </form>
+    <hr style="border:0;border-top:1px solid var(--hair);margin:18px 0">
+    <h2 style="font-size:15px">Add a plan to own inventory</h2>
+    <p class="hint">Only plans set to own inventory can be stocked. Pick a plan to stock it yourself.</p>
+    <form method="post" action="/admin/inventory/plan/enable" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <div style="flex:1;min-width:260px"><label class="fld">Plan</label>
+        <select name="plan_id" style="margin:0" required>
+          <option value="">— pick a plan —</option>
+          <% d.addable.forEach(function(p){ %><option value="<%= p.id %>"><%= esc(p.label) %></option><% }); %>
+        </select>
+      </div>
+      <button class="btn btn-p" type="submit">Enable own inventory</button>
+    </form>
+  </div>
+</details>
+
+<% if (!d.prods.length) { %>
+  <div class="card dempty" style="padding:22px">No stock products yet. Open <b>Set up stock</b> above and define a product's fields to begin.</div>
+<% } %>
+
+<% d.prods.forEach(function(pr){ %>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <h2 style="margin:0"><%= pr.name %></h2>
+      <% pr.fields.forEach(function(f){ %><span class="spill" style="background:#f3f5fb;color:#44506e"><%= esc(f) %></span><% }); %>
+      <% if (!pr.fields.length) { %><span style="color:#b42318;font-size:12.5px;font-weight:600">no fields set</span><% } %>
+    </div>
+    <details style="margin:0 0 12px">
+      <summary style="cursor:pointer;color:var(--muted);font-size:12.5px">Edit fields</summary>
+      <form method="post" action="/admin/inventory/product/fields" style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <input type="hidden" name="product_id" value="<%= pr.id %>">
+        <input type="text" name="fields" value="<%= esc(pr.fields.join(', ')) %>" style="margin:0;flex:1;min-width:200px" placeholder="Email, Password, ...">
+        <button class="btn btn-g" type="submit">Save</button>
+      </form>
+    </details>
+
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--hair)">
+    <table style="margin:0">
+      <thead><tr><th>Plan</th><th style="width:90px">Price</th><th style="width:90px">Available</th><th style="width:80px">Sold</th><th style="width:150px">Inventory</th><th style="width:150px">Stock</th></tr></thead>
+      <tbody>
+      <% pr.plans.forEach(function(pl){ %>
+        <tr>
+          <td><b><%= pl.label %></b></td>
+          <td style="white-space:nowrap"><%= rs(pl.price_pkr) %></td>
+          <td><span class="spill" style="background:#e7f8ee;color:#0b7a42"><%= pl.avail %></span></td>
+          <td style="color:var(--muted)"><%= pl.sold %></td>
+          <td>
+            <% if (pl.source==='inventory') { %>
+              <form method="post" action="/admin/inventory/plan/<%= pl.id %>/disable" style="margin:0"><button class="btn btn-g" type="submit" style="padding:5px 10px;font-size:12px">On · turn off</button></form>
+            <% } else { %>
+              <form method="post" action="/admin/inventory/plan/enable" style="margin:0"><input type="hidden" name="plan_id" value="<%= pl.id %>"><button class="btn btn-p" type="submit" style="padding:5px 10px;font-size:12px">Use own stock</button></form>
+            <% } %>
+          </td>
+          <td>
+            <% if (pl.source==='inventory' && pr.fields.length) { %>
+              <a class="btn btn-g" href="/admin/inventory/manage/<%= pl.id %>" style="padding:5px 10px;font-size:12px">Manage</a>
+            <% } else if (!pr.fields.length) { %>
+              <span style="color:var(--muted);font-size:12px">set fields first</span>
+            <% } else { %>
+              <span style="color:var(--muted);font-size:12px">enable to stock</span>
+            <% } %>
+          </td>
+        </tr>
+        <% if (pl.source==='inventory' && pr.fields.length) { %>
+        <tr><td colspan="6" style="background:#f7f9fe">
+          <details>
+            <summary style="cursor:pointer;font-weight:600;font-size:13px">➕ Add stock to “<%= esc(pl.label) %>”</summary>
+            <form method="post" action="/admin/inventory/add" style="margin-top:12px">
+              <input type="hidden" name="plan_id" value="<%= pl.id %>">
+              <p class="hint" style="margin:0 0 8px">Paste one entry per line in each box — every box must have the <b>same number of lines</b>.</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+                <% pr.fields.forEach(function(f,i){ %>
+                  <div><label class="fld"><%= esc(f) %></label><textarea name="col<%= i %>" rows="5" placeholder="one per line" style="margin:0;font-family:ui-monospace,Menlo,monospace;font-size:13px"></textarea></div>
+                <% }); %>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:10px">
+                <div><label class="fld">Vendor (optional)</label><input type="text" name="vendor" placeholder="who supplied" style="margin:0"></div>
+                <div><label class="fld">Cost / item (optional)</label><input type="number" name="cost" step="0.01" placeholder="0" style="margin:0;max-width:140px"></div>
+                <button class="btn btn-p" type="submit">Add to stock</button>
+              </div>
+            </form>
+          </details>
+        </td></tr>
+        <% } %>
+      <% }); %>
+      </tbody>
+    </table>
+    </div>
+  </div>
+<% }); %>
+<%- include('_shell_bottom') %>

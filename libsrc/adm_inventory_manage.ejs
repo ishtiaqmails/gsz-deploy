@@ -1,0 +1,98 @@
+<%- include('_shell_top', { active:'inventory', title:('Stock — '+plan.label) }) %>
+<a class="btn btn-g" href="/admin/inventory" style="margin-bottom:12px">← Back to Inventory</a>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function rs(n){ return 'Rs ' + Math.round(Number(n)||0).toLocaleString('en-US'); }
+  var F = plan.fields || [];
+  function val(item, fn){ try { var f = item.fields; if (typeof f === 'string') f = JSON.parse(f||'{}'); return (f && f[fn]) || ''; } catch(e){ return ''; } }
+  var held = (counts.held||0);
+%>
+<h2 style="margin:0 0 2px"><%= plan.product_name %></h2>
+<p class="sub" style="margin:0 0 16px"><%= plan.label %> · <%= rs(plan.price_pkr) %></p>
+
+<div class="dcards c4">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total units</span><b class="dval"><%= (counts.avail+held+counts.sold) %></b><span class="dsub">all time</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Available</span><b class="dval"><%= counts.avail %></b><span class="dsub"><%= rs(counts.avail*price) %></span></div></div>
+  <div class="dcard" style="--t:#f0a832"><span class="dic"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Held</span><b class="dval"><%= held %></b><span class="dsub">out of auto-delivery</span></div></div>
+  <div class="dcard" style="--t:#737e9c"><span class="dic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Sold</span><b class="dval"><%= counts.sold %></b><span class="dsub"><%= rs(counts.sold*price) %></span></div></div>
+</div>
+
+<div class="chips" style="align-items:center">
+  <% ['all','available','held','sold'].forEach(function(f){ %>
+    <a class="chip <%= filter===f?'on':'' %>" href="/admin/inventory/manage/<%= plan.id %>?f=<%= f %>"><%= f.charAt(0).toUpperCase()+f.slice(1) %></a>
+  <% }); %>
+  <form method="post" action="/admin/inventory/plan/<%= plan.id %>/clear" style="margin:0 0 0 auto" onsubmit="return confirm('Delete ALL available units for this plan?')"><button class="btn btn-g" type="submit" style="color:#b42318">Clear all available</button></form>
+</div>
+
+<form id="bulkForm" method="post" action="/admin/inventory/bulk-delete">
+  <input type="hidden" name="plan_id" value="<%= plan.id %>">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 6px">
+    <span style="font-size:12.5px;color:var(--muted)">With selected:</span>
+    <button class="btn btn-g" type="submit" formaction="/admin/inventory/bulk-hide">Hide (hold)</button>
+    <button class="btn btn-g" type="submit" formaction="/admin/inventory/bulk-unhide">Unhide</button>
+    <button class="btn btn-g" type="submit" formaction="/admin/inventory/bulk-delete" style="color:#b42318">Delete</button>
+    <% if (targets.length) { %>
+      <select name="to_plan_id" style="margin:0;max-width:280px"><option value="">move to…</option><% targets.forEach(function(t){ %><option value="<%= t.id %>"><%= esc(t.label) %></option><% }); %></select>
+      <button class="btn btn-g" type="submit" formaction="/admin/inventory/move">Move</button>
+    <% } %>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px">
+    <input type="text" name="note" placeholder="note for selected units (blank = clear)" style="margin:0;max-width:360px;flex:1;min-width:200px">
+    <button class="btn btn-g" type="submit" formaction="/admin/inventory/bulk-note">Set note</button>
+  </div>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th style="width:34px"><input type="checkbox" onclick="document.querySelectorAll('.ivchk').forEach(function(c){c.checked=this.checked}.bind(this))"></th><th style="width:40px">#</th><th>Credentials</th><th>Sold to</th><th style="width:90px">Status</th><th style="width:170px">Actions</th></tr></thead>
+    <tbody>
+    <% if (!items.length) { %><tr><td colspan="6" style="color:var(--muted);padding:22px 16px">No units in this view.</td></tr><% } %>
+    <% items.forEach(function(it, idx){ var avail = it.status==='available'; var isHeld = it.status==='held'; var selectable = avail || isHeld; %>
+      <tr>
+        <td><% if (selectable) { %><input class="ivchk" type="checkbox" name="ids" value="<%= it.id %>" form="bulkForm"><% } %></td>
+        <td style="color:var(--muted)"><%= idx+1 %></td>
+        <td style="font-size:13px">
+          <% if (F.length) { F.forEach(function(fn){ %><div><span style="color:var(--muted)"><%= esc(fn) %>:</span> <%= esc(val(it,fn)) %></div><% }); } else { %><div style="white-space:pre-line"><%= esc(it.payload) %></div><% } %>
+          <% if (it.note) { %><div style="margin-top:4px;font-size:11.5px;color:#9a6b00;background:rgba(240,168,50,.12);border-radius:7px;padding:3px 8px;display:inline-block">📝 <%= esc(it.note) %></div><% } %>
+          <% if (it.vendor) { %><div style="color:var(--muted);font-size:11.5px;margin-top:3px">vendor: <%= esc(it.vendor) %><%= it.cost_pkr!=null?(' · cost '+rs(it.cost_pkr)):'' %></div><% } %>
+        </td>
+        <td style="font-size:12.5px">
+          <% if (selectable) { %><span style="color:var(--muted)">—</span>
+          <% } else { %><%= esc(it.o_whatsapp || it.o_email || it.order_no || 'sold') %><% if (it.order_no) { %><div style="color:var(--muted)"><%= esc(it.order_no) %><%= it.delivered_at?(' · '+new Date(it.delivered_at).toLocaleDateString('en-GB')):'' %></div><% } %><% } %>
+        </td>
+        <td>
+          <% if (avail) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Available</span>
+          <% } else if (isHeld) { %><span class="spill" style="background:#fff2db;color:#9a6b00">Held</span>
+          <% } else { %><span class="spill" style="background:#eef1f6;color:#667">Sold</span><% } %>
+        </td>
+        <td>
+          <% if (selectable) { %>
+            <details><summary style="cursor:pointer;color:var(--brand);font-weight:600;font-size:12.5px">Edit</summary>
+              <form method="post" action="/admin/inventory/item/<%= it.id %>/edit" style="margin-top:8px">
+                <input type="hidden" name="plan_id" value="<%= plan.id %>">
+                <% F.forEach(function(fn,i){ %><input type="text" name="f<%= i %>" value="<%= esc(val(it,fn)) %>" placeholder="<%= esc(fn) %>" style="margin:0 0 6px"><% }); %>
+                <input type="text" name="note" value="<%= esc(it.note||'') %>" placeholder="note (optional)" style="margin:0 0 6px">
+                <button class="btn btn-p" type="submit" style="padding:5px 10px;font-size:12px">Save</button>
+              </form>
+            </details>
+            <div style="display:flex;gap:6px;margin:6px 0 0;flex-wrap:wrap">
+              <% if (avail) { %>
+                <form method="post" action="/admin/inventory/bulk-hide" style="margin:0"><input type="hidden" name="plan_id" value="<%= plan.id %>"><input type="hidden" name="ids" value="<%= it.id %>"><button class="btn btn-g" type="submit" style="padding:5px 10px;font-size:12px">Hide</button></form>
+              <% } else { %>
+                <form method="post" action="/admin/inventory/bulk-unhide" style="margin:0"><input type="hidden" name="plan_id" value="<%= plan.id %>"><input type="hidden" name="ids" value="<%= it.id %>"><button class="btn btn-g" type="submit" style="padding:5px 10px;font-size:12px">Unhide</button></form>
+              <% } %>
+              <form method="post" action="/admin/inventory/item/<%= it.id %>/delete" style="margin:0" onsubmit="return confirm('Delete this unit?')"><input type="hidden" name="plan_id" value="<%= plan.id %>"><button class="btn btn-g" type="submit" style="padding:5px 10px;font-size:12px;color:#b42318">Delete</button></form>
+            </div>
+          <% } else { %><span style="color:var(--muted);font-size:12px">🔒 locked</span><% } %>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<%- include('_shell_bottom') %>
