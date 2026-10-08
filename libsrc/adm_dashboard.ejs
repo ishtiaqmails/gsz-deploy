@@ -1,8 +1,8 @@
 <%- include('_shell_top', { active:'dashboard', title:'Dashboard' }) %>
 <style>
   .dcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
-  @media(max-width:1000px){.dcards{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:620px){.dcards{grid-template-columns:1fr}}
+  @media(max-width:1100px){.dcards{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:470px){.dcards{grid-template-columns:1fr}}
   .dcard{display:flex;gap:14px;align-items:center;background:#fff;border-radius:16px;padding:17px 18px;box-shadow:0 1px 2px rgba(15,24,54,.04),0 16px 34px -26px rgba(15,24,54,.28);position:relative;overflow:hidden}
   .dcard:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--t)}
   .dic{width:48px;height:48px;border-radius:13px;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--t) 14%,#fff);color:var(--t)}
