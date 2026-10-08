@@ -45,7 +45,7 @@ const KIT = "\n/*premium-kit*/\n" +
 ".dph b{font-size:15px}\n.dph .sp{flex:1}\n.dph a{font-size:13px;color:var(--brand);font-weight:700}\n" +
 ".dph svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}\n" +
 ".drow{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--hair)}\n" +
-".drow:first-of-type{border-top:0}\n.drow .main{flex:1;min-width:0}\n" +
+".drow:first-of-type{border-top:0}\n.drow .rinfo{flex:1;min-width:0}\n" +
 ".drow .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n" +
 ".drow .s{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n" +
 ".dbadge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}\n" +

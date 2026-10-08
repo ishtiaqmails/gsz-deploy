@@ -50,7 +50,7 @@
     <% if (!recent.length) { %><div class="dempty">No orders yet.</div><% } %>
     <% recent.forEach(function(o){ %>
       <a class="drow" href="/admin/orders/<%= o.id %>" style="color:inherit">
-        <div class="main">
+        <div class="rinfo">
           <div class="t"><%= o.product_name || o.order_no || ('Order #'+o.id) %></div>
           <div class="s"><%= [o.plan_label, o.order_no].filter(Boolean).join(' · ') %> · <%= when(o.created_at) %></div>
         </div>
@@ -67,11 +67,11 @@
     <% } else if (!lows.length) { %><div class="dempty">All stock pools are healthy ✓</div>
     <% } else { lows.forEach(function(x){ %>
       <a class="drow" href="/admin/inventory/manage/<%= x.id %>" style="color:inherit">
-        <div class="main"><div class="t"><%= x.product_name %></div><div class="s"><%= x.label %></div></div>
+        <div class="rinfo"><div class="t"><%= x.product_name %></div><div class="s"><%= x.label %></div></div>
         <span class="pill" style="background:<%= x.avail==0?'#fdecec':'#fff2db' %>;color:<%= x.avail==0?'#b42318':'#b26a00' %>"><%= x.avail==0?'Out of stock':(x.avail+' left') %></span>
       </a>
     <% }); } %>
-    <% if (waitlist>0) { %><div class="drow" style="background:#f7f9fe"><div class="main"><div class="s"><b style="color:var(--ink)"><%= waitlist %></b> customer<%= waitlist==1?'':'s' %> waiting on restock</div></div><a href="/admin/inventory" style="font-size:12.5px;color:var(--brand);font-weight:700">View →</a></div><% } %>
+    <% if (waitlist>0) { %><div class="drow" style="background:#f7f9fe"><div class="rinfo"><div class="s"><b style="color:var(--ink)"><%= waitlist %></b> customer<%= waitlist==1?'':'s' %> waiting on restock</div></div><a href="/admin/inventory" style="font-size:12.5px;color:var(--brand);font-weight:700">View →</a></div><% } %>
   </div>
 </div>
 <%- include('_shell_bottom') %>
