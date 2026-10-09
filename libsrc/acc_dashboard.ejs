@@ -24,7 +24,8 @@
   function initials(nm){ nm=String(nm||'?'); return (nm.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2)||'?').toUpperCase(); }
 %>
 <style>
-  .dh{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+  .dh{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+  .dh>div{min-width:0}
   @media(max-width:1060px){.dh{grid-template-columns:1fr}}
   .hero{position:relative;overflow:hidden;border-radius:20px;padding:30px 34px;background:linear-gradient(120deg,#13224a,#0f1830 60%);border:1px solid var(--line2);margin-bottom:20px}
   .hero:after{content:"";position:absolute;inset:0;background:radial-gradient(420px 220px at 88% 10%,rgba(41,211,255,.22),transparent 65%);pointer-events:none}
