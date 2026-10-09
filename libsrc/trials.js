@@ -11,6 +11,7 @@
    so disabled panels (e.g. Mega/Trex/8K) never show and never produce a dead claim.
    trial.label (e.g. "12 Hour Trial") is used for the duration text when present. */
 const express = require('express');
+const crypto = require('crypto');
 const storefront = require('../lib/storefront');
 const botapi = require('../lib/botapi');
 
@@ -117,7 +118,12 @@ module.exports = function (pool) {
 
     // Request generation (async two-step). Store the request_id; the trial
     // poller GETs /api/trial-status, then delivers credentials when ready.
-    const ref = 'TRIAL-' + claimId;
+    // GLOBALLY UNIQUE ref (UNIQUE_TRIAL_REF_v1): a random suffix guarantees the
+    // id never collides with a previously-used request_id on the bot (the bot is
+    // idempotent per request_id, so a reused id would return an OLD cached trial —
+    // wrong panel / stale / expired). Stable per claim (stored in bot_ref) so the
+    // poller's retries stay idempotent.
+    const ref = 'TRIAL-' + claimId + '-' + crypto.randomBytes(4).toString('hex');
     await pool.query("UPDATE trial_claims SET bot_ref=$1 WHERE id=$2", [ref, claimId]);
     try { if (botapi.configured && botapi.configured()) await botapi.generateTrial({ sku, hours: srv.duration_hours, customer_ref: v.ref, request_id: ref }); } catch (e) {}
     return back('Your ' + srv.name + ' trial is being prepared — we’ll send it to your WhatsApp and show it under My trials shortly.');
