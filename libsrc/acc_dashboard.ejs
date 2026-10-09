@@ -22,7 +22,6 @@
   function stTxt(s){ s=String(s||'pending'); return s.charAt(0).toUpperCase()+s.slice(1); }
   function img(src){ return src ? ('/static/img/'+src) : ''; }
   function initials(nm){ nm=String(nm||'?'); return (nm.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2)||'?').toUpperCase(); }
-  var bimgs = prods.filter(function(p){return p.image;}).slice(0,6);
 %>
 <style>
   .dh{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
@@ -30,10 +29,7 @@
   .hero{position:relative;overflow:hidden;border-radius:20px;padding:30px 34px;background:linear-gradient(120deg,#13224a,#0f1830 60%);border:1px solid var(--line2);margin-bottom:20px}
   .hero:after{content:"";position:absolute;inset:0;background:radial-gradient(420px 220px at 88% 10%,rgba(41,211,255,.22),transparent 65%);pointer-events:none}
   .hero h1{font-family:var(--display);font-weight:800;font-size:clamp(23px,3vw,31px);letter-spacing:-.02em;margin:0 0 7px}
-  .hero p{color:var(--ink2);max-width:460px;margin:0;font-size:14.5px}
-  .hero .tiles{position:absolute;right:26px;top:50%;transform:translateY(-50%);display:flex;gap:9px;flex-wrap:wrap;width:230px;justify-content:flex-end}
-  @media(max-width:720px){.hero .tiles{display:none}}
-  .stile{width:52px;height:52px;border-radius:13px;object-fit:cover;background:#0d1730;border:1px solid var(--line2);box-shadow:0 10px 24px -12px rgba(0,0,0,.7)}
+  .hero p{color:var(--ink2);max-width:560px;margin:0;font-size:14.5px}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
   @media(max-width:860px){.stats{grid-template-columns:1fr 1fr}}
   .stat{padding:18px;border-radius:16px}
@@ -103,7 +99,6 @@
 <section class="hero">
   <h1>Welcome back, <%= _first %> 👋</h1>
   <p>Manage your subscriptions, view orders and get the most out of your Galaxy Subz × Zayron experience.</p>
-  <% if(bimgs.length){ %><div class="tiles"><% bimgs.forEach(function(p){ %><img class="stile" src="<%= img(p.image) %>" alt="<%= p.product_name||'' %>" loading="lazy"><% }); %></div><% } %>
 </section>
 
 <div class="stats">
