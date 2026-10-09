@@ -1,0 +1,196 @@
+<% /* Dark customer dashboard — main screen. Real data via account.js GET /account. */ %>
+<%- include('../partials/dash_top', { active:'dashboard', title:'Dashboard', c:c, siteName:(typeof siteName!=='undefined'?siteName:'Galaxy Subz × Zayron') }) %>
+<%
+  var _c = c || {};
+  var _first = String(_c.name||'there').split(' ')[0];
+  var ords = (typeof orders!=='undefined' && orders) ? orders : [];
+  var prods = (typeof products!=='undefined' && products) ? products : [];
+  var pms = (typeof payMethods!=='undefined' && payMethods) ? payMethods : [];
+  var st = (typeof stats!=='undefined' && stats) ? stats : {orders:0,delivered:0,trials:0};
+  var aProducts = (typeof activeProducts!=='undefined') ? activeProducts : (st.delivered||0);
+  var tickets = (typeof ticketsOpen!=='undefined') ? ticketsOpen : 0;
+  var spent = (typeof totalSpent!=='undefined') ? Number(totalSpent||0) : 0;
+  var member = (typeof memberSince!=='undefined' && memberSince) ? memberSince : (_c.created_at||null);
+  var loc = (typeof location!=='undefined' && location) ? location : '';
+  var ref = (typeof refCode!=='undefined' && refCode) ? refCode : (_c.ref_code||'');
+  var wa = (typeof waNumber!=='undefined' && waNumber) ? waNumber : '';
+  function money(n){ n=Math.round(Number(n||0)); return 'Rs '+n.toLocaleString('en-US'); }
+  function omoney(o){ var cur=String(o.currency||'').toUpperCase(); var a=o.amount_display!=null?o.amount_display:o.amount_pkr; var n=Math.round(Number(a||0)).toLocaleString('en-US'); return cur==='USD'?('$'+n):('Rs '+n); }
+  function dt(d){ if(!d) return '—'; try{ var x=new Date(d); return x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return String(d).slice(0,10); } }
+  function mon(d){ if(!d) return '—'; try{ var x=new Date(d); return x.toLocaleDateString('en-US',{month:'short',year:'numeric'}); }catch(e){ return String(d).slice(0,7); } }
+  function stCls(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled'||s==='out_of_stock') return 'bad'; return 'wait'; }
+  function stTxt(s){ s=String(s||'pending'); return s.charAt(0).toUpperCase()+s.slice(1); }
+  function initials(nm){ nm=String(nm||'?'); return (nm.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2)||'?').toUpperCase(); }
+  var SERV=[['N','#e50914'],['Prime','#1399ff'],['▶','#ff0033'],['D+','#0b63e5'],['IPTV','linear-gradient(135deg,#2f7bff,#29d3ff)'],['♪','#1db954']];
+%>
+<style>
+  .dh{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+  @media(max-width:1060px){.dh{grid-template-columns:1fr}}
+  .hero{position:relative;overflow:hidden;border-radius:20px;padding:30px 34px;background:linear-gradient(120deg,#13224a,#0f1830 60%);border:1px solid var(--line2);margin-bottom:20px}
+  .hero:after{content:"";position:absolute;inset:0;background:radial-gradient(420px 220px at 88% 10%,rgba(41,211,255,.22),transparent 65%);pointer-events:none}
+  .hero h1{font-family:var(--display);font-weight:800;font-size:clamp(23px,3vw,31px);letter-spacing:-.02em;margin:0 0 7px}
+  .hero p{color:var(--ink2);max-width:460px;margin:0;font-size:14.5px}
+  .hero .tiles{position:absolute;right:26px;top:50%;transform:translateY(-50%);display:flex;gap:9px;flex-wrap:wrap;width:230px;justify-content:flex-end}
+  @media(max-width:720px){.hero .tiles{display:none}}
+  .stile{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;box-shadow:0 10px 24px -12px rgba(0,0,0,.7)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  @media(max-width:860px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{padding:18px;border-radius:16px}
+  .stat .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .stat .ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center}
+  .stat .ico svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .stat .lbl{font-size:12.5px;color:var(--ink2);font-weight:600}
+  .stat .num{font-family:var(--display);font-weight:800;font-size:27px;letter-spacing:-.02em;margin-top:2px}
+  .stat a{font-size:12.5px;color:var(--brand2);font-weight:600;margin-top:8px;display:inline-flex;gap:4px;align-items:center}
+  .sec{padding:22px}
+  .sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .sec-h h2{font-family:var(--display);font-weight:800;font-size:17px;margin:0;letter-spacing:-.01em}
+  .sec-h a{font-size:13px;color:var(--brand2);font-weight:600}
+  .sec-sub{color:var(--ink2);font-size:13px;margin:0 0 14px}
+  .otbl{width:100%;border-collapse:collapse}
+  .otbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);font-weight:700;padding:0 10px 12px;border-bottom:1px solid var(--line)}
+  .otbl td{padding:13px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+  .otbl tr:last-child td{border-bottom:0}
+  .opr{display:flex;align-items:center;gap:11px}
+  .opr .oic{width:36px;height:36px;border-radius:10px;background:var(--panelhi);display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--brand2);flex:none}
+  .opr .onm{font-weight:700} .opr .osub{font-size:12px;color:var(--ink2)}
+  .omini{display:none}
+  @media(max-width:620px){
+    .otbl thead{display:none}
+    .otbl,.otbl tbody,.otbl tr,.otbl td{display:block;width:100%}
+    .otbl tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:6px 10px}
+    .otbl td{border:0;padding:6px 2px;display:flex;justify-content:space-between;gap:12px}
+    .otbl td:before{content:attr(data-l);color:var(--ink2);font-size:12px;font-weight:600}
+    .otbl td.oprcell:before{display:none}.otbl td.oprcell{display:block}
+  }
+  .prow{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 6px;scroll-snap-type:x mandatory}
+  .pcard{flex:0 0 190px;scroll-snap-align:start;background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:16px;text-align:center}
+  .pcard .pic{width:54px;height:54px;border-radius:14px;background:var(--panelhi);display:grid;place-items:center;margin:0 auto 10px;font-weight:800;color:var(--brand2);font-size:15px}
+  .pcard .pn{font-weight:700;font-size:14.5px}
+  .pcard .pp{font-size:12px;color:var(--ink2);margin:2px 0 9px}
+  .prof{padding:22px;text-align:center;margin-bottom:18px}
+  .prof .pav{width:72px;height:72px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:800;font-size:24px;color:#fff;margin:0 auto 12px}
+  .prof .pnm{font-family:var(--display);font-weight:800;font-size:18px}
+  .prof .pem{color:var(--ink2);font-size:13px;margin-top:3px}
+  .prof-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .prof-grid .pg{font-size:11px;color:var(--ink2)} .prof-grid .pv{font-weight:700;font-size:13px;margin-top:3px}
+  .qas{display:flex;flex-direction:column}
+  .qa-i{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .qa-i:first-child{border-top:0}
+  .qa-i .qic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none}
+  .qa-i .qic svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .qa-i .qt{flex:1}.qa-i .qtt{font-weight:700;font-size:14px}.qa-i .qts{font-size:12px;color:var(--ink2)}
+  .qa-i .chev{color:var(--ink2)}
+  .pms{display:flex;flex-wrap:wrap;gap:9px}
+  .pm{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;font-weight:600}
+  .pm .pmd{width:9px;height:9px;border-radius:50%;background:var(--grad)}
+  .promo{position:relative;overflow:hidden;border-radius:18px;padding:22px;background:linear-gradient(150deg,#1a2b5a,#121a30);border:1px solid var(--line2)}
+  .promo h3{font-family:var(--display);font-weight:800;font-size:17px;margin:0 0 6px}
+  .promo p{color:var(--ink2);font-size:12.5px;margin:0 0 14px}
+  .emptyb{color:var(--ink2);font-size:14px;padding:12px 0}
+  .ctabar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between;padding:18px 22px;margin-top:20px;border-radius:16px;background:linear-gradient(100deg,rgba(47,123,255,.12),rgba(41,211,255,.04));border:1px solid var(--line2)}
+  .ctabar .ct{display:flex;align-items:center;gap:13px}
+  .ctabar .cic{width:44px;height:44px;border-radius:12px;background:rgba(47,123,255,.2);display:grid;place-items:center;color:var(--brand2);flex:none}
+  .ctabar .cth{font-family:var(--display);font-weight:700;font-size:15px}
+  .ctabar .cts{font-size:12.5px;color:var(--ink2)}
+</style>
+
+<section class="hero">
+  <h1>Welcome back, <%= _first %> 👋</h1>
+  <p>Manage your subscriptions, view orders and get the most out of your Galaxy Subz × Zayron experience.</p>
+  <div class="tiles"><% SERV.forEach(function(s){ %><div class="stile" style="background:<%= s[1] %>"><%= s[0] %></div><% }); %></div>
+</section>
+
+<div class="stats">
+  <div class="stat card"><div class="top"><span class="ico" style="color:var(--brand2);background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span></div><div class="lbl">Total Orders</div><div class="num"><%= st.orders||0 %></div><a href="/account/orders">View all →</a></div>
+  <div class="stat card"><div class="top"><span class="ico" style="color:var(--purple);background:rgba(154,108,255,.15)"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span></div><div class="lbl">Active Products</div><div class="num"><%= aProducts %></div><a href="/account/products">View all →</a></div>
+  <div class="stat card"><div class="top"><span class="ico" style="color:var(--ok);background:var(--okbg)"><svg viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div><div class="lbl">Total Spent</div><div class="num" style="font-size:22px"><%= money(spent) %></div></div>
+  <div class="stat card"><div class="top"><span class="ico" style="color:var(--warn);background:var(--warnbg)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></div><div class="lbl">Support Tickets</div><div class="num"><%= tickets %></div><a href="/account/support">View all →</a></div>
+</div>
+
+<div class="dh">
+  <div>
+    <div class="sec card" style="margin-bottom:20px">
+      <div class="sec-h"><h2>Recent Orders</h2><a href="/account/orders">View All →</a></div>
+      <p class="sec-sub">Your latest purchases and deliveries</p>
+      <% if(!ords.length){ %>
+        <div class="emptyb">No orders yet. <a href="/" style="color:var(--brand2);font-weight:600">Browse products →</a></div>
+      <% } else { %>
+      <table class="otbl"><thead><tr><th>Product</th><th>Plan</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>
+        <% ords.slice(0,5).forEach(function(o){ %>
+          <tr>
+            <td class="oprcell" data-l="Product"><div class="opr"><span class="oic"><%= initials(o.product_name||'Order') %></span><span><span class="onm"><%= o.product_name||'Order' %></span><br><span class="osub"><%= o.order_no||('#'+o.id) %></span></span></div></td>
+            <td data-l="Plan"><%= o.plan_label||'—' %></td>
+            <td data-l="Status"><span class="pill <%= stCls(o.status) %>"><%= stTxt(o.status) %></span></td>
+            <td data-l="Date"><%= dt(o.created_at) %></td>
+            <td data-l=""><a class="btn btn-g" style="padding:7px 14px" href="<%= o.order_no?('/order/'+o.order_no):'#' %>">View</a></td>
+          </tr>
+        <% }); %>
+      </tbody></table>
+      <% } %>
+    </div>
+
+    <div class="sec card">
+      <div class="sec-h"><h2>My Products</h2><a href="/account/products">View All →</a></div>
+      <p class="sec-sub">Access your active subscriptions and manage them</p>
+      <% if(!prods.length){ %>
+        <div class="emptyb">No active products yet. <a href="/" style="color:var(--brand2);font-weight:600">Browse products →</a></div>
+      <% } else { %>
+      <div class="prow">
+        <% prods.slice(0,10).forEach(function(p){ %>
+          <div class="pcard">
+            <div class="pic"><%= initials(p.product_name||'P') %></div>
+            <div class="pn"><%= p.product_name||'Product' %></div>
+            <div class="pp"><%= p.plan_label||'' %></div>
+            <span class="pill ok" style="margin-bottom:10px">Active</span>
+            <a class="btn btn-g" style="width:100%;margin-top:4px" href="<%= p.order_no?('/account/order/'+p.order_no+'/credentials'):'#' %>">View Details</a>
+          </div>
+        <% }); %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <aside>
+    <div class="prof card">
+      <div class="pav"><%= initials(_c.name) %></div>
+      <div class="pnm"><%= _c.name||'Customer' %> <% if(_c.email_verified){ %><span class="pill ok" style="vertical-align:middle">✓ Verified</span><% } %></div>
+      <div class="pem"><%= _c.email||'' %></div>
+      <div class="prof-grid">
+        <div><div class="pg">Member Since</div><div class="pv"><%= mon(member) %></div></div>
+        <div><div class="pg">Total Orders</div><div class="pv"><%= st.orders||0 %></div></div>
+        <div><div class="pg"><%= loc?'Location':'Ref' %></div><div class="pv"><%= loc || (ref?('#'+ref):'—') %></div></div>
+      </div>
+    </div>
+
+    <div class="sec card" style="margin-bottom:18px">
+      <div class="sec-h"><h2>Quick Actions</h2></div>
+      <div class="qas">
+        <a class="qa-i" href="/"><span class="qic" style="color:var(--brand2);background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="qt"><div class="qtt">Browse All Products</div><div class="qts">Discover new subscriptions</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
+        <a class="qa-i" href="/account/support"><span class="qic" style="color:var(--pink);background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="qt"><div class="qtt">Create Support Ticket</div><div class="qts">Get help from our team</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
+        <a class="qa-i" href="/account/orders"><span class="qic" style="color:var(--brand2);background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><span class="qt"><div class="qtt">View Order History</div><div class="qts">Check your past purchases</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
+      </div>
+    </div>
+
+    <% if(pms.length){ %>
+    <div class="sec card" style="margin-bottom:18px">
+      <div class="sec-h"><h2>Payment Methods</h2></div>
+      <p class="sec-sub">Your available payment options</p>
+      <div class="pms"><% pms.slice(0,8).forEach(function(m){ %><span class="pm"><span class="pmd"></span><%= (m.name||m) %></span><% }); %></div>
+    </div>
+    <% } %>
+
+    <div class="promo">
+      <h3>More Entertainment,<br>More Possibilities</h3>
+      <p>Premium Subscriptions · IPTV · VPNs · AI Tools</p>
+      <a class="btn btn-p" href="/">Explore Store</a>
+    </div>
+  </aside>
+</div>
+
+<div class="ctabar">
+  <div class="ct"><span class="cic"><svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div><div class="cth">Have a Question?</div><div class="cts">Our support team is here 24/7. Get quick answers or create a support ticket.</div></div></div>
+  <a class="btn btn-p" href="/account/support">Contact Support →</a>
+</div>
+
+<%- include('../partials/dash_bottom') %>

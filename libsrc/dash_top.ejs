@@ -1,0 +1,145 @@
+<%
+/* Dark customer dashboard shell — TOP. Locals: active, title, c(customer), siteName.
+   Self-contained premium dark app layout (sidebar + topbar). Pair with dash_bottom.ejs. */
+var _c = (typeof c!=='undefined' && c) ? c : {};
+var _name = String(_c.name || 'Customer');
+var _first = _name.split(' ')[0] || 'Customer';
+var _initials = (_name.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2) || 'C').toUpperCase();
+var _site = (typeof siteName!=='undefined' && siteName) ? siteName : 'Galaxy Subz × Zayron';
+var _active = (typeof active!=='undefined' && active) ? active : 'dashboard';
+var _title = (typeof title!=='undefined' && title) ? title : 'Dashboard';
+var NAV = [
+  { k:'dashboard', label:'Dashboard', href:'/account',          ic:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>' },
+  { k:'orders',    label:'My Orders', href:'/account/orders',    ic:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>' },
+  { k:'products',  label:'My Products', href:'/account/products', ic:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>' },
+  { k:'tickets',   label:'Support Tickets', href:'/account/support', ic:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+  { k:'profile',   label:'Profile Settings', href:'/account/security', ic:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' }
+];
+%><!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><%= _title %> · <%= _site %></title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b16; --bg2:#0a1020; --panel:#111a2e; --panel2:#0e1627; --panelhi:#16203a;
+    --line:rgba(255,255,255,.075); --line2:rgba(255,255,255,.12);
+    --ink:#eef2fb; --ink2:#9aa6c0; --ink3:#6b7488;
+    --muted:#8d98b4;
+    --brand:#2f7bff; --brand2:#29d3ff; --grad:linear-gradient(135deg,#2f7bff,#29d3ff);
+    --ok:#33d98a; --okbg:rgba(51,217,138,.14);
+    --warn:#f4b64c; --warnbg:rgba(244,182,76,.15);
+    --bad:#f0554e; --badbg:rgba(240,85,78,.14);
+    --purple:#9a6cff; --pink:#ff6cc4;
+    --sidebar:#0a1122; --radius:16px; --sh:0 10px 30px -14px rgba(0,0,0,.6);
+    --display:'Plus Jakarta Sans',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;max-width:100%;overflow-x:hidden}
+  body{background:radial-gradient(1200px 600px at 82% -8%,rgba(47,123,255,.10),transparent 60%),var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .shell{display:flex;min-height:100vh;align-items:stretch}
+
+  /* Sidebar */
+  .sb{width:256px;flex:none;background:linear-gradient(180deg,#0b1326,#080e1c);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .sb-brand{display:flex;align-items:center;gap:10px;padding:20px 20px 18px}
+  .brandmark{display:flex;align-items:center;gap:7px;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.01em}
+  .bmk{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;flex:none}
+  .bmk.gs{background:var(--grad)}
+  .bmk.z{background:linear-gradient(135deg,#7b5cff,#29d3ff)}
+  .brandx{color:var(--ink2);font-weight:600;margin:0 1px}
+  .sb-nav{padding:8px 12px;display:flex;flex-direction:column;gap:3px}
+  .nav-i{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;color:var(--ink2);font-weight:600;font-size:14.5px;transition:.15s}
+  .nav-i svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .nav-i:hover{background:rgba(255,255,255,.04);color:var(--ink)}
+  .nav-i.on{background:linear-gradient(100deg,rgba(47,123,255,.18),rgba(41,211,255,.08));color:#fff;box-shadow:inset 0 0 0 1px rgba(47,123,255,.3)}
+  .nav-i.on svg{color:var(--brand2)}
+  .sb-help{margin:auto 14px 14px;background:linear-gradient(160deg,rgba(47,123,255,.14),rgba(41,211,255,.05));border:1px solid var(--line2);border-radius:16px;padding:16px;text-align:center}
+  .sb-help .hic{width:42px;height:42px;border-radius:12px;background:rgba(47,123,255,.2);display:grid;place-items:center;margin:0 auto 9px;color:var(--brand2)}
+  .sb-help .ht{font-family:var(--display);font-weight:700;font-size:14.5px}
+  .sb-help .hs{font-size:12px;color:var(--ink2);margin:2px 0 11px}
+  .sb-foot{padding:0 20px 18px;font-size:11.5px;color:var(--ink2);opacity:.8}
+
+  /* Main */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px clamp(16px,3vw,30px);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(7,11,22,.82);backdrop-filter:blur(12px);z-index:20}
+  .tb-left{display:flex;align-items:center;gap:12px;min-width:0}
+  .hamb{display:none;width:40px;height:40px;border-radius:11px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);align-items:center;justify-content:center;flex:none}
+  .hamb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+  .tb-title{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tb-right{display:flex;align-items:center;gap:12px}
+  .lang{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:11px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-size:13px;font-weight:600}
+  .lang svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .user{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--line2);background:var(--panel)}
+  .ava{width:34px;height:34px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;flex:none}
+  .user .un{font-weight:700;font-size:13.5px;line-height:1.15}
+  .user .ur{font-size:11px;color:var(--ink2)}
+  @media(max-width:560px){.user .umeta{display:none}.lang .lt{display:none}}
+
+  .content{padding:clamp(16px,3vw,30px);max-width:1280px;width:100%;margin:0 auto}
+
+  /* shared bits */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--sh)}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .pill.ok{color:var(--ok);background:var(--okbg)} .pill.wait{color:var(--warn);background:var(--warnbg)} .pill.bad{color:var(--bad);background:var(--badbg)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-family:var(--body);font-weight:700;font-size:13.5px;padding:9px 16px;border-radius:11px;transition:.15s}
+  .btn-p{background:var(--grad);color:#fff;box-shadow:0 8px 20px -10px rgba(47,123,255,.8)}
+  .btn-p:hover{filter:brightness(1.07)}
+  .btn-g{background:var(--panelhi);color:var(--ink);border:1px solid var(--line2)}
+  .btn-g:hover{background:#1b2742}
+
+  /* Sidebar off-canvas (mobile) */
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+  @media(max-width:980px){
+    .sb{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .22s ease}
+    .sb.open{transform:none}
+    .scrim.show{display:block}
+    .hamb{display:inline-flex}
+  }
+</style>
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+<div class="shell">
+  <aside class="sb" id="sb">
+    <div class="sb-brand">
+      <a class="brandmark" href="/account">
+        <span class="bmk gs">GS</span><span class="brandx">×</span><span class="bmk z">Z</span>
+        <span style="font-size:14.5px">Galaxy&nbsp;Subz <span class="brandx">×</span> Zayron</span>
+      </a>
+    </div>
+    <nav class="sb-nav">
+      <% NAV.forEach(function(n){ %>
+        <a class="nav-i <%= _active===n.k?'on':'' %>" href="<%= n.href %>">
+          <svg viewBox="0 0 24 24"><%- n.ic %></svg><%= n.label %>
+        </a>
+      <% }); %>
+    </nav>
+    <div class="sb-help">
+      <div class="hic"><svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.8"><path d="M12 18v.01"/><path d="M12 14a3 3 0 1 0-3-3"/><circle cx="12" cy="12" r="10"/></svg></div>
+      <div class="ht">Need Help?</div>
+      <div class="hs">Our team is online 24/7</div>
+      <a class="btn btn-p" style="width:100%" href="/account/support">Contact Support</a>
+    </div>
+    <div class="sb-foot">Galaxy Subz × Zayron<br>Your Entertainment. Our Priority.</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="hamb" id="hamb" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        <div class="tb-title"><%= _title %></div>
+      </div>
+      <div class="tb-right">
+        <span class="lang"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span class="lt">EN</span></span>
+        <div class="user">
+          <span class="ava"><%= _initials %></span>
+          <span class="umeta"><div class="un"><%= _name %></div><div class="ur">Customer</div></span>
+        </div>
+      </div>
+    </header>
+    <main class="content">

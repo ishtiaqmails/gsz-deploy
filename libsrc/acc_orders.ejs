@@ -1,0 +1,42 @@
+<% /* Dark customer dashboard — My Orders. Locals: c, orders (all), siteName. */ %>
+<%- include('../partials/dash_top', { active:'orders', title:'My Orders', c:c, siteName:(typeof siteName!=='undefined'?siteName:'Galaxy Subz × Zayron') }) %>
+<%
+  var ords = (typeof orders!=='undefined' && orders) ? orders : [];
+  function omoney(o){ var cur=String(o.currency||'').toUpperCase(); var a=o.amount_display!=null?o.amount_display:o.amount_pkr; var n=Math.round(Number(a||0)).toLocaleString('en-US'); return cur==='USD'?('$'+n):('Rs '+n); }
+  function dt(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return String(d).slice(0,10); } }
+  function stCls(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled'||s==='out_of_stock') return 'bad'; return 'wait'; }
+  function stTxt(s){ s=String(s||'pending'); return s.charAt(0).toUpperCase()+s.slice(1); }
+  function initials(nm){ nm=String(nm||'?'); return (nm.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2)||'?').toUpperCase(); }
+%>
+<style>
+  .sec{padding:22px}.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .sec-h h2{font-family:var(--display);font-weight:800;font-size:17px;margin:0}.sec-sub{color:var(--ink2);font-size:13px;margin:0 0 14px}
+  .otbl{width:100%;border-collapse:collapse}
+  .otbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);font-weight:700;padding:0 10px 12px;border-bottom:1px solid var(--line)}
+  .otbl td{padding:13px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}.otbl tr:last-child td{border-bottom:0}
+  .opr{display:flex;align-items:center;gap:11px}.opr .oic{width:36px;height:36px;border-radius:10px;background:var(--panelhi);display:grid;place-items:center;font-weight:800;font-size:12px;color:var(--brand2);flex:none}
+  .opr .onm{font-weight:700}.opr .osub{font-size:12px;color:var(--ink2)}
+  .emptyb{color:var(--ink2);font-size:14px;padding:12px 0}
+  @media(max-width:640px){.otbl thead{display:none}.otbl,.otbl tbody,.otbl tr,.otbl td{display:block;width:100%}.otbl tr{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:6px 10px}.otbl td{border:0;padding:6px 2px;display:flex;justify-content:space-between;gap:12px}.otbl td:before{content:attr(data-l);color:var(--ink2);font-size:12px;font-weight:600}.otbl td.oprcell:before{display:none}.otbl td.oprcell{display:block}}
+</style>
+<div class="sec card">
+  <div class="sec-h"><h2>My Orders</h2><a class="btn btn-g" style="padding:7px 14px" href="/account">← Dashboard</a></div>
+  <p class="sec-sub">All your purchases and their delivery status</p>
+  <% if(!ords.length){ %>
+    <div class="emptyb">No orders yet. <a href="/" style="color:var(--brand2);font-weight:600">Browse products →</a></div>
+  <% } else { %>
+  <table class="otbl"><thead><tr><th>Product</th><th>Plan</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>
+    <% ords.forEach(function(o){ %>
+      <tr>
+        <td class="oprcell" data-l="Product"><div class="opr"><span class="oic"><%= initials(o.product_name||'Order') %></span><span><span class="onm"><%= o.product_name||'Order' %></span><br><span class="osub"><%= o.order_no||('#'+o.id) %></span></span></div></td>
+        <td data-l="Plan"><%= o.plan_label||'—' %></td>
+        <td data-l="Amount"><%= omoney(o) %></td>
+        <td data-l="Status"><span class="pill <%= stCls(o.status) %>"><%= stTxt(o.status) %></span></td>
+        <td data-l="Date"><%= dt(o.created_at) %></td>
+        <td data-l=""><a class="btn btn-g" style="padding:7px 14px" href="<%= o.order_no?('/order/'+o.order_no):'#' %>">View</a></td>
+      </tr>
+    <% }); %>
+  </tbody></table>
+  <% } %>
+</div>
+<%- include('../partials/dash_bottom') %>

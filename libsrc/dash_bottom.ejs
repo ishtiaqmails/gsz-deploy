@@ -1,0 +1,14 @@
+    </main>
+  </div>
+</div>
+<script>
+(function(){
+  var sb=document.getElementById('sb'), sc=document.getElementById('scrim'), hb=document.getElementById('hamb');
+  function open(){ if(sb)sb.classList.add('open'); if(sc)sc.classList.add('show'); }
+  function close(){ if(sb)sb.classList.remove('open'); if(sc)sc.classList.remove('show'); }
+  if(hb) hb.addEventListener('click', open);
+  if(sc) sc.addEventListener('click', close);
+})();
+</script>
+</body>
+</html>

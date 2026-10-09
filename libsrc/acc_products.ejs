@@ -1,0 +1,36 @@
+<% /* Dark customer dashboard — My Products (delivered subscriptions). Locals: c, products, siteName. */ %>
+<%- include('../partials/dash_top', { active:'products', title:'My Products', c:c, siteName:(typeof siteName!=='undefined'?siteName:'Galaxy Subz × Zayron') }) %>
+<%
+  var prods = (typeof products!=='undefined' && products) ? products : [];
+  function dt(d){ if(!d) return ''; try{ return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return ''; } }
+  function initials(nm){ nm=String(nm||'?'); return (nm.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2)||'?').toUpperCase(); }
+%>
+<style>
+  .sec{padding:22px}.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .sec-h h2{font-family:var(--display);font-weight:800;font-size:17px;margin:0}.sec-sub{color:var(--ink2);font-size:13px;margin:0 0 16px}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .pcard{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:18px;text-align:center}
+  .pcard .pic{width:56px;height:56px;border-radius:15px;background:var(--panelhi);display:grid;place-items:center;margin:0 auto 11px;font-weight:800;color:var(--brand2);font-size:16px}
+  .pcard .pn{font-weight:700;font-size:15px}.pcard .pp{font-size:12.5px;color:var(--ink2);margin:3px 0 10px}
+  .emptyb{color:var(--ink2);font-size:14px;padding:12px 0}
+</style>
+<div class="sec card">
+  <div class="sec-h"><h2>My Products</h2><a class="btn btn-g" style="padding:7px 14px" href="/account">← Dashboard</a></div>
+  <p class="sec-sub">Your active subscriptions — view credentials and manage renewals</p>
+  <% if(!prods.length){ %>
+    <div class="emptyb">No active products yet. <a href="/" style="color:var(--brand2);font-weight:600">Browse products →</a></div>
+  <% } else { %>
+  <div class="pgrid">
+    <% prods.forEach(function(p){ %>
+      <div class="pcard">
+        <div class="pic"><%= initials(p.product_name||'P') %></div>
+        <div class="pn"><%= p.product_name||'Product' %></div>
+        <div class="pp"><%= p.plan_label||'' %><% if(p.created_at){ %> · <%= dt(p.created_at) %><% } %></div>
+        <span class="pill ok" style="margin-bottom:11px">Active</span>
+        <a class="btn btn-g" style="width:100%;margin-top:4px" href="<%= p.order_no?('/account/order/'+p.order_no+'/credentials'):'#' %>">View Details</a>
+      </div>
+    <% }); %>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/dash_bottom') %>
