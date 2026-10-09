@@ -6,6 +6,7 @@ var _name = String(_c.name || 'Customer');
 var _first = _name.split(' ')[0] || 'Customer';
 var _initials = (_name.split(/\s+/).map(function(w){return w.charAt(0);}).join('').slice(0,2) || 'C').toUpperCase();
 var _site = (typeof siteName!=='undefined' && siteName) ? siteName : 'Galaxy Subz × Zayron';
+var _logo = (typeof logoFile!=='undefined' && logoFile) ? logoFile : 'logo.png';
 var _active = (typeof active!=='undefined' && active) ? active : 'dashboard';
 var _title = (typeof title!=='undefined' && title) ? title : 'Dashboard';
 var NAV = [
@@ -52,6 +53,7 @@ var NAV = [
   .bmk.gs{background:var(--grad)}
   .bmk.z{background:linear-gradient(135deg,#7b5cff,#29d3ff)}
   .brandx{color:var(--ink2);font-weight:600;margin:0 1px}
+  .blogo{max-height:40px;max-width:190px;object-fit:contain;display:block}
   .sb-nav{padding:8px 12px;display:flex;flex-direction:column;gap:3px}
   .nav-i{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;color:var(--ink2);font-weight:600;font-size:14.5px;transition:.15s}
   .nav-i svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -108,8 +110,8 @@ var NAV = [
   <aside class="sb" id="sb">
     <div class="sb-brand">
       <a class="brandmark" href="/account">
-        <span class="bmk gs">GS</span><span class="brandx">×</span><span class="bmk z">Z</span>
-        <span style="font-size:14.5px">Galaxy&nbsp;Subz <span class="brandx">×</span> Zayron</span>
+        <img class="blogo" src="/static/img/<%= _logo %>" alt="<%= _site %>" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <span class="bfallback" style="display:none;align-items:center;gap:7px"><span class="bmk gs">GS</span><span style="font-size:14px"><%= _site %></span></span>
       </a>
     </div>
     <nav class="sb-nav">
