@@ -95,6 +95,22 @@
   .ctabar .cic{width:44px;height:44px;border-radius:12px;background:rgba(47,123,255,.2);display:grid;place-items:center;color:var(--brand2);flex:none}
   .ctabar .cth{font-family:var(--display);font-weight:700;font-size:15px}
   .ctabar .cts{font-size:12.5px;color:var(--ink2)}
+  .qab{background:linear-gradient(135deg,rgba(47,123,255,.12),rgba(41,211,255,.03));border:1px solid var(--line2);border-radius:20px;padding:22px 24px;margin-bottom:20px}
+  .qab-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .qab-kick{color:var(--brand2);font-weight:800;font-size:11.5px;letter-spacing:.09em}
+  .qab-h h2{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em;margin:3px 0 0}
+  .qab-sub{color:var(--ink2);font-size:12.5px;text-align:right;max-width:230px}
+  .qab-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:1060px){.qab-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:760px){.qab-grid{grid-template-columns:repeat(2,1fr)}.qab-sub{display:none}}
+  @media(max-width:420px){.qab-grid{grid-template-columns:1fr}}
+  .qtile{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);transition:.16s}
+  .qtile:hover{border-color:rgba(47,123,255,.45);transform:translateY(-2px);box-shadow:0 10px 22px -14px rgba(0,0,0,.7)}
+  .qtile .qi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .qtile .qi svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+  .qtile .qx{min-width:0}
+  .qtile .qtt{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qtile .qtd{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 
 <section class="hero">
@@ -102,12 +118,22 @@
   <p>Manage your subscriptions, view orders and get the most out of your Galaxy Subz × Zayron experience.</p>
 </section>
 
-<div class="stats">
-  <div class="stat card"><div class="top"><span class="ico" style="color:var(--brand2);background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span></div><div class="lbl">Total Orders</div><div class="num"><%= st.orders||0 %></div><a href="/account/orders">View all →</a></div>
-  <div class="stat card"><div class="top"><span class="ico" style="color:var(--purple);background:rgba(154,108,255,.15)"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span></div><div class="lbl">Active Products</div><div class="num"><%= aProducts %></div><a href="/account/products">View all →</a></div>
-  <div class="stat card"><div class="top"><span class="ico" style="color:var(--ok);background:var(--okbg)"><svg viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div><div class="lbl">Total Spent</div><div class="num" style="font-size:22px"><%= money(spent) %></div></div>
-  <div class="stat card"><div class="top"><span class="ico" style="color:var(--warn);background:var(--warnbg)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></div><div class="lbl">Support Tickets</div><div class="num"><%= tickets %></div><a href="/account/support">View all →</a></div>
-</div>
+<section class="qab">
+  <div class="qab-h">
+    <div><div class="qab-kick">QUICK ACCESS</div><h2>Customer Tools</h2></div>
+    <div class="qab-sub">Everything in one place — orders, codes, renewals, trials &amp; support.</div>
+  </div>
+  <div class="qab-grid">
+    <a class="qtile" href="/account/orders" data-tool="purchases"><span class="qi" style="color:var(--brand2);background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><span class="qx"><div class="qtt">My Orders</div><div class="qtd">Purchases &amp; status</div></span></a>
+    <a class="qtile" href="/account/products" data-tool="purchases"><span class="qi" style="color:var(--purple);background:rgba(154,108,255,.15)"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span><span class="qx"><div class="qtt">My Subscriptions</div><div class="qtd">Active services</div></span></a>
+    <a class="qtile" href="/account/codes" data-tool="code"><span class="qi" style="color:var(--brand2);background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 3 3"/></svg></span><span class="qx"><div class="qtt">Get Login Code</div><div class="qtd">Sign-in &amp; OTP codes</div></span></a>
+    <a class="qtile" href="/account/products" data-tool="renew"><span class="qi" style="color:var(--ok);background:var(--okbg)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="qx"><div class="qtt">Renew Service</div><div class="qtd">Extend before expiry</div></span></a>
+    <a class="qtile" href="/trials"><span class="qi" style="color:var(--warn);background:var(--warnbg)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span class="qx"><div class="qtt">Free IPTV Trials</div><div class="qtd">Claim your trials</div></span></a>
+    <a class="qtile" href="/account/support" data-tool="claim"><span class="qi" style="color:var(--pink);background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="qx"><div class="qtt">Claim / Replace</div><div class="qtd">Report or replace</div></span></a>
+    <a class="qtile" href="/"><span class="qi" style="color:var(--brand2);background:rgba(47,123,255,.13)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="qx"><div class="qtt">Browse Store</div><div class="qtd">New subscriptions</div></span></a>
+    <a class="qtile" href="https://wa.me/<%= String(wa).replace(/[^0-9]/g,'') %>" target="_blank" rel="noopener"><span class="qi" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="qx"><div class="qtt">WhatsApp Support</div><div class="qtd">Chat with us 24/7</div></span></a>
+  </div>
+</section>
 
 <div class="dh">
   <div>
@@ -164,15 +190,6 @@
       </div>
     </div>
 
-    <div class="sec card" style="margin-bottom:18px">
-      <div class="sec-h"><h2>Quick Actions</h2></div>
-      <div class="qas">
-        <a class="qa-i" href="/"><span class="qic" style="color:var(--brand2);background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="qt"><div class="qtt">Browse All Products</div><div class="qts">Discover new subscriptions</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
-        <a class="qa-i" href="/account/support"><span class="qic" style="color:var(--pink);background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="qt"><div class="qtt">Create Support Ticket</div><div class="qts">Get help from our team</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
-        <a class="qa-i" href="/account/orders"><span class="qic" style="color:var(--brand2);background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><span class="qt"><div class="qtt">View Order History</div><div class="qts">Check your past purchases</div></span><svg class="chev" viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;fill:none;stroke-width:2"><path d="m9 18 6-6-6-6"/></svg></a>
-      </div>
-    </div>
-
     <% if(pms.length){ %>
     <div class="sec card" style="margin-bottom:18px">
       <div class="sec-h"><h2>Payment Methods</h2></div>
@@ -193,5 +210,132 @@
   <div class="ct"><span class="cic"><svg viewBox="0 0 24 24" width="22" height="22" style="stroke:currentColor;fill:none;stroke-width:1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><div><div class="cth">Have a Question?</div><div class="cts">Our support team is here 24/7. Get quick answers or create a support ticket.</div></div></div>
   <a class="btn btn-p" href="/account/support">Contact Support →</a>
 </div>
+
+<!-- ===== Customer Tools pop-up ===== -->
+<style>
+  .ctm{position:fixed;inset:0;z-index:200;display:none}
+  .ctm.on{display:block}
+  .ctm-scrim{position:absolute;inset:0;background:rgba(3,6,14,.72);backdrop-filter:blur(4px)}
+  .ctm-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 28px));max-height:min(88vh,760px);display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line2);border-radius:20px;box-shadow:0 34px 90px -22px rgba(0,0,0,.85);overflow:hidden}
+  @media(max-width:560px){.ctm-card{left:0;right:0;top:auto;bottom:0;transform:none;width:100vw;max-height:92vh;border-radius:20px 20px 0 0}}
+  .ctm-x{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line2);background:var(--panel2);color:var(--ink2);font-size:17px;line-height:1;cursor:pointer;z-index:2}
+  .ctm-head{padding:22px 22px 14px}
+  .ctm-head h2{font-family:var(--display);font-weight:800;font-size:19px;margin:0 0 4px}
+  .ctm-head p{color:var(--ink2);font-size:13px;margin:0;max-width:92%}
+  .ctm-tabs{display:flex;gap:8px;padding:0 22px 14px}
+  .ctm-tab{flex:1;padding:9px 8px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink2);font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .ctm-tab.on{background:var(--grad);color:#fff;border-color:transparent}
+  .ctm-body{padding:16px 22px 22px;overflow-y:auto;border-top:1px solid var(--line)}
+  .ctm-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+  .ctm-row .onm{font-weight:700;font-size:14px}
+  .ctm-row .osub{font-size:12px;color:var(--ink2)}
+  .ctm-empty{color:var(--ink2);text-align:center;padding:30px 10px}
+  .ctm-field{margin-bottom:12px}
+  .ctm-field label{display:block;font-size:12.5px;color:var(--ink2);font-weight:600;margin-bottom:6px}
+  .ctm select,.ctm textarea{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:11px;color:var(--ink);padding:11px 13px;font-family:var(--body);font-size:14px}
+  .ctm textarea{min-height:92px;resize:vertical}
+  .ctm .codebox{font-family:ui-monospace,Menlo,monospace;font-size:21px;font-weight:800;letter-spacing:3px;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px 16px;text-align:center;color:var(--brand2)}
+  .ctm .muted{color:var(--ink2);font-size:12.5px}
+  .ctm .okmsg{color:var(--ok);font-weight:700}
+  .ctm .errmsg{color:var(--bad)}
+  .ctm-load{text-align:center;color:var(--ink2);padding:26px}
+</style>
+<div class="ctm" id="ctm" aria-hidden="true">
+  <div class="ctm-scrim" data-close></div>
+  <div class="ctm-card" role="dialog" aria-modal="true" aria-labelledby="ctmTitle">
+    <button class="ctm-x" data-close aria-label="Close">✕</button>
+    <div class="ctm-head"><h2 id="ctmTitle">Customer Tools</h2><p>View credentials, fetch sign-in codes &amp; claim 1-click replacements.</p></div>
+    <div class="ctm-tabs">
+      <button class="ctm-tab" data-tab="purchases">Purchases</button>
+      <button class="ctm-tab" data-tab="code">Get Code</button>
+      <button class="ctm-tab" data-tab="renew">Renew</button>
+      <button class="ctm-tab" data-tab="claim">Claim</button>
+    </div>
+    <div class="ctm-body" id="ctmBody"><div class="ctm-load">Loading…</div></div>
+  </div>
+</div>
+<script>
+(function(){
+  var modal=document.getElementById('ctm'); if(!modal) return;
+  var body=document.getElementById('ctmBody');
+  var tabs=modal.querySelectorAll('.ctm-tab');
+  var cache=null;
+  var WANUM=<%- JSON.stringify(String(wa).replace(/[^0-9]/g,'')) %>;
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
+  function open(tab){ modal.classList.add('on'); document.body.style.overflow='hidden'; setTab(tab||'purchases'); }
+  function close(){ modal.classList.remove('on'); document.body.style.overflow=''; }
+  function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
+  function loadOrders(){ if(cache) return Promise.resolve(cache); return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){ cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
+  function pc(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled') return 'bad'; return 'wait'; }
+  function render(tab){ body.innerHTML='<div class="ctm-load">Loading…</div>'; loadOrders().then(function(o){ if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else claim(o); }); }
+  function pur(orders){
+    if(!orders.length){ body.innerHTML='<div class="ctm-empty">No purchases yet.<br><a href="/" style="color:var(--brand2);font-weight:600">Browse products →</a></div>'; return; }
+    body.innerHTML=orders.map(function(o){
+      var cred=o.credentials?('<pre style="margin:4px 0 0;white-space:pre-wrap;word-break:break-word;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px">'+esc(o.credentials)+'</pre>'):'<div class="muted">Not delivered yet — details appear here when ready.</div>';
+      return '<div class="ctm-row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div style="min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no||'')+(o.plan_label?(' · '+esc(o.plan_label)):'')+'</div></div><span class="pill '+pc(o.status)+'">'+esc(o.status||'')+'</span></div>'+cred+'</div>';
+    }).join('');
+  }
+  function code(orders){
+    if(!orders.length){ body.innerHTML='<div class="ctm-empty">No orders to fetch codes for.</div>'; return; }
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Fetch the latest sign-in code / login link for your order.</p>'+orders.map(function(o){
+      return '<div class="ctm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="btn btn-g" data-code="'+esc(o.order_no)+'">Get code</button></div><div class="code-out" data-for="'+esc(o.order_no)+'"></div>';
+    }).join('');
+    body.querySelectorAll('button[data-code]').forEach(function(b){ b.addEventListener('click',function(){
+      var no=b.getAttribute('data-code'); var out=body.querySelector('.code-out[data-for="'+no+'"]');
+      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Fetching…</div>';
+      fetch('/account/order/'+encodeURIComponent(no)+'/otp',{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok&&j.value){ out.innerHTML='<div class="codebox" style="margin:6px 0 12px">'+esc(j.value)+'</div>'; }
+        else { var rz=(j&&j.reason)||'error'; var m=rz==='waiting'?'No code yet — try again shortly.':(rz==='not_supported'?'This product doesn’t use a code.':'Couldn’t fetch right now.'); out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">'+esc(m)+'</div>'; }
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t fetch right now.</div>'; });
+    }); });
+  }
+  function renew(orders){
+    if(!orders.length){ body.innerHTML='<div class="ctm-empty">No subscriptions to renew yet.</div>'; return; }
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Check a subscription’s expiry and renew it in one tap.</p>'+orders.map(function(o){
+      return '<div class="ctm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="btn btn-g" data-renew="'+esc(o.order_no)+'">Check &amp; renew</button></div><div class="renew-out" data-for="'+esc(o.order_no)+'"></div>';
+    }).join('');
+    body.querySelectorAll('button[data-renew]').forEach(function(b){ b.addEventListener('click',function(){
+      var no=b.getAttribute('data-renew'); var out=body.querySelector('.renew-out[data-for="'+no+'"]');
+      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Checking…</div>';
+      fetch('/account/order/'+encodeURIComponent(no)+'/subscription',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok||(!j.active&&!j.renewable)){ out.innerHTML='<div class="muted" style="margin:6px 0 12px">No active subscription found for this order.</div>'; return; }
+        var h='';
+        if(j.expires_at){ var dl=(j.days_left!=null)?(' ('+(j.days_left>=0?(j.days_left+'d left'):(Math.abs(j.days_left)+'d ago'))+')'):''; h+='<div class="muted" style="margin:6px 0 8px">Expires '+esc(String(j.expires_at).slice(0,10))+dl+'</div>'; }
+        if(j.renewable && j.options && j.options.length){
+          h+=j.options.map(function(op){
+            var href=(j.slug&&op.idx!=null&&op.idx>=0&&op.price_pkr!=null)?('/checkout?p='+encodeURIComponent(j.slug)+'&plan='+op.idx+'&renew='+encodeURIComponent(no)):('https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no));
+            var price=(op.price_pkr!=null)?money(op.price_pkr):'';
+            return '<a class="btn btn-p" style="width:100%;margin-bottom:8px;justify-content:space-between" href="'+href+'">'+esc(op.label)+'<span>'+price+'</span></a>';
+          }).join('');
+        } else { h+='<a class="btn btn-p" style="width:100%" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a>'; }
+        out.innerHTML='<div style="margin:6px 0 12px">'+h+'</div>';
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t check right now.</div>'; });
+    }); });
+  }
+  function claim(orders){
+    if(!orders.length){ body.innerHTML='<div class="ctm-empty">You need an order before you can claim a replacement.</div>'; return; }
+    var opts=orders.map(function(o){ return '<option value="'+esc(o.order_no)+'">'+esc(o.product_name||'Order')+' · '+esc(o.order_no)+'</option>'; }).join('');
+    body.innerHTML='<div class="ctm-field"><label>Which order?</label><select id="clOrder">'+opts+'</select></div>'
+      +'<div class="ctm-field"><label>What went wrong?</label><select id="clReason"><option>🔑 Password Changed / Incorrect</option><option>🔒 Account Locked / Household Error</option><option>📺 Screen Limit Exceeded</option><option>⌛ Service Expired Early</option><option>⚠️ Other Technical Issue</option></select></div>'
+      +'<div class="ctm-field"><label>Describe the issue</label><textarea id="clMsg" placeholder="Briefly describe the problem…"></textarea></div>'
+      +'<div id="clOut"></div><button class="btn btn-p" style="width:100%" id="clSubmit">Submit Replacement Claim</button>';
+    document.getElementById('clSubmit').addEventListener('click',function(){
+      var btn=this,out=document.getElementById('clOut');
+      var p={order_no:document.getElementById('clOrder').value,reason:document.getElementById('clReason').value,message:document.getElementById('clMsg').value};
+      if(!p.message.trim()){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please describe the issue.</div>'; return; }
+      btn.disabled=true; btn.textContent='Submitting…';
+      fetch('/account/tools/claim',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify(p)}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok){ body.innerHTML='<div class="ctm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Replacement claim submitted</div><p class="muted">Our team will review it and reach you on WhatsApp.</p></div>'; }
+        else { out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc((j&&j.error)||'Could not submit. Please try again.')+'</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; }
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Could not submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; });
+    });
+  }
+  document.querySelectorAll('[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
+  tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
+  modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
 
 <%- include('../partials/dash_bottom') %>
