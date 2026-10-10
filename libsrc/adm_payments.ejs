@@ -1,65 +1,46 @@
 <%- include('_shell_top', { active:'payments', title:'Payments' }) %>
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
-<% var on=rows.filter(function(m){return m.active;}).length; %>
+<% var withLogo = methods.filter(function(m){return m.logo;}).length; %>
 <div class="dcards">
   <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Methods</span><b class="dval"><%= rows.length %></b><span class="dsub">configured</span></div></div>
+    <div class="dmeta"><span class="dlbl">Methods</span><b class="dval"><%= methods.length %></b><span class="dsub">live at checkout</span></div></div>
   <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Shown at checkout</span><b class="dval"><%= on %></b><span class="dsub">active</span></div></div>
-  <div class="dcard" style="--t:#737e9c"><span class="dic"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 21 12a9 9 0 0 1-1.1 2.3M6.1 6.1A9 9 0 0 0 3 12a9 9 0 0 0 12 8.5"/><path d="m2 2 20 20"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= rows.length-on %></b><span class="dsub">off</span></div></div>
+    <div class="dmeta"><span class="dlbl">With logo</span><b class="dval"><%= withLogo %></b><span class="dsub">of <%= methods.length %></span></div></div>
+  <div class="dcard" style="--t:#737e9c"><span class="dic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Source</span><b class="dval" style="font-size:16px"><%= source==='bot' ? 'Reseller bot' : 'Local' %></b><span class="dsub">of truth</span></div></div>
 </div>
 
-<!-- Bulk-save target form (kept empty; fields below attach via the form="pmsave" attribute so the
-     per-method logo upload forms are NOT nested inside it). -->
-<form id="pmsave" method="post" action="/admin/payments"></form>
+<div class="card" style="display:flex;gap:12px;align-items:flex-start">
+  <span style="color:#2a7bff;flex:none;margin-top:2px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div class="sub" style="margin:0">Payment <b>details</b> (account titles, numbers, instructions) are managed in your <b>reseller bot</b> — the single source of truth. Here you set the <b>logo</b> that shows on each method's tile at checkout. Upload a <b>square</b> image, <b>256×256</b> recommended (PNG/SVG, transparent or white background).</div>
+</div>
 
-<% rows.forEach(function(m){ %>
+<% if (!methods.length) { %>
+<div class="card"><div class="sub">No payment methods found. Check that your reseller bot is connected.</div></div>
+<% } %>
+
+<% methods.forEach(function(m){ %>
 <div class="card">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-    <h2 style="margin:0"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
-    <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap;margin:0">
-      <input form="pmsave" type="checkbox" name="m[<%= m.id %>][active]" <%= m.active ? 'checked' : '' %> style="width:auto;margin:0"> Show at checkout
-    </label>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap">
-    <div style="width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(0,0,0,.08);flex:none">
-      <% if (m.logo) { %><img src="/static/img/<%= m.logo %>" alt="" style="max-width:100%;max-height:100%;object-fit:contain"><% } else { %><span style="font-weight:800;color:#2a7bff;font-size:20px"><%= (m.name||'?').charAt(0).toUpperCase() %></span><% } %>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="width:60px;height:60px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(0,0,0,.08);flex:none">
+      <% if (m.logo) { %><img src="/static/img/<%= m.logo %>" alt="" style="max-width:100%;max-height:100%;object-fit:contain"><% } else { %><span style="font-weight:800;color:#2a7bff;font-size:22px"><%= (m.name||'?').charAt(0).toUpperCase() %></span><% } %>
     </div>
-    <form method="post" action="/admin/payments/<%= m.id %>/logo" enctype="multipart/form-data" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0">
-      <label class="fld" style="margin:0 6px 0 0">Logo</label>
-      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" required style="max-width:230px">
-      <button class="btn btn-p" type="submit">Upload</button>
+    <div style="flex:1;min-width:160px">
+      <h2 style="margin:0 0 2px"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
+      <div class="sub" style="margin:0"><%= m.currency %><% if (m.logo) { %> · <span style="color:#16b765;font-weight:700">logo set</span><% } else { %> · no logo yet<% } %></div>
+    </div>
+    <form method="post" action="/admin/payments/logo" enctype="multipart/form-data" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0">
+      <input type="hidden" name="key" value="<%= m.key %>">
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" required style="max-width:220px">
+      <button class="btn btn-p" type="submit"><%= m.logo ? 'Replace' : 'Upload' %> logo</button>
     </form>
     <% if (m.logo) { %>
-    <form method="post" action="/admin/payments/<%= m.id %>/logo/remove" style="margin:0">
-      <button class="btn" type="submit">Remove logo</button>
+    <form method="post" action="/admin/payments/logo/remove" style="margin:0">
+      <input type="hidden" name="key" value="<%= m.key %>">
+      <button class="btn" type="submit">Remove</button>
     </form>
     <% } %>
   </div>
-
-  <div style="display:grid;grid-template-columns:1fr 110px 170px;gap:14px">
-    <div><label class="fld">Display name</label><input form="pmsave" type="text" name="m[<%= m.id %>][name]" value="<%= m.name %>"></div>
-    <div><label class="fld">Currency</label><input form="pmsave" type="text" name="m[<%= m.id %>][currency]" value="<%= m.currency %>"></div>
-    <div><label class="fld">Show to region</label>
-      <select form="pmsave" name="m[<%= m.id %>][scope]">
-        <option value="all"    <%= m.scope==='all'    ? 'selected' : '' %>>All regions</option>
-        <option value="pk"     <%= m.scope==='pk'     ? 'selected' : '' %>>Pakistan only</option>
-        <option value="global" <%= m.scope==='global' ? 'selected' : '' %>>Global (outside PK)</option>
-      </select>
-    </div>
-  </div>
-  <label class="fld">Receiving details (shown to customer)</label>
-  <textarea form="pmsave" name="m[<%= m.id %>][details]" rows="3" placeholder="e.g. Account title: Muhammad Ishtiaq&#10;Account no: 0000-0000000000&#10;IBAN: PK00XXXX0000000000000000"><%= m.details %></textarea>
-  <label class="fld">Instructions (optional)</label>
-  <textarea form="pmsave" name="m[<%= m.id %>][instructions]" rows="2"><%= m.instructions %></textarea>
-  <input form="pmsave" type="hidden" name="m[<%= m.id %>][sort]" value="<%= m.sort %>">
 </div>
 <% }); %>
-
-<div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
-  <button class="btn btn-p" type="submit" form="pmsave">Save payment details</button>
-  <span class="sub" style="margin-left:12px">Details save together · logos upload instantly per method.</span>
-</div>
 <%- include('_shell_bottom') %>

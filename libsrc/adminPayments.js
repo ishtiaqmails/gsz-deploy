@@ -23,62 +23,57 @@ module.exports = function (pool) {
     if (req.session && req.session.admin) return next();
     return res.redirect('/admin/login');
   }
+  function botMod() { try { return require('../lib/botapi'); } catch (e) { return null; } }
 
-  // --- list / edit form ---
+  async function logoMap() {
+    const map = {};
+    try { (await pool.query('SELECT key, logo FROM payment_logos')).rows.forEach(r => { map[r.key] = r.logo; }); } catch (e) {}
+    return map;
+  }
+
+  // --- list live payment methods (from the reseller bot) + their GSZ logos ---
   router.get('/payments', auth, async (req, res) => {
+    let methods = [], source = 'bot';
     try {
-      const rows = (await pool.query(
-        'SELECT id, key, name, currency, scope, details, instructions, active, sort, logo FROM payment_methods ORDER BY sort, id'
-      )).rows;
-      res.render('admin/payments', { rows, flash: req.query.ok || null, active: 'payments', title: 'Payments' });
-    } catch (e) { res.status(500).send('Payments error: ' + e.message); }
-  });
-
-  // --- save all methods (bulk) ---
-  router.post('/payments', auth, express.urlencoded({ extended: true, limit: '1mb' }), async (req, res) => {
-    const m = (req.body && req.body.m) || {};
-    const SCOPES = ['all', 'pk', 'global'];
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const id of Object.keys(m)) {
-        const pid = parseInt(id, 10);
-        if (!Number.isFinite(pid)) continue;
-        const r = m[id] || {};
-        const name = String(r.name || '').trim();
-        if (!name) continue;
-        const currency = (String(r.currency || 'USD').trim().toUpperCase().slice(0, 8)) || 'USD';
-        const scope = SCOPES.includes(String(r.scope || '')) ? r.scope : 'all';
-        const details = String(r.details || '').trim();
-        const instructions = String(r.instructions || '').trim();
-        const activeOn = (r.active === 'on' || r.active === 'true' || r.active === true);
-        const sortNum = parseInt(r.sort, 10);
-        const sortv = Number.isFinite(sortNum) ? sortNum : 0;
-        await client.query(
-          'UPDATE payment_methods SET name=$1, currency=$2, scope=$3, details=$4, instructions=$5, active=$6, sort=$7 WHERE id=$8',
-          [name, currency, scope, details, instructions, activeOn, sortv, pid]
-        );
+      const bot = botMod();
+      if (bot && bot.configured && bot.configured()) {
+        const accts = await bot.getPayAccounts();
+        methods = (accts || []).map(a => ({
+          key: String(a.key || ''),
+          name: a.label || a.method || a.name || a.key,
+          currency: String(a.currency || 'PKR').toUpperCase(),
+          details: a.details || ((a.title ? ('Title: ' + a.title) : '') + (a.account ? ('\nAccount: ' + a.account) : '')).trim()
+        })).filter(m => m.key);
       }
-      await client.query('COMMIT');
-      res.redirect('/admin/payments?ok=' + encodeURIComponent('Payment details saved'));
-    } catch (e) {
-      try { await client.query('ROLLBACK'); } catch (x) {}
-      res.status(500).send('Payments save error: ' + e.message);
-    } finally { client.release(); }
+    } catch (e) {}
+    if (!methods.length) {
+      source = 'local';
+      try {
+        methods = (await pool.query("SELECT key, name, currency, details FROM payment_methods WHERE active ORDER BY sort, id")).rows
+          .map(m => ({ key: m.key, name: m.name, currency: (m.currency || 'PKR'), details: m.details || '' }));
+      } catch (e) {}
+    }
+    const lm = await logoMap();
+    methods.forEach(m => { m.logo = lm[m.key] || null; });
+    res.render('admin/payments', { methods, source, flash: req.query.ok || null, active: 'payments', title: 'Payments' });
   });
 
-  // --- upload a logo for one method ---
-  router.post('/payments/:id/logo', auth, upload.single('logo'), async (req, res) => {
-    const pid = parseInt(req.params.id, 10);
-    if (!Number.isFinite(pid)) return res.redirect('/admin/payments?ok=' + encodeURIComponent('Invalid method'));
+  // --- upload a logo for one method (by bot key) ---
+  router.post('/payments/logo', auth, upload.single('logo'), async (req, res) => {
+    const key = String((req.body && req.body.key) || '').trim();
+    if (!key) return res.redirect('/admin/payments?ok=' + encodeURIComponent('Missing method'));
     if (!req.file) return res.redirect('/admin/payments?ok=' + encodeURIComponent('Please choose an image file'));
     try {
       const ext = path.extname(req.file.filename).toLowerCase() || '.png';
-      const dest = 'pm-' + pid + '-' + Date.now() + ext;
+      const safe = key.replace(/[^a-z0-9_-]/gi, '').slice(0, 40) || 'pm';
+      const dest = 'pm-' + safe + '-' + Date.now() + ext;
       fs.renameSync(path.join(IMG_DIR, req.file.filename), path.join(IMG_DIR, dest));
-      const prev = (await pool.query('SELECT logo FROM payment_methods WHERE id=$1', [pid])).rows[0];
+      const prev = (await pool.query('SELECT logo FROM payment_logos WHERE key=$1', [key])).rows[0];
       if (prev && prev.logo && prev.logo !== dest) { try { fs.unlinkSync(path.join(IMG_DIR, prev.logo)); } catch (e) {} }
-      await pool.query('UPDATE payment_methods SET logo=$1 WHERE id=$2', [dest, pid]);
+      await pool.query(
+        'INSERT INTO payment_logos(key, logo) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET logo=EXCLUDED.logo, updated_at=now()',
+        [key, dest]
+      );
       res.redirect('/admin/payments?ok=' + encodeURIComponent('Logo updated'));
     } catch (e) {
       try { fs.unlinkSync(path.join(IMG_DIR, req.file.filename)); } catch (x) {}
@@ -87,13 +82,13 @@ module.exports = function (pool) {
   });
 
   // --- remove a logo ---
-  router.post('/payments/:id/logo/remove', auth, express.urlencoded({ extended: true }), async (req, res) => {
-    const pid = parseInt(req.params.id, 10);
-    if (!Number.isFinite(pid)) return res.redirect('/admin/payments');
+  router.post('/payments/logo/remove', auth, express.urlencoded({ extended: true }), async (req, res) => {
+    const key = String((req.body && req.body.key) || '').trim();
+    if (!key) return res.redirect('/admin/payments');
     try {
-      const prev = (await pool.query('SELECT logo FROM payment_methods WHERE id=$1', [pid])).rows[0];
+      const prev = (await pool.query('SELECT logo FROM payment_logos WHERE key=$1', [key])).rows[0];
       if (prev && prev.logo) { try { fs.unlinkSync(path.join(IMG_DIR, prev.logo)); } catch (e) {} }
-      await pool.query('UPDATE payment_methods SET logo=NULL WHERE id=$1', [pid]);
+      await pool.query('DELETE FROM payment_logos WHERE key=$1', [key]);
     } catch (e) {}
     res.redirect('/admin/payments?ok=' + encodeURIComponent('Logo removed'));
   });
