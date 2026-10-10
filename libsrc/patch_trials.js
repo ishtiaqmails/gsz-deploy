@@ -16,11 +16,15 @@ const ANCHOR = "  // ---- FORGOT / RESET PASSWORD ----";
 const ROUTES =
 "  // ---- TRIALS (Hub) ----\n" +
 "  router.get('/account/tools/trials', requireLogin, async (req, res) => {\n" +
-"    const c = req.session.customer; let rows=[];\n" +
+"    const c = req.session.customer; let rows=[], paid=[];\n" +
 "    try{ rows=(await pool.query(\"SELECT id, trial_type, server_name, status, credentials, expires_at, duration_hours, claimed_at, metadata FROM trial_claims WHERE customer_id=$1 ORDER BY id DESC LIMIT 25\",[c.id])).rows; }catch(e){}\n" +
+"    try{ paid=(await pool.query(\"SELECT product_name, created_at FROM orders WHERE (customer_id=$1 OR (customer_id IS NULL AND email IS NOT NULL AND lower(email)=lower($2))) AND order_no IS NOT NULL AND lower(status) IN ('delivered','completed','done','paid','active')\",[c.id,c.email])).rows; }catch(e){}\n" +
+"    function convertedByPurchase(server, claimedMs){ try{ const segs=String(server||'').toLowerCase().split(/[\\/|,()]/).map(function(x){return x.trim();}).filter(function(x){return x.length>=4;}); if(!segs.length) return false; return paid.some(function(o){ const pn=String(o.product_name||'').toLowerCase(); const after=o.created_at?(new Date(o.created_at).getTime() > (claimedMs||0)):false; return after && segs.some(function(sg){ return pn.indexOf(sg)>=0; }); }); }catch(e){ return false; } }\n" +
 "    const now=Date.now();\n" +
 "    res.json({ ok:true, trials: rows.map(function(t){\n" +
 "      const md=t.metadata||{}; if(md.gsz_converted||md.converted) return null;\n" +
+"      const _claimedMs=t.claimed_at?new Date(t.claimed_at).getTime():0;\n" +
+"      if(convertedByPurchase(t.server_name, _claimedMs)) return null;\n" +
 "      const claimed=t.claimed_at?new Date(t.claimed_at).getTime():null;\n" +
 "      const durH=Number(t.duration_hours)||0;\n" +
 "      const dbExp=t.expires_at?new Date(t.expires_at).getTime():null;\n" +
