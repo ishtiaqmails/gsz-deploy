@@ -138,19 +138,37 @@
     var cp=document.getElementById('cpyCred'); if(cp) cp.addEventListener('click',function(){ try{ navigator.clipboard.writeText(o.credentials); cp.textContent='Copied ✓'; setTimeout(function(){cp.textContent='Copy';},1500); }catch(e){} });
     body.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){ setTab(b.getAttribute('data-go')); }); });
   }
-  function code(orders){
-    if(!orders.length){ body.innerHTML='<div class="cthm-empty">No orders to fetch codes for.</div>'; return; }
-    body.innerHTML='<p class="muted" style="margin:0 0 12px">Fetch the latest sign-in code / login link for your order.</p>'+orders.map(function(o){
-      return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="cbtn cbtn-g" data-code="'+esc(o.order_no)+'">Get code</button></div><div class="code-out" data-for="'+esc(o.order_no)+'"></div>';
-    }).join('');
-    body.querySelectorAll('button[data-code]').forEach(function(b){ b.addEventListener('click',function(){
-      var no=b.getAttribute('data-code'); var out=body.querySelector('.code-out[data-for="'+no+'"]');
-      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Fetching…</div>';
-      fetch('/account/order/'+encodeURIComponent(no)+'/otp',{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
-        if(j&&j.ok&&j.value){ out.innerHTML='<div class="codebox" style="margin:6px 0 12px">'+esc(j.value)+'</div>'; }
-        else { var rz=(j&&j.reason)||'error'; var m=rz==='waiting'?'No code yet — try again shortly.':(rz==='not_supported'?'This product doesn’t use a code.':'Couldn’t fetch right now.'); out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">'+esc(m)+'</div>'; }
-      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t fetch right now.</div>'; });
-    }); });
+  function reasonMsg(j,act){ var r=(j&&j.reason)||'error'; if(r==='waiting') return 'No '+(act==='link'?'link':'code')+' yet — tap again in a moment.'; if(r==='limit') return 'You’ve reached the limit'+((j&&j.used&&j.limit)?(' ('+j.used+'/'+j.limit+')'):'')+'. Contact support.'; if(r==='not_supported') return 'Not available for this product yet.'; if(r==='not_owner') return 'We couldn’t match this to your account.'; if(r==='expired') return 'The window has closed — contact support.'; return 'Couldn’t complete right now.'; }
+  function doAct(no,act,tries){
+    var out=body.querySelector('.act-out[data-for="'+no+'"]'); if(!out) return;
+    out.innerHTML='<div class="muted" style="margin:8px 0 2px">'+(tries>0?('Waiting for '+(act==='link'?'link':'code')+'…'):'Working…')+'</div>';
+    var url=(act==='household')?('/account/tools/household/'+encodeURIComponent(no)):('/account/order/'+encodeURIComponent(no)+'/'+act);
+    fetch(url,{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(act==='household'){ out.innerHTML=(j&&j.ok)?'<div class="okmsg" style="margin:8px 0 2px">✅ Household Updated</div>':'<div class="muted errmsg" style="margin:8px 0 2px">'+esc(reasonMsg(j,act))+'</div>'; return; }
+      if(j&&j.ok&&j.value){
+        if(act==='link'||j.kind==='link'){ out.innerHTML='<div style="margin:8px 0 2px"><a class="cbtn cbtn-p" target="_blank" rel="noopener" href="'+esc(j.value)+'">Open Login Link</a></div>'; }
+        else { out.innerHTML='<div class="codebox" style="margin:8px 0 6px">'+esc(j.value)+'</div><button class="cbtn cbtn-g" style="padding:6px 12px;font-size:12px" id="cpA">Copy code</button>'; var cb=out.querySelector('#cpA'); if(cb) cb.addEventListener('click',function(){ try{ navigator.clipboard.writeText(j.value); cb.textContent='Copied ✓'; }catch(e){} }); }
+        return;
+      }
+      var rz=(j&&j.reason)||'error';
+      if(rz==='waiting' && tries<6){ setTimeout(function(){ doAct(no,act,tries+1); },4000); return; }
+      out.innerHTML='<div class="muted errmsg" style="margin:8px 0 2px">'+esc(reasonMsg(j,act))+'</div>';
+    }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:8px 0 2px">Couldn’t fetch right now.</div>'; });
+  }
+  function code(){
+    body.innerHTML='<div class="cthm-load">Loading…</div>';
+    fetch('/account/tools/retrievable',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var list=(j&&j.orders)||[];
+      if(!list.length){ body.innerHTML='<div class="cthm-empty">No code/link actions needed.<br><span class="muted">These appear only for products that use a sign-in code, link or household update.</span></div>'; return; }
+      body.innerHTML='<p class="muted" style="margin:0 0 12px">Instant access for your eligible products — one tap.</p>'+list.map(function(o){
+        var btns='';
+        if(o.caps.otp) btns+='<button class="cbtn cbtn-g" data-act="otp" data-no="'+esc(o.order_no)+'">Get Code'+(o.caps.otp.limit?(' · max '+o.caps.otp.limit):'')+'</button>';
+        if(o.caps.link) btns+='<button class="cbtn cbtn-g" data-act="link" data-no="'+esc(o.order_no)+'">Get Link</button>';
+        if(o.caps.household) btns+='<button class="cbtn cbtn-g" data-act="household" data-no="'+esc(o.order_no)+'">Update Household</button>';
+        return '<div class="cthm-row" style="flex-direction:column;align-items:stretch;gap:10px"><div><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+(o.plan_label?(' · '+esc(o.plan_label)):'')+'</div></div><div class="cthm-acts">'+btns+'</div><div class="act-out" data-for="'+esc(o.order_no)+'"></div></div>';
+      }).join('');
+      body.querySelectorAll('button[data-act]').forEach(function(b){ b.addEventListener('click',function(){ doAct(b.getAttribute('data-no'), b.getAttribute('data-act'), 0); }); });
+    }).catch(function(){ body.innerHTML='<div class="cthm-empty errmsg">Couldn’t load right now.</div>'; });
   }
   function renew(orders){
     if(!orders.length){ body.innerHTML='<div class="cthm-empty">No subscriptions to renew yet.</div>'; return; }
