@@ -23,6 +23,13 @@
   .gbuy .gb-p{background:var(--gb-grad);color:#fff} .gbuy .gb-g{background:#16203a;color:var(--gb-ink);border:1px solid var(--gb-ln)}
   .gbuy .gb-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
   .gbuy .gb-m input{accent-color:#2f7bff}
+  .gbuy .gb-mtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .gbuy .gb-mtile{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px 10px;border:1.5px solid var(--gb-ln);border-radius:13px;background:#0e1627;cursor:pointer;text-align:center;transition:border-color .12s,background .12s}
+  .gbuy .gb-mtile.sel{border-color:#2f7bff;background:rgba(47,123,255,.12)}
+  .gbuy .gb-mlogo{width:42px;height:42px;border-radius:10px;object-fit:contain;background:#fff;padding:3px}
+  .gbuy .gb-mmono{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff}
+  .gbuy .gb-mname{font-size:12px;font-weight:700;line-height:1.15}
+  .gbuy .gb-mpay{font-size:11px;color:var(--gb-mut);font-weight:600}
   .gbuy .muted{color:var(--gb-mut);font-size:12.5px} .gbuy .errmsg{color:#f0554e}
   .gbuy .gb-acct pre{margin:0;white-space:pre-wrap;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px}
   .gbuy-load{text-align:center;color:var(--gb-mut);padding:26px}
@@ -101,8 +108,8 @@
     fetch('/account/tools/pay-methods?amount='+encodeURIComponent(CURAMT),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
       METHODS=(j&&j.methods)||[]; var box=document.getElementById('gbMethods'); if(!box) return;
       if(!METHODS.length){ box.innerHTML='<div class="muted errmsg">No payment methods available — please contact support.</div>'; return; }
-      box.innerHTML=METHODS.map(function(m,i){ return '<label class="gb-m"><input type="radio" name="gbm" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('');
-      box.querySelectorAll('input[name=gbm]').forEach(function(r){ r.addEventListener('change',acct); });
+      box.innerHTML='<div class="gb-mtiles">'+METHODS.map(function(m,i){ var lg=m.logo?('<img class="gb-mlogo" src="/static/img/'+esc(m.logo)+'" alt="">'):('<span class="gb-mmono">'+esc((m.name||'?').charAt(0).toUpperCase())+'</span>'); return '<label class="gb-mtile'+(i===0?' sel':'')+'"><input type="radio" name="gbm" value="'+esc(m.key)+'"'+(i===0?' checked':'')+' style="position:absolute;opacity:0;width:0;height:0">'+lg+'<span class="gb-mname">'+esc(m.name)+'</span><span class="gb-mpay">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div>';
+      box.querySelectorAll('input[name=gbm]').forEach(function(r){ r.addEventListener('change',function(){ box.querySelectorAll('.gb-mtile').forEach(function(t){t.classList.remove('sel');}); var t=r.closest('.gb-mtile'); if(t) t.classList.add('sel'); acct(); }); });
       acct();
     }).catch(function(){ var box=document.getElementById('gbMethods'); if(box) box.innerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
   }

@@ -10,36 +10,56 @@
     <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= rows.length-on %></b><span class="dsub">off</span></div></div>
 </div>
 
-<form method="post" action="/admin/payments">
-  <% rows.forEach(function(m){ %>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-      <h2 style="margin:0"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
-      <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap;margin:0">
-        <input type="checkbox" name="m[<%= m.id %>][active]" <%= m.active ? 'checked' : '' %> style="width:auto;margin:0"> Show at checkout
-      </label>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 110px 170px;gap:14px">
-      <div><label class="fld">Display name</label><input type="text" name="m[<%= m.id %>][name]" value="<%= m.name %>"></div>
-      <div><label class="fld">Currency</label><input type="text" name="m[<%= m.id %>][currency]" value="<%= m.currency %>"></div>
-      <div><label class="fld">Show to region</label>
-        <select name="m[<%= m.id %>][scope]">
-          <option value="all"    <%= m.scope==='all'    ? 'selected' : '' %>>All regions</option>
-          <option value="pk"     <%= m.scope==='pk'     ? 'selected' : '' %>>Pakistan only</option>
-          <option value="global" <%= m.scope==='global' ? 'selected' : '' %>>Global (outside PK)</option>
-        </select>
-      </div>
-    </div>
-    <label class="fld">Receiving details (shown to customer)</label>
-    <textarea name="m[<%= m.id %>][details]" rows="3" placeholder="e.g. Account title: Muhammad Ishtiaq&#10;Account no: 0000-0000000000&#10;IBAN: PK00XXXX0000000000000000"><%= m.details %></textarea>
-    <label class="fld">Instructions (optional)</label>
-    <textarea name="m[<%= m.id %>][instructions]" rows="2"><%= m.instructions %></textarea>
-    <input type="hidden" name="m[<%= m.id %>][sort]" value="<%= m.sort %>">
+<!-- Bulk-save target form (kept empty; fields below attach via the form="pmsave" attribute so the
+     per-method logo upload forms are NOT nested inside it). -->
+<form id="pmsave" method="post" action="/admin/payments"></form>
+
+<% rows.forEach(function(m){ %>
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <h2 style="margin:0"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
+    <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;white-space:nowrap;margin:0">
+      <input form="pmsave" type="checkbox" name="m[<%= m.id %>][active]" <%= m.active ? 'checked' : '' %> style="width:auto;margin:0"> Show at checkout
+    </label>
   </div>
-  <% }); %>
-  <div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
-    <button class="btn btn-p" type="submit">Save payment details</button>
-    <span class="sub" style="margin-left:12px">Changes go live on checkout immediately.</span>
+
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(0,0,0,.08);flex:none">
+      <% if (m.logo) { %><img src="/static/img/<%= m.logo %>" alt="" style="max-width:100%;max-height:100%;object-fit:contain"><% } else { %><span style="font-weight:800;color:#2a7bff;font-size:20px"><%= (m.name||'?').charAt(0).toUpperCase() %></span><% } %>
+    </div>
+    <form method="post" action="/admin/payments/<%= m.id %>/logo" enctype="multipart/form-data" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0">
+      <label class="fld" style="margin:0 6px 0 0">Logo</label>
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" required style="max-width:230px">
+      <button class="btn btn-p" type="submit">Upload</button>
+    </form>
+    <% if (m.logo) { %>
+    <form method="post" action="/admin/payments/<%= m.id %>/logo/remove" style="margin:0">
+      <button class="btn" type="submit">Remove logo</button>
+    </form>
+    <% } %>
   </div>
-</form>
+
+  <div style="display:grid;grid-template-columns:1fr 110px 170px;gap:14px">
+    <div><label class="fld">Display name</label><input form="pmsave" type="text" name="m[<%= m.id %>][name]" value="<%= m.name %>"></div>
+    <div><label class="fld">Currency</label><input form="pmsave" type="text" name="m[<%= m.id %>][currency]" value="<%= m.currency %>"></div>
+    <div><label class="fld">Show to region</label>
+      <select form="pmsave" name="m[<%= m.id %>][scope]">
+        <option value="all"    <%= m.scope==='all'    ? 'selected' : '' %>>All regions</option>
+        <option value="pk"     <%= m.scope==='pk'     ? 'selected' : '' %>>Pakistan only</option>
+        <option value="global" <%= m.scope==='global' ? 'selected' : '' %>>Global (outside PK)</option>
+      </select>
+    </div>
+  </div>
+  <label class="fld">Receiving details (shown to customer)</label>
+  <textarea form="pmsave" name="m[<%= m.id %>][details]" rows="3" placeholder="e.g. Account title: Muhammad Ishtiaq&#10;Account no: 0000-0000000000&#10;IBAN: PK00XXXX0000000000000000"><%= m.details %></textarea>
+  <label class="fld">Instructions (optional)</label>
+  <textarea form="pmsave" name="m[<%= m.id %>][instructions]" rows="2"><%= m.instructions %></textarea>
+  <input form="pmsave" type="hidden" name="m[<%= m.id %>][sort]" value="<%= m.sort %>">
+</div>
+<% }); %>
+
+<div style="position:sticky;bottom:0;padding:14px 0;background:linear-gradient(0deg,var(--bg) 55%,transparent)">
+  <button class="btn btn-p" type="submit" form="pmsave">Save payment details</button>
+  <span class="sub" style="margin-left:12px">Details save together · logos upload instantly per method.</span>
+</div>
 <%- include('_shell_bottom') %>
