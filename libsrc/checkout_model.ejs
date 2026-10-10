@@ -16,7 +16,9 @@
   .gbuy-body{padding:14px 22px 22px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-top:1px solid rgba(255,255,255,.08)}
   .gbuy-f{margin-bottom:12px}
   .gbuy-f label{display:block;font-size:12.5px;color:var(--gb-mut);font-weight:600;margin-bottom:6px}
-  .gbuy input[type=text],.gbuy input[type=email],.gbuy input[type=file],.gbuy select{width:100%;background:#0e1627;border:1px solid var(--gb-ln);border-radius:11px;color:var(--gb-ink);padding:11px 13px;font-family:inherit;font-size:14px}
+  .gbuy input[type=text],.gbuy input[type=email],.gbuy input[type=password],.gbuy input[type=tel],.gbuy input[type=number],.gbuy input[type=file],.gbuy select{width:100%;background:#0e1627;border:1px solid var(--gb-ln);border-radius:11px;color:var(--gb-ink);padding:11px 13px;font-family:inherit;font-size:14px}
+  .gbuy input[type=file]{padding:6px}
+  .gbuy input[type=file]::file-selector-button,.gbuy input[type=file]::-webkit-file-upload-button{padding:8px 12px;margin-right:10px;border:0;border-radius:8px;background:#16203a;color:var(--gb-ink);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
   .gbuy .gb-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-weight:800;font-size:14px;padding:12px 16px;border-radius:12px;font-family:inherit}
   .gbuy .gb-p{background:var(--gb-grad);color:#fff} .gbuy .gb-g{background:#16203a;color:var(--gb-ink);border:1px solid var(--gb-ln)}
   .gbuy .gb-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
@@ -84,7 +86,7 @@
     if(j.wantsActEmail) h+='<div class="gbuy-f"><label>Activation email <span class="muted">(optional — defaults to your order email)</span></label><input type="email" id="gbActEmail" placeholder="account email to activate"></div>';
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div>'
      +'<div id="gbAcct"></div>'
-     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" placeholder="e.g. GALAXY10" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order</button>'
      +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
@@ -158,7 +160,7 @@
     });
     if(!isIn()){ h+='<div class="gbuy-f"><label>Email</label><input type="email" id="gbEmail" placeholder="you@email.com"></div><div class="gbuy-f"><label>WhatsApp number</label><input type="text" id="gbWa" placeholder="03xx… (add +code if outside Pakistan)"></div>'; }
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div><div id="gbAcct"></div>'
-     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" placeholder="e.g. GALAXY10" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order · '+money(total)+'</button>'
      +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver.</p>';

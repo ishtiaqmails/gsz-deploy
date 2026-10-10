@@ -44,7 +44,9 @@
   .cthm .co-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
   .cthm .co-m input{accent-color:#2f7bff}
   .cthm .co-acct{margin:0 0 12px}
-  .cthm input[type=text],.cthm input[type=file]{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
+  .cthm input[type=text],.cthm input[type=email],.cthm input[type=password],.cthm input[type=tel],.cthm input[type=number],.cthm input[type=file]{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
+  .cthm input[type=file]{padding:6px}
+  .cthm input[type=file]::file-selector-button,.cthm input[type=file]::-webkit-file-upload-button{padding:8px 12px;margin-right:10px;border:0;border-radius:8px;background:#16203a;color:#eef2fb;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
   .cthm-note{color:#9aa6c0;font-size:13px;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px}
   .cthm-sep{font-size:11.5px;font-weight:800;letter-spacing:.07em;color:#9aa6c0;text-transform:uppercase;margin:18px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
   .cthm-claim{border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:13px;margin-bottom:10px;background:#0e1627}
@@ -327,7 +329,7 @@
       if(!ms.length){ if(load) load.outerHTML='<div class="muted errmsg">No payment methods available — contact support.</div>'; return; }
       var html='<div class="cthm-f"><label>Payment method</label><div>'+ms.map(function(m,i){ return '<label class="co-m"><input type="radio" name="com" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
         +'<div id="coAcct"></div>'
-        +'<div class="cthm-f"><label>Coupon code <span class="muted">(optional)</span></label><input id="coCoupon" type="text" placeholder="e.g. GALAXY10" autocapitalize="characters" style="text-transform:uppercase"></div>'
+        +'<div class="cthm-f"><label>Coupon code <span class="muted">(optional)</span></label><input id="coCoupon" type="text" autocapitalize="characters" style="text-transform:uppercase"></div>'
         +'<div class="cthm-f"><label>Upload payment receipt</label><input id="coProof" type="file" accept="image/*,application/pdf"></div>'
         +'<div id="coOut"></div><button class="cbtn cbtn-p" style="width:100%" id="coSubmit">Submit Payment</button>';
       if(load) load.outerHTML=html;
