@@ -1,17 +1,32 @@
 #!/usr/bin/env bash
-# dumpTrials — website IPTV trial flow: claim route, admin setup, tables, fulfilment path.
+# dumpTrials — facts to build Trials in the Hub (credentials view + Extend 2d + Convert-to-paid).
 GSZ=/opt/gsz; cd "$GSZ" || exit 1
 export PGPASSWORD="$(grep -E '^DB_PASS=' .env | cut -d= -f2-)"
 DBN="$(grep -E '^DB_NAME=' .env | cut -d= -f2-)"; DBU="$(grep -E '^DB_USER=' .env | cut -d= -f2-)"; DBH="$(grep -E '^DB_HOST=' .env | cut -d= -f2-)"
-Q(){ psql -h "${DBH:-localhost}" -U "$DBU" -d "$DBN" -c "$1" 2>&1; }
+Q(){ psql -h "${DBH:-localhost}" -U "$DBU" -d "$DBN" -tAc "$1" 2>&1; }
 
-echo "########## routes/trials.js (full) ##########"; cat routes/trials.js
-echo; echo "########## routes/adminTrials.js (full) ##########"; cat routes/adminTrials.js
-echo; echo "########## trial_servers schema ##########"; Q "\d trial_servers" | sed -n '1,45p'
-echo "--- trial_servers rows (dns/player/panel visible; creds masked) ---"
-Q "SELECT id, name, panel, bot_sku, bot_plan_key, bot_type, dns, player, active, (CASE WHEN COALESCE(m3u_template,'')<>'' THEN 'set' ELSE '' END) AS m3u, (CASE WHEN COALESCE(credentials::text,'')<>'' THEN 'set' ELSE '' END) AS creds FROM trial_servers ORDER BY id" 2>&1 | head -40
-echo; echo "########## trial_claims schema ##########"; Q "\d trial_claims" | sed -n '1,30p'
-echo "--- recent claims ---"; Q "SELECT id, server_id, product_id, status, created_at, (CASE WHEN COALESCE(result,'')<>'' THEN left(result,60) ELSE '' END) AS result FROM trial_claims ORDER BY id DESC LIMIT 10" 2>&1 | head -20
-echo; echo "########## how trials provision (grep) ##########"
-grep -nE "bot|iptv|panel|dns|player|deliver|provision|forward|axios|fetch|trial_server|m3u|wa_number|sendMessage" routes/trials.js | head -60
+echo "#### 1. botapi.js — exported functions (generate/extend/convert/renew/trial) ####"
+grep -nE "exports\.|^\s*(async )?function |module\.exports|generateTrial|extend|convert|renew|trial" lib/botapi.js 2>/dev/null | grep -iE "exports|function|trial|extend|convert|renew|generate" | head -40
+
+echo "#### 2. trials.js — the customer trials view route + claim + any extend/convert ####"
+grep -nE "router\.(get|post)\(['\"][^'\"]+|account/trials|extend|convert|credentials|expires_at" routes/trials.js | head -30
+
+echo "#### 3. trial_servers rows (sku -> name -> duration) ####"
+Q "SELECT sku||' | '||name||' | '||COALESCE(duration_label,'')||' | '||COALESCE(duration_hours::text,'') FROM trial_servers WHERE enabled=true ORDER BY name" | head -20
+
+echo "#### 4. trial -> paid product mapping (does a product/plan correspond to a trial sku?) ####"
+echo "-- products columns --"
+Q "SELECT string_agg(column_name,', ' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_name='products'"
+echo "-- product_plans columns --"
+Q "SELECT string_agg(column_name,', ' ORDER BY ordinal_position) FROM information_schema.columns WHERE table_name='product_plans'"
+echo "-- any products whose bot_sku matches a trial sku? --"
+Q "SELECT p.id||' | '||p.name||' | bot_sku='||COALESCE(p.bot_sku,'') FROM products p WHERE p.bot_sku IN (SELECT sku FROM trial_servers) LIMIT 10"
+echo "-- bot_products that are trials vs paid (sku, type) --"
+Q "SELECT sku||' | '||COALESCE(name,'')||' | '||COALESCE(type,'') FROM bot_products WHERE sku IN (SELECT sku FROM trial_servers) LIMIT 10"
+
+echo "#### 5. a sample claimed trial (credentials format; current user if any) ####"
+Q "SELECT 'id='||id||' status='||status||' server='||COALESCE(server_name,trial_type)||' claimed='||COALESCE(claimed_at::text,'')||' expires='||COALESCE(expires_at::text,'')||' credlen='||COALESCE(length(credentials)::text,'0')||' meta='||COALESCE(metadata::text,'{}') FROM trial_claims ORDER BY id DESC LIMIT 4"
+
+echo "#### 6. how renew resolves product for an order (to reuse for convert) ####"
+grep -nE "subscription|renewable|slug|options|product_plans|/subscription" routes/account.js routes/checkout.js 2>/dev/null | grep -iE "renewable|subscription|slug|options" | head -15
 echo "== dumpTrials done =="
