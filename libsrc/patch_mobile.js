@@ -1,30 +1,34 @@
 'use strict';
-/* Global mobile compatibility: stop any page-level horizontal scroll, and make
-   every wide table card scroll sideways (so right-hand columns are reachable on
-   phones). One intentional responsive rule, applied via the shared shell. */
-const fs = require('fs'), path = require('path');
-const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_mobile.js <ROOT>'); process.exit(1); }
-function patch(rel, edits) {
-  const file = path.join(ROOT, rel); let s = fs.readFileSync(file, 'utf8');
-  for (const e of edits) {
-    if (s.indexOf(e.guard) >= 0) { console.log('skip (already): ' + rel + ' :: ' + e.name); continue; }
-    const first = s.indexOf(e.find);
-    if (first < 0) throw new Error('ANCHOR MISS: ' + rel + ' :: ' + e.name);
-    if (s.indexOf(e.find, first + 1) >= 0) throw new Error('ANCHOR NOT UNIQUE: ' + rel + ' :: ' + e.name);
-    s = s.slice(0, first) + e.replace + s.slice(first + e.find.length);
-    console.log('patched: ' + rel + ' :: ' + e.name);
-  }
-  fs.writeFileSync(file, s);
-}
+/* Mobile responsive polish for the home sections (source edit: appended to app.css).
+   Fixes the desktop-grid-on-phone problems the owner flagged:
+     - Shop by category: 2-col compact tiles with labels that fit (no "Entertainment" clip)
+     - Reviews (.rev-grid): a swipeable horizontal carousel instead of a tall stacked list
+     - Footer (.ft-top): 2 columns with the brand spanning, instead of one long column
+   One <=560 media block, appended so it wins by source order. Idempotent. */
+const fs = require('fs');
+const file = process.argv[2];
+if (!file) { console.error('usage: node patch_mobile.js <app.css path>'); process.exit(1); }
+let s = fs.readFileSync(file, 'utf8');
 
-const MOBILE = "\n/*mobile-scroll*/\n" +
-"html,body{max-width:100%;overflow-x:hidden}\n" +
-".card[style*=\"overflow:hidden\"]{overflow-x:auto!important}\n" +
-"@media(max-width:860px){ .card[style*=\"overflow:hidden\"] table{min-width:560px} }\n" +
-"@media(max-width:860px){ .content{padding-left:14px;padding-right:14px} }\n";
+if (s.indexOf('gsz-mobile-fix') >= 0) { console.log('skip (already): mobile section fixes present'); console.log('MOBILE PATCH OK'); process.exit(0); }
 
-patch('views/admin/_shell_top.ejs', [{
-  name: 'mobile-scroll', guard: '/*mobile-scroll*/',
-  find: '</style>', replace: MOBILE + '</style>'
-}]);
+const BLOCK = "\n\n/* gsz-mobile-fix — responsive home sections (phones) */\n" +
+"@media(max-width:560px){\n" +
+"  .catgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}\n" +
+"  .cat-tile{padding:12px;gap:10px;min-width:0}\n" +
+"  .cat-tile>span{min-width:0;overflow:hidden}\n" +
+"  .cat-tile .cg{width:38px;height:38px;border-radius:11px}\n" +
+"  .cat-tile .cg svg{width:19px;height:19px}\n" +
+"  .cat-tile b{font-size:13px;overflow-wrap:anywhere}\n" +
+"  .cat-tile .n{font-size:11px}\n" +
+"  .rev-grid{display:flex;grid-template-columns:none;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:10px}\n" +
+"  .rev-grid>*{flex:0 0 86%;scroll-snap-align:start;min-width:0}\n" +
+"  .tp-card{padding:18px}\n" +
+"  .ft-top{grid-template-columns:1fr 1fr;gap:22px 18px}\n" +
+"  .ft-brand{grid-column:1/-1}\n" +
+"}\n";
+
+s = s.replace(/\s*$/, '') + BLOCK;
+fs.writeFileSync(file, s);
+console.log('patched: appended mobile section fixes (catgrid / reviews / footer)');
 console.log('MOBILE PATCH OK');
