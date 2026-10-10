@@ -80,23 +80,37 @@
   .cthm-cred2{margin-top:10px}
   .cthm-cred2 pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#111a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;font-size:13px}
   .cthm-shot{display:inline-block;margin-top:9px;color:#29d3ff;font-weight:700;font-size:12.5px;text-decoration:none}
+  .cthm-foot{padding:12px 22px calc(16px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:center}
+  .cthm-foot:empty{display:none}
+  .cthm-auth{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:200px;padding:11px 20px;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;border:0;font-family:inherit;text-decoration:none}
+  .cthm-auth svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .cthm-auth.in{background:linear-gradient(135deg,#33d98a,#1fb457);color:#05240f}
+  .cthm-auth.out{background:#16203a;color:#ff8f8a;border:1px solid rgba(240,85,78,.4)}
+  .cthm-who{font-size:12px;color:#9aa6c0;margin-right:auto;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cthm-foot.hasWho{justify-content:space-between}
+  .cthm-choice{display:flex;align-items:flex-start;gap:13px;width:100%;text-align:left;padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;margin-bottom:11px;background:#0e1627;color:#eef2fb;cursor:pointer;font-family:inherit}
+  .cthm-choice:hover{border-color:rgba(47,123,255,.45)}
+  .cthm-choice .chi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .cthm-choice .chi svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+  .cthm-choice b{font-size:14.5px;font-weight:700;display:block}
+  .cthm-choice small{font-size:12px;color:#9aa6c0;display:block;margin-top:2px}
+  .cthm-choice .chbadge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(244,182,76,.16);color:#f4b64c;margin-left:8px;vertical-align:middle}
 </style>
 
 <section class="cth">
   <div class="cth-band">
     <div class="cth-h">
-      <div><div class="cth-kick">QUICK ACCESS</div><h2>Customer Tools</h2></div>
-      <div class="cth-sub">Everything in one place — orders, codes, renewals, trials &amp; support. No page hopping.</div>
+      <div><div class="cth-kick">QUICK ACCESS</div><h2>Galaxy Hub</h2></div>
+      <div class="cth-sub">Everything in one place — orders, access, renewals, trials &amp; support. No page hopping.</div>
     </div>
     <div class="cth-grid">
       <a class="cth-tile" href="/account" data-tool="purchases"><span class="ci" style="color:#29d3ff;background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><span class="cx"><div class="ctt">My Orders</div><div class="ctd">Purchases &amp; status</div></span></a>
       <a class="cth-tile" href="/account" data-tool="purchases"><span class="ci" style="color:#9a6cff;background:rgba(154,108,255,.15)"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span><span class="cx"><div class="ctt">My Subscriptions</div><div class="ctd">Active services</div></span></a>
-      <a class="cth-tile" href="/account" data-tool="code"><span class="ci" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 3 3"/></svg></span><span class="cx"><div class="ctt">Get Login Code</div><div class="ctd">Sign-in &amp; OTP codes</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="code"><span class="ci" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 3 3"/></svg></span><span class="cx"><div class="ctt">Get Access</div><div class="ctd">Codes, links &amp; household</div></span></a>
       <a class="cth-tile" href="/account" data-tool="renew"><span class="ci" style="color:#33d98a;background:rgba(51,217,138,.14)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="cx"><div class="ctt">Renew Service</div><div class="ctd">Extend before expiry</div></span></a>
       <button class="cth-tile trial-open" type="button"><span class="ci" style="color:#f4b64c;background:rgba(244,182,76,.15)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span class="cx"><div class="ctt">Free IPTV Trials</div><div class="ctd">Claim on WhatsApp</div></span></button>
       <a class="cth-tile" href="/account" data-tool="claim"><span class="ci" style="color:#ff6cc4;background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="cx"><div class="ctt">Claim / Replace</div><div class="ctd">Report or replace</div></span></a>
-      <a class="cth-tile" href="/"><span class="ci" style="color:#2f7bff;background:rgba(47,123,255,.13)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span class="cx"><div class="ctt">Browse Store</div><div class="ctd">Find new services</div></span></a>
-      <a class="cth-tile" href="https://wa.me/<%= _wanum %>" target="_blank" rel="noopener"><span class="ci" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="cx"><div class="ctt">WhatsApp Support</div><div class="ctd">Chat with us 24/7</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="support"><span class="ci" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8M8 13h5"/></svg></span><span class="cx"><div class="ctt">Support</div><div class="ctd">Live chat &amp; WhatsApp</div></span></a>
     </div>
   </div>
 </section>
@@ -105,14 +119,15 @@
   <div class="cthm-scrim" data-close></div>
   <div class="cthm-card" role="dialog" aria-modal="true">
     <button class="cthm-x" data-close aria-label="Close">✕</button>
-    <div class="cthm-head"><h3>Customer Tools</h3><p>View credentials, fetch sign-in codes, renew &amp; claim replacements.</p></div>
+    <div class="cthm-head"><h3>Galaxy Hub</h3><p>Your orders, access, renewals, trials &amp; support — all in one place.</p></div>
     <div class="cthm-tabs">
       <button class="cthm-tab" data-tab="purchases">Purchases</button>
-      <button class="cthm-tab" data-tab="code">Get Code</button>
+      <button class="cthm-tab" data-tab="code">Get Access</button>
       <button class="cthm-tab" data-tab="renew">Renew</button>
       <button class="cthm-tab" data-tab="claim">Claim</button>
     </div>
     <div class="cthm-body" id="cthmBody"><div class="cthm-load">Loading…</div></div>
+    <div class="cthm-foot" id="cthmFoot"></div>
   </div>
 </div>
 <script>
@@ -134,7 +149,17 @@
     return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){ if(r.redirected && /\/login/.test(r.url)){ authed=false; return {orders:[]}; } return r.json(); }).then(function(j){ if(j&&j.auth===false) authed=false; cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
   function pc(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled') return 'bad'; return 'wait'; }
   function signin(){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">🔒</div><div style="font-weight:700;margin-top:6px">Sign in to use your tools</div><p class="muted">View orders, get codes, renew &amp; claim replacements.</p><a class="cbtn cbtn-p" style="margin-top:6px" href="/login">Sign in / Register</a></div>'; }
-  function render(tab){ body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else claim(o); }); }
+  function render(tab){ renderFoot(); if(tab==='support'){ support(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else claim(o); }); }
+  function isLoggedIn(){ return (typeof window.__GSZAUTH!=='undefined') ? !!window.__GSZAUTH : authed; }
+  function renderFoot(){ var f=document.getElementById('cthmFoot'); if(!f) return;
+    if(isLoggedIn()){ f.innerHTML='<button class="cthm-auth out" id="cthmSignOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Sign Out</button>'; var so=document.getElementById('cthmSignOut'); if(so) so.addEventListener('click',signOut); }
+    else { f.innerHTML='<button class="cthm-auth in" id="cthmSignIn"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>Sign In / Register</button>'; var si=document.getElementById('cthmSignIn'); if(si) si.addEventListener('click',signIn); } }
+  function signIn(){ var t=document.querySelector('[data-auth-open],.hd-signin,.js-auth,.open-auth,[data-login]'); if(t){ close(); t.click(); return; } if(typeof window.openAuth==='function'){ close(); window.openAuth(); return; } location.href='/login?next='+encodeURIComponent(location.pathname||'/'); }
+  function signOut(){ var btn=document.getElementById('cthmSignOut'); if(btn){ btn.disabled=true; btn.textContent='Signing out…'; } fetch('/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'fetch'}}).then(function(){ location.reload(); }).catch(function(){ var fm=document.createElement('form'); fm.method='POST'; fm.action='/logout'; document.body.appendChild(fm); fm.submit(); }); }
+  function support(){ body.innerHTML='<p class="muted" style="margin:0 0 14px">Choose how you’d like to reach us — pick whatever suits you.</p>'
+    +'<button class="cthm-choice" id="chLive"><span class="chi" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><span><b>Live Chat <span class="chbadge">Coming soon</span></b><small>Instant 24/7 help right here on the site.</small></span></button>'
+    +'<a class="cthm-choice" href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener"><span class="chi" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg></span><span><b>WhatsApp</b><small>Quick replies — may take a little time at peak hours.</small></span></a>';
+    var cl=document.getElementById('chLive'); if(cl) cl.addEventListener('click',function(){ var s=cl.querySelector('small'); if(s) s.textContent='Launching soon — for now tap WhatsApp below and we’ll help you right away.'; }); }
   function fmtd(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
   function subPill(o){ var s=o.sub_status; if(s==='active') return '<span class="cthm-pill ok">Active</span>'; if(s==='expiring') return '<span class="cthm-pill wait">Expiring soon</span>'; if(s==='expired') return '<span class="cthm-pill bad">Expired</span>'; return '<span class="cthm-pill wait">'+esc((o.status||'Pending').charAt(0).toUpperCase()+(o.status||'Pending').slice(1))+'</span>'; }
   function pur(orders){
@@ -310,7 +335,8 @@
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
-  window.__gszTools=function(tab){ open(['purchases','code','renew','claim'].indexOf(tab)>=0?tab:'purchases'); };
-  try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ open(['purchases','code','renew','claim'].indexOf(_t)>=0?_t:'purchases'); if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
+  var _HUBTABS=['purchases','code','renew','claim','support'];
+  window.__gszTools=function(tab){ open(_HUBTABS.indexOf(tab)>=0?tab:'purchases'); };
+  try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ open(_HUBTABS.indexOf(_t)>=0?_t:'purchases'); if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
 })();
 </script>
