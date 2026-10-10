@@ -33,7 +33,7 @@
   .cthm-tabs{display:flex;gap:8px;padding:0 22px 14px}
   .cthm-tab{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0e1627;color:#9aa6c0;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
   .cthm-tab.on{background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;border-color:transparent}
-  .cthm-body{padding:16px 22px 22px;overflow-y:auto;border-top:1px solid rgba(255,255,255,.08)}
+  .cthm-body{padding:16px 22px 22px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-top:1px solid rgba(255,255,255,.08)}
   .cthm-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:10px}
   .cthm .onm{font-weight:700;font-size:14px} .cthm .osub{font-size:12px;color:#9aa6c0}
   .cthm-empty{color:#9aa6c0;text-align:center;padding:30px 10px}
@@ -115,8 +115,11 @@
   var WANUM=<%- JSON.stringify(_wanum) %>;
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
   function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
-  function open(tab){ modal.classList.add('on'); document.body.style.overflow='hidden'; setTab(tab||'purchases'); }
-  function close(){ modal.classList.remove('on'); document.body.style.overflow=''; }
+  window.__gszScrollLock = window.__gszScrollLock || (function(){ var n=0,y=0; return {
+    lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
+    unlock:function(){ if(n>0)n--; if(n>0) return; var b=document.body; b.style.position=''; b.style.top=''; b.style.left=''; b.style.right=''; b.style.width=''; b.style.overflow=''; window.scrollTo(0,y); } }; })();
+  function open(tab){ modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(tab||'purchases'); }
+  function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
   function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
   function loadOrders(){ if(cache) return Promise.resolve(cache);
     return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){ if(r.redirected && /\/login/.test(r.url)){ authed=false; return {orders:[]}; } return r.json(); }).then(function(j){ if(j&&j.auth===false) authed=false; cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
