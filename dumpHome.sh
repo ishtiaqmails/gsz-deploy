@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# dumpHome — find the home-page view + its route + locals, to add Quick Access + tools pop-up on home.
+# dumpHome — locate home view + show the "Try IPTV free" band and insertion anchors. SMALL output.
 GSZ=/opt/gsz; cd "$GSZ" || exit 1
-HV=$(grep -rln "Premium Entertainment" views/ 2>/dev/null | grep -v '\.bak' | head -1)
-echo "## HOME VIEW FILE: $HV ##"
+HV=$(grep -rln "Try IPTV free" views/ 2>/dev/null | grep -v '\.bak' | head -1)
+echo "HOME VIEW: ${HV:-NOT FOUND}"
+[ -z "$HV" ] && { echo "## fallback: views containing 'IPTV' hero ##"; grep -rln "Premium Entertainment\|IPTV Free Trial" views/ 2>/dev/null | grep -v '\.bak'; exit 0; }
 echo
-echo "## '/' route handler (which view + locals) ##"
-grep -rnE "router\.(get)\(['\"]/['\"]|res\.render\(" routes/*.js 2>/dev/null | grep -v '\.bak' | grep -iE "'/'|\"/\"|home|index|store|landing|hero|storefront" | head -20
+echo "## 'Try IPTV free' band block (to remove) ##"
+L=$(grep -n "Try IPTV free" "$HV" | head -1 | cut -d: -f1)
+[ -n "$L" ] && sed -n "$((L-4)),$((L+14))p" "$HV"
 echo
-echo "## does home expose waNumber / session customer? (grep the view) ##"
-[ -n "$HV" ] && grep -nE "waNumber|wa_number|session.customer|customer|logo" "$HV" 2>/dev/null | head -12
-echo
-echo "## HOME VIEW CONTENT ##"
-[ -n "$HV" ] && cat -n "$HV"
+echo "## includes + section anchors + locals (for inserting Quick Access) ##"
+grep -nE "<%- *include\(|</section>|class=\"hero|<main|waNumber|session\.customer|session && req\.session\.customer|locals" "$HV" 2>/dev/null | head -30
 echo "== dumpHome done =="
