@@ -20,17 +20,24 @@ function walk(dir, acc) {
 }
 
 const files = walk(VIEWS, []);
-const hits = files.filter(f => { try { return fs.readFileSync(f, 'utf8').indexOf(MARK) >= 0; } catch (e) { return false; } });
+const TARGET_REAL = fs.existsSync(TARGET) ? fs.realpathSync(TARGET) : TARGET;
+const hits = files.filter(f => {
+  try {
+    if (fs.realpathSync(f) === TARGET_REAL) return false; // never match the nav partial itself
+    return fs.readFileSync(f, 'utf8').indexOf(MARK) >= 0;
+  } catch (e) { return false; }
+});
 if (!hits.length) throw new Error('ANCHOR MISS: no view contains <footer class="ft"> — cannot place app nav');
 
 let placed = 0, skipped = 0;
 for (const f of hits) {
   let s = fs.readFileSync(f, 'utf8');
-  if (s.indexOf("'" + 'app_nav' + "'") >= 0 || s.indexOf('app_nav') >= 0) { skipped++; continue; }
+  const idx = s.indexOf(MARK);
+  if (idx < 0) continue;
+  if (s.indexOf("include('./app_nav')") >= 0 || s.indexOf("include('./partials/app_nav')") >= 0) { skipped++; continue; }
   let rel = path.relative(path.dirname(f), TARGET).replace(/\\/g, '/').replace(/\.ejs$/, '');
   if (!rel.startsWith('.')) rel = './' + rel;
   const inc = "<%- include('" + rel + "') %>\n";
-  const idx = s.indexOf(MARK);
   s = s.slice(0, idx) + inc + s.slice(idx);
   fs.writeFileSync(f, s);
   console.log('patched: app nav include added to ' + path.relative(ROOT, f) + "  (include '" + rel + "')");

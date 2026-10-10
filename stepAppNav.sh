@@ -23,7 +23,10 @@ node "$SRC/patch_appnav.js" "$GSZ"
 
 # validate the nav partial + the customer-tools partial compile (self-contained, no includes)
 node -e "const ejs=require('ejs'),fs=require('fs');ejs.compile(fs.readFileSync('views/partials/app_nav.ejs','utf8'),{filename:process.cwd()+'/views/partials/app_nav.ejs'});ejs.compile(fs.readFileSync('views/partials/customer_tools.ejs','utf8'),{filename:process.cwd()+'/views/partials/customer_tools.ejs'});console.log('  ejs ok');"
-# sanity: each footer file still parses as EJS (include resolves at render; compile just checks syntax of the file itself)
+# validate each patched footer file compiles (its include('./app_nav') must resolve cleanly)
+for f in "${FOOTERS[@]}"; do
+  node -e "const ejs=require('ejs'),fs=require('fs');ejs.compile(fs.readFileSync('$f','utf8'),{filename:process.cwd()+'/$f'});console.log('  footer ejs ok: $f');"
+done
 trap - ERR
 
 pm2 restart gsz --update-env >/dev/null
