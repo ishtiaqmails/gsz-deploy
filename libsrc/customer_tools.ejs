@@ -59,6 +59,10 @@
   .cthm-cred{margin:0 0 14px}
   .cthm-acts{display:flex;gap:8px;flex-wrap:wrap}
   .cthm-acts .cbtn{flex:1;min-width:90px}
+  .cthm .co-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
+  .cthm .co-m input{accent-color:#2f7bff}
+  .cthm .co-acct{margin:0 0 12px}
+  .cthm input[type=text],.cthm input[type=file]{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
 </style>
 
 <section class="cth">
@@ -172,24 +176,71 @@
   }
   function renew(orders){
     if(!orders.length){ body.innerHTML='<div class="cthm-empty">No subscriptions to renew yet.</div>'; return; }
-    body.innerHTML='<p class="muted" style="margin:0 0 12px">Check a subscription’s expiry and renew it in one tap.</p>'+orders.map(function(o){
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Check a subscription and renew it — pay right here, no page change.</p>'+orders.map(function(o){
       return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="cbtn cbtn-g" data-renew="'+esc(o.order_no)+'">Check &amp; renew</button></div><div class="renew-out" data-for="'+esc(o.order_no)+'"></div>';
     }).join('');
     body.querySelectorAll('button[data-renew]').forEach(function(b){ b.addEventListener('click',function(){
       var no=b.getAttribute('data-renew'); var out=body.querySelector('.renew-out[data-for="'+no+'"]');
-      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Checking…</div>';
+      out.innerHTML='<div class="muted" style="margin:6px 0 10px">Checking…</div>';
       fetch('/account/order/'+encodeURIComponent(no)+'/subscription',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
-        if(!j||!j.ok||(!j.active&&!j.renewable)){ out.innerHTML='<div class="muted" style="margin:6px 0 12px">No active subscription found for this order.</div>'; return; }
+        if(!j||!j.ok||(!j.active&&!j.renewable)){ out.innerHTML='<div class="muted" style="margin:6px 0 10px">No renewable subscription for this order.</div>'; return; }
         var h='';
         if(j.expires_at){ var dl=(j.days_left!=null)?(' ('+(j.days_left>=0?(j.days_left+'d left'):(Math.abs(j.days_left)+'d ago'))+')'):''; h+='<div class="muted" style="margin:6px 0 8px">Expires '+esc(String(j.expires_at).slice(0,10))+dl+'</div>'; }
-        if(j.renewable && j.options && j.options.length){ h+=j.options.map(function(op){
-          var href=(j.slug&&op.idx!=null&&op.idx>=0&&op.price_pkr!=null)?('/checkout?p='+encodeURIComponent(j.slug)+'&plan='+op.idx+'&renew='+encodeURIComponent(no)):('https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no));
-          var price=(op.price_pkr!=null)?money(op.price_pkr):'';
-          return '<a class="cbtn cbtn-p" style="width:100%;margin-bottom:8px;justify-content:space-between" href="'+href+'">'+esc(op.label)+'<span>'+price+'</span></a>';
-        }).join(''); } else { h+='<a class="cbtn cbtn-p" style="width:100%" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a>'; }
-        out.innerHTML='<div style="margin:6px 0 12px">'+h+'</div>';
-      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t check right now.</div>'; });
+        if(j.renewable && j.slug && j.options && j.options.length){ h+=j.options.map(function(op){
+          var price=(op.price_pkr!=null)?money(op.price_pkr):''; var dis=(op.idx==null||op.idx<0||op.price_pkr==null);
+          return '<button class="cbtn cbtn-p" style="width:100%;margin-bottom:8px;justify-content:space-between"'+(dis?' disabled':(' data-ren-no="'+esc(no)+'" data-slug="'+esc(j.slug)+'" data-idx="'+op.idx+'" data-price="'+op.price_pkr+'" data-label="'+esc(op.label)+'"'))+'>'+esc(op.label)+'<span>'+price+'</span></button>';
+        }).join(''); } else { h+='<a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a>'; }
+        out.innerHTML='<div style="margin:6px 0 10px">'+h+'</div>';
+        out.querySelectorAll('button[data-ren-no]').forEach(function(ob){ ob.addEventListener('click',function(){ coStep({ no:ob.getAttribute('data-ren-no'), slug:ob.getAttribute('data-slug'), idx:ob.getAttribute('data-idx'), price:Number(ob.getAttribute('data-price'))||0, label:ob.getAttribute('data-label') }); }); });
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 10px">Couldn’t check right now.</div>'; });
     }); });
+  }
+  function coStep(p){
+    body.innerHTML='<button class="cthm-back" id="coBack">← Back</button><div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(p.label)+'</div><div class="muted">Order '+esc(p.no)+' · '+money(p.price)+'</div></div><div class="cthm-load">Loading payment options…</div>';
+    document.getElementById('coBack').addEventListener('click',function(){ setTab('renew'); });
+    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(p.price),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var ms=(j&&j.methods)||[]; var load=body.querySelector('.cthm-load');
+      if(!ms.length){ if(load) load.outerHTML='<div class="muted errmsg">No payment methods available — contact support.</div>'; return; }
+      var html='<div class="cthm-f"><label>Payment method</label><div>'+ms.map(function(m,i){ return '<label class="co-m"><input type="radio" name="com" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
+        +'<div id="coAcct"></div>'
+        +'<div class="cthm-f"><label>Transaction ID / sender name</label><input id="coTxn" type="text" placeholder="e.g. TID or who sent it"></div>'
+        +'<div class="cthm-f"><label>Upload payment receipt</label><input id="coProof" type="file" accept="image/*,application/pdf"></div>'
+        +'<div id="coOut"></div><button class="cbtn cbtn-p" style="width:100%" id="coSubmit">Submit Payment</button>';
+      if(load) load.outerHTML=html;
+      function acct(){ var k=(body.querySelector('input[name=com]:checked')||{}).value; var m=ms.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('coAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); box.innerHTML='<div class="co-acct"><div class="muted" style="margin-bottom:4px">Send '+esc(m.pay||money(p.price))+' to:</div><pre style="margin:0;white-space:pre-wrap;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px">'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>'; }
+      acct(); body.querySelectorAll('input[name=com]').forEach(function(r){ r.addEventListener('change',acct); });
+      document.getElementById('coSubmit').addEventListener('click',function(){ submitRenew(p); });
+    }).catch(function(){ var l=body.querySelector('.cthm-load'); if(l) l.outerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
+  }
+  function submitRenew(p){
+    var out=document.getElementById('coOut'), btn=document.getElementById('coSubmit');
+    var method=(body.querySelector('input[name=com]:checked')||{}).value;
+    var txn=(document.getElementById('coTxn')||{}).value||'';
+    var pf=(document.getElementById('coProof')||{}).files; pf=pf&&pf[0];
+    if(!method){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Choose a payment method.</div>'; return; }
+    if(!pf){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please upload your payment receipt.</div>'; return; }
+    var fd=new FormData(); fd.append('product',p.slug); fd.append('plan',p.idx); fd.append('region','PK'); fd.append('method',method); fd.append('txn',txn); fd.append('renew',p.no); fd.append('proof',pf);
+    btn.disabled=true; btn.textContent='Submitting…'; out.innerHTML='';
+    fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var newNo=m?decodeURIComponent(m[1]):null;
+      if(!newNo){ out.innerHTML='<div class="muted errmsg">Submitted — check My Orders shortly.</div>'; btn.style.display='none'; return; }
+      body.innerHTML='<div class="cthm-empty"><div class="cthm-load" id="coPoll">⏳ Payment submitted — verifying &amp; applying your renewal…</div></div>';
+      pollRenew(newNo, p.no, 0);
+    }).catch(function(){ out.innerHTML='<div class="muted errmsg">Couldn’t submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Payment'; });
+  }
+  function pollRenew(newNo, origNo, tries){
+    fetch('/account/tools/order-status/'+encodeURIComponent(newNo),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(j&&j.done){
+        fetch('/account/order/'+encodeURIComponent(origNo)+'/subscription',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(s){
+          var exp=(s&&s.expires_at)?(' New expiry: '+String(s.expires_at).slice(0,10)):'';
+          body.innerHTML='<div class="cthm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Renewal applied</div><p class="muted">Your line has been extended.'+esc(exp)+'</p></div>';
+        }).catch(function(){ body.innerHTML='<div class="cthm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Renewal applied</div></div>'; });
+        return;
+      }
+      if(j && String(j.status||'').toLowerCase()==='failed'){ body.innerHTML='<div class="cthm-empty"><div class="errmsg" style="font-weight:700">Renewal couldn’t complete</div><p class="muted">If you paid, contact support and we’ll fix it.</p></div>'; return; }
+      if(tries<40){ setTimeout(function(){ pollRenew(newNo,origNo,tries+1); },3000); }
+      else { var el=document.getElementById('coPoll'); if(el) el.innerHTML='Still verifying — we’ll message you on WhatsApp once done. You can close this.'; }
+    }).catch(function(){ if(tries<40) setTimeout(function(){ pollRenew(newNo,origNo,tries+1); },3000); });
   }
   function claim(orders){
     if(!orders.length){ body.innerHTML='<div class="cthm-empty">You need an order before you can claim a replacement.</div>'; return; }
