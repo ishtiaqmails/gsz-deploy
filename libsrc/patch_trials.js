@@ -1,17 +1,17 @@
 'use strict';
-/* Trials in the Hub (added to routes/account.js):
-   - GET  /account/tools/trials            -> customer's trials: creds, expiry, days/hours left, status,
-                                              extendable (within 2 days of claim, not yet extended), converted-excluded
-   - POST /account/tools/trials/:id/extend -> asks the bot to extend +2 days (botapi.extendTrial);
-                                              on success bumps expiry; if the bot hook isn't ready, records the
-                                              request + notifies, so the customer always gets a positive reply
-   - GET  /account/tools/trials/:id/buy    -> resolves the paid IPTV product matching the trial's service (Convert) */
+/* Trials in the Hub (added to routes/account.js). A trial can ONLY be converted to a paid line
+   (same Renew path); there is no "extend". The Convert-to-paid option is offered for 2 days from
+   claim, then it disappears.
+   - GET /account/tools/trials          -> creds, expiry, days/hours left, status, convertable (<2 days from claim, not converted)
+   - GET /account/tools/trials/:id/buy  -> resolves the paid IPTV product matching the trial's service (Convert target)
+   Re-appliable: replaces its own prior block. */
 const fs = require('fs'), path = require('path');
 const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_trials.js <ROOT>'); process.exit(1); }
 const file = path.join(ROOT, 'routes/account.js');
 let s = fs.readFileSync(file, 'utf8');
 
-if (s.indexOf('/account/tools/trials') >= 0) { console.log('skip (already): trials endpoints present'); console.log('TRIALS PATCH OK'); process.exit(0); }
+const START = "  // ---- TRIALS (Hub) ----\n";
+const ANCHOR = "  // ---- FORGOT / RESET PASSWORD ----";
 
 const ROUTES =
 "  // ---- TRIALS (Hub) ----\n" +
@@ -21,38 +21,21 @@ const ROUTES =
 "    const now=Date.now();\n" +
 "    res.json({ ok:true, trials: rows.map(function(t){\n" +
 "      const md=t.metadata||{}; if(md.gsz_converted||md.converted) return null;\n" +
-"      const exp=t.expires_at?new Date(t.expires_at).getTime():null;\n" +
 "      const claimed=t.claimed_at?new Date(t.claimed_at).getTime():null;\n" +
+"      const durH=Number(t.duration_hours)||0;\n" +
+"      const dbExp=t.expires_at?new Date(t.expires_at).getTime():null;\n" +
+"      // a trial's real window is claim + its duration; ignore a bogus expires_at\n" +
+"      const exp=(claimed && durH) ? (claimed + durH*3600000) : dbExp;\n" +
 "      const msLeft=exp!=null?(exp-now):null;\n" +
 "      const st=String(t.status||'').toLowerCase();\n" +
 "      const done=['active','delivered','done','completed'].indexOf(st)>=0;\n" +
-"      const extended=!!md.gsz_extended, requested=!!md.gsz_extend_requested;\n" +
 "      const windowOpen = claimed ? (now < claimed + 2*86400000) : false;\n" +
 "      return { id:t.id, server:t.server_name||t.trial_type||'IPTV trial', credentials: done?(t.credentials||''):'',\n" +
-"        status:t.status, pending: st==='pending', claimed:t.claimed_at, expires:t.expires_at,\n" +
+"        status:t.status, pending: st==='pending', claimed:t.claimed_at, duration_hours: durH||null,\n" +
+"        expires: exp!=null?new Date(exp).toISOString():t.expires_at,\n" +
 "        active: exp!=null?(exp>now):true, days_left: exp!=null?Math.floor(msLeft/86400000):null, hours_left: exp!=null?Math.ceil(msLeft/3600000):null,\n" +
-"        extendable: (!extended && !requested && windowOpen), extended:extended, extend_requested:requested };\n" +
+"        convertable: windowOpen };\n" +
 "    }).filter(Boolean) });\n" +
-"  });\n" +
-"  router.post('/account/tools/trials/:id/extend', requireLogin, async (req, res) => {\n" +
-"    const c=req.session.customer; const id=parseInt(req.params.id,10)||0;\n" +
-"    try{\n" +
-"      const t=(await pool.query(\"SELECT id, bot_ref, server_name, trial_type, status, claimed_at, metadata FROM trial_claims WHERE id=$1 AND customer_id=$2 LIMIT 1\",[id,c.id])).rows[0];\n" +
-"      if(!t) return res.json({ ok:false, error:'not_found' });\n" +
-"      const md=t.metadata||{}; if(md.gsz_extended) return res.json({ ok:false, error:'already' });\n" +
-"      const claimed=t.claimed_at?new Date(t.claimed_at).getTime():0;\n" +
-"      if(!(claimed && Date.now() < claimed + 2*86400000)) return res.json({ ok:false, error:'window_closed' });\n" +
-"      let ok=false;\n" +
-"      try{ const botapi=require('../lib/botapi'); if(botapi.configured && botapi.configured() && botapi.extendTrial){ const r=await botapi.extendTrial({ rid:t.bot_ref||null, bot_ref:t.bot_ref||null, sku:t.trial_type||null, server:t.server_name||null, days:2 }); ok=!!(r && (r.ok===true || r.status==='ok' || r.extended===true)); } }catch(e){}\n" +
-"      if(ok){\n" +
-"        await pool.query(\"UPDATE trial_claims SET expires_at = COALESCE(expires_at, now()) + interval '2 days', status='active', metadata = COALESCE(metadata,'{}'::jsonb) || '{\\\"gsz_extended\\\":true}'::jsonb WHERE id=$1\",[id]);\n" +
-"        const row=(await pool.query(\"SELECT expires_at FROM trial_claims WHERE id=$1\",[id])).rows[0];\n" +
-"        return res.json({ ok:true, extended:true, expires:row?row.expires_at:null });\n" +
-"      }\n" +
-"      await pool.query(\"UPDATE trial_claims SET metadata = COALESCE(metadata,'{}'::jsonb) || jsonb_build_object('gsz_extend_requested', to_jsonb(now())) WHERE id=$1\",[id]);\n" +
-"      try{ const botapi=require('../lib/botapi'); if(botapi.configured && botapi.configured()){ await botapi.notify({ event:'trial_extend', type:'trial_extend', trial_id:id, ref:t.bot_ref||'', server:t.server_name||'', days:2 }); } }catch(e){}\n" +
-"      return res.json({ ok:true, extended:false, requested:true });\n" +
-"    }catch(e){ res.json({ ok:false, error:'error' }); }\n" +
 "  });\n" +
 "  router.get('/account/tools/trials/:id/buy', requireLogin, async (req, res) => {\n" +
 "    const c=req.session.customer; const id=parseInt(req.params.id,10)||0;\n" +
@@ -65,10 +48,15 @@ const ROUTES =
 "    }catch(e){ res.json({ ok:false }); }\n" +
 "  });\n\n";
 
-const anchor = "  // ---- FORGOT / RESET PASSWORD ----";
-const i = s.indexOf(anchor);
+// remove any prior TRIALS block (from START up to the FORGOT anchor)
+const si = s.indexOf(START);
+if (si >= 0) {
+  const ai = s.indexOf(ANCHOR, si);
+  if (ai >= 0) s = s.slice(0, si) + s.slice(ai);
+}
+const i = s.indexOf(ANCHOR);
 if (i < 0) throw new Error('ANCHOR MISS: FORGOT/RESET comment not found in account.js');
 s = s.slice(0, i) + ROUTES + s.slice(i);
 fs.writeFileSync(file, s);
-console.log('patched: added /account/tools/trials + extend + buy');
+console.log('patched: /account/tools/trials (convert-only, 2-day window) + buy');
 console.log('TRIALS PATCH OK');

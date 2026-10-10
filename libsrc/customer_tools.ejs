@@ -149,15 +149,13 @@
   function signin(){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">🔒</div><div style="font-weight:700;margin-top:6px">Sign in to use your tools</div><p class="muted">View orders, get codes, renew &amp; claim replacements.</p><a class="cbtn cbtn-p" style="margin-top:6px" href="/login">Sign in / Register</a></div>'; }
   function render(tab){ renderFoot(); if(tab==='support'){ support(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else if(tab==='trials') trials(); else claim(o); }); }
   function trialCard(t){
-    var left = !t.active ? 'Expired' : (t.pending?'Setting up…' : (t.days_left>=1 ? (t.days_left+' day'+(t.days_left>1?'s':'')+' left') : ((t.hours_left>0?t.hours_left:1)+'h left')));
+    var left = t.pending ? 'Setting up…' : (!t.active ? 'Expired' : ((t.hours_left>0?t.hours_left:1)+'h left'));
     var pill = t.pending?'<span class="cthm-pill wait">Setting up…</span>' : (t.active?'<span class="cthm-pill ok">'+esc(left)+'</span>':'<span class="cthm-pill bad">Expired</span>');
     var cred = t.credentials?('<div class="cthm-cred2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="muted">Trial login</span><button class="cbtn cbtn-g" style="padding:4px 11px;font-size:11.5px" data-cpy="'+esc(t.credentials)+'">Copy</button></div><pre>'+esc(t.credentials)+'</pre></div>'):'';
-    var xt = t.extendable ? '<button class="cbtn cbtn-g" data-xtend="'+t.id+'"><svg viewBox="0 0 24 24" width="15" height="15" style="stroke:#f4b64c;fill:none;stroke-width:2;vertical-align:-2px"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg> Extend +2 days</button>'
-      : (t.extend_requested ? '<span class="muted" style="font-size:12px;align-self:center">Extension requested ✓</span>' : (t.extended ? '<span class="cthm-pill ok" style="align-self:center">Extended ✓</span>' : ''));
-    var cv = '<button class="cbtn cbtn-p" data-convert="'+t.id+'">Convert to paid</button>';
+    var cv = t.convertable ? '<div class="cthm-acts" style="margin-top:10px"><button class="cbtn cbtn-p" style="width:100%" data-convert="'+t.id+'">Convert to paid</button></div>' : '';
     return '<div class="cthm-claim"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="onm" style="font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.server)+'</div>'+pill+'</div>'
       +'<div class="osub" style="margin:2px 0 8px">Claimed '+fmtd(t.claimed)+(t.expires?(' · exp '+fmtd(t.expires)):'')+'</div>'
-      +cred+'<div class="cthm-acts" style="margin-top:10px">'+xt+cv+'</div><div class="xt-out" data-for="'+t.id+'"></div></div>';
+      +cred+cv+'</div>';
   }
   function trials(){
     body.innerHTML='<div class="cthm-load">Loading…</div>';
@@ -167,14 +165,6 @@
       if(!list.length){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">🎁</div><div style="font-weight:700;margin-top:6px">No active trials</div><p class="muted">Try any IPTV service free before you buy.</p></div>'+claimBtn; return; }
       body.innerHTML='<p class="muted" style="margin:0 0 12px">Your free trials — credentials, extend &amp; upgrade to paid.</p>'+list.map(trialCard).join('')+'<div class="cthm-sep">New trial</div>'+claimBtn;
       body.querySelectorAll('[data-cpy]').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-cpy')); b.textContent='Copied ✓'; setTimeout(function(){b.textContent='Copy';},1400);}catch(e){} }); });
-      body.querySelectorAll('[data-xtend]').forEach(function(b){ b.addEventListener('click',function(){
-        var id=b.getAttribute('data-xtend'); var out=body.querySelector('.xt-out[data-for="'+id+'"]'); b.disabled=true; b.textContent='Extending…';
-        fetch('/account/tools/trials/'+id+'/extend',{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
-          if(j&&j.ok&&j.extended){ if(out) out.innerHTML='<div class="okmsg" style="margin-top:8px">✅ Extended by 2 days'+(j.expires?(' — now expires '+fmtd(j.expires)):'')+'</div>'; b.style.display='none'; }
-          else if(j&&j.ok&&j.requested){ if(out) out.innerHTML='<div class="okmsg" style="margin-top:8px">✅ Extension requested — we’ll add 2 days shortly.</div>'; b.style.display='none'; }
-          else { if(out) out.innerHTML='<div class="muted errmsg" style="margin-top:8px">'+esc((j&&j.error==='window_closed')?'The 2-day extend window has closed.':'Couldn’t extend right now.')+'</div>'; b.disabled=false; b.textContent='Extend +2 days'; }
-        }).catch(function(){ if(out) out.innerHTML='<div class="muted errmsg" style="margin-top:8px">Couldn’t extend right now.</div>'; b.disabled=false; b.textContent='Extend +2 days'; });
-      }); });
       body.querySelectorAll('[data-convert]').forEach(function(b){ b.addEventListener('click',function(){
         var id=b.getAttribute('data-convert'); b.disabled=true; b.textContent='Opening…';
         fetch('/account/tools/trials/'+id+'/buy',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
