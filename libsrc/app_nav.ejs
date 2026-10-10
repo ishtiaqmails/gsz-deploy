@@ -40,6 +40,13 @@
   .gna-tz svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
   .gna-tile b{font-size:13px;font-weight:700;display:block;line-height:1.15}
   .gna-tile small{font-size:10.5px;color:var(--gna-mut)}
+  .gna-authrow{display:flex;gap:9px;margin-top:14px;padding-top:14px;border-top:1px solid var(--gna-ln)}
+  .gna-authrow:empty{display:none}
+  .gna-abtn{flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;border-radius:12px;font-weight:800;font-size:13.5px;cursor:pointer;border:0;font-family:inherit;text-decoration:none;white-space:nowrap}
+  .gna-abtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .gna-abtn.in{background:linear-gradient(135deg,#33d98a,#1fb457);color:#05240f}
+  .gna-abtn.reg{background:#111a2e;color:var(--gna-ink);border:1px solid rgba(255,255,255,.18)}
+  .gna-abtn.out{background:#111a2e;color:#ff8f8a;border:1px solid rgba(240,85,78,.4);max-width:280px;margin:0 auto}
   /* categories list */
   .gna-cat{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--gna-ln);border-radius:13px;margin-bottom:9px;color:var(--gna-ink);text-decoration:none;background:#111a2e;transition:border-color .15s}
   .gna-cat:active{border-color:rgba(40,214,255,.5)}
@@ -58,7 +65,7 @@
     <span class="gna-clbl">Hub</span>
   </div>
   <button class="gna-i" data-nav="cart" type="button"><span class="gna-badge" id="gnaCartN">0</span><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Cart</span></button>
-  <a class="gna-i" data-nav="support" href="https://wa.me/<%= _wn %>" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Support</span></a>
+  <button class="gna-i" data-nav="support" type="button"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg><span>Support</span></button>
 </nav>
 
 <div class="gna-scrim" id="gnaScrim"></div>
@@ -78,6 +85,7 @@
     <button class="gna-tile" data-act="support" type="button"><span class="gna-tz" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><span><b>Support</b><small>Live chat &amp; WhatsApp</small></span></button>
     <button class="gna-tile" data-act="currency" type="button"><span class="gna-tz" style="color:#f4b64c;background:rgba(244,182,76,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.3a2.2 2.2 0 0 0-2.5-1.1 2 2 0 0 0-.2 3.8c1 .3 2 .6 2 1.7a2 2 0 0 1-2.6 1.6"/></svg></span><span><b>Change Currency</b><small>PKR · USD &amp; more</small></span></button>
   </div>
+  <div class="gna-authrow" id="gnaAuth"></div>
 </div>
 
 <!-- Store categories sheet -->
@@ -106,12 +114,19 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeSheet(); });
 
   function tools(tab){ closeSheet(); if(typeof window.__gszTools==='function'){ window.__gszTools(tab||'purchases'); } else { location.href='/?tool='+encodeURIComponent(tab||'purchases'); } }
+  // self-aware auth row inside the Hub sheet (Sign In + Create Account / Sign Out)
+  function gnaSignOut(){ var b=document.getElementById('gnaSignOut'); if(b){ b.disabled=true; b.textContent='Signing out…'; } fetch('/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'fetch'}}).then(function(){ location.reload(); }).catch(function(){ var fm=document.createElement('form'); fm.method='POST'; fm.action='/logout'; document.body.appendChild(fm); fm.submit(); }); }
+  function renderAuth(){ var a=document.getElementById('gnaAuth'); if(!a) return; var isIn=(typeof window.__GSZAUTH!=='undefined')?!!window.__GSZAUTH:false;
+    if(isIn){ a.innerHTML='<button class="gna-abtn out" id="gnaSignOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Sign Out</button>'; var so=document.getElementById('gnaSignOut'); if(so) so.addEventListener('click',gnaSignOut); }
+    else { a.innerHTML='<button class="gna-abtn in" id="gnaSignIn"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>Sign In</button><a class="gna-abtn reg" href="/signup"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Create Account</a>'; var si=document.getElementById('gnaSignIn'); if(si) si.addEventListener('click',function(){ location.href='/login?next='+encodeURIComponent(location.pathname||'/'); }); } }
   // center -> Quick Access sheet
-  var tb=document.getElementById('gnaTools'); if(tb) tb.addEventListener('click',function(){ openSheet(tsheet); });
+  var tb=document.getElementById('gnaTools'); if(tb) tb.addEventListener('click',function(){ renderAuth(); openSheet(tsheet); });
   // store -> categories sheet
   var st=nav.querySelector('[data-nav=store]'); if(st) st.addEventListener('click',function(){ openSheet(ssheet); });
   // cart -> site drawer
   var cart=nav.querySelector('[data-nav=cart]'); if(cart) cart.addEventListener('click',function(){ var b=document.getElementById('gszCartBtn'); if(b){ b.click(); } else { location.href='/'; } });
+  // support -> Hub support chooser (Live Chat + WhatsApp)
+  var sup=nav.querySelector('[data-nav=support]'); if(sup) sup.addEventListener('click',function(){ tools('support'); });
   // tool tiles
   tsheet.querySelectorAll('.gna-tile[data-act]').forEach(function(t){ t.addEventListener('click',function(){
     var a=t.getAttribute('data-act');

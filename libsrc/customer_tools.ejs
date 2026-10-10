@@ -80,14 +80,13 @@
   .cthm-cred2{margin-top:10px}
   .cthm-cred2 pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#111a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;font-size:13px}
   .cthm-shot{display:inline-block;margin-top:9px;color:#29d3ff;font-weight:700;font-size:12.5px;text-decoration:none}
-  .cthm-foot{padding:12px 22px calc(16px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:center}
+  .cthm-foot{padding:12px 22px calc(16px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:center;gap:9px}
   .cthm-foot:empty{display:none}
-  .cthm-auth{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:200px;padding:11px 20px;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;border:0;font-family:inherit;text-decoration:none}
+  .cthm-auth{flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:12px;font-weight:800;font-size:13.5px;cursor:pointer;border:0;font-family:inherit;text-decoration:none;white-space:nowrap}
   .cthm-auth svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .cthm-auth.in{background:linear-gradient(135deg,#33d98a,#1fb457);color:#05240f}
-  .cthm-auth.out{background:#16203a;color:#ff8f8a;border:1px solid rgba(240,85,78,.4)}
-  .cthm-who{font-size:12px;color:#9aa6c0;margin-right:auto;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .cthm-foot.hasWho{justify-content:space-between}
+  .cthm-auth.reg{background:#16203a;color:#eef2fb;border:1px solid rgba(255,255,255,.18)}
+  .cthm-auth.out{background:#16203a;color:#ff8f8a;border:1px solid rgba(240,85,78,.4);max-width:260px;margin:0 auto}
   .cthm-choice{display:flex;align-items:flex-start;gap:13px;width:100%;text-align:left;padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;margin-bottom:11px;background:#0e1627;color:#eef2fb;cursor:pointer;font-family:inherit}
   .cthm-choice:hover{border-color:rgba(47,123,255,.45)}
   .cthm-choice .chi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
@@ -110,7 +109,6 @@
       <a class="cth-tile" href="/account" data-tool="renew"><span class="ci" style="color:#33d98a;background:rgba(51,217,138,.14)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="cx"><div class="ctt">Renew Service</div><div class="ctd">Extend before expiry</div></span></a>
       <button class="cth-tile trial-open" type="button"><span class="ci" style="color:#f4b64c;background:rgba(244,182,76,.15)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span class="cx"><div class="ctt">Free IPTV Trials</div><div class="ctd">Claim on WhatsApp</div></span></button>
       <a class="cth-tile" href="/account" data-tool="claim"><span class="ci" style="color:#ff6cc4;background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="cx"><div class="ctt">Claim / Replace</div><div class="ctd">Report or replace</div></span></a>
-      <a class="cth-tile" href="/account" data-tool="support"><span class="ci" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8M8 13h5"/></svg></span><span class="cx"><div class="ctt">Support</div><div class="ctd">Live chat &amp; WhatsApp</div></span></a>
     </div>
   </div>
 </section>
@@ -153,7 +151,7 @@
   function isLoggedIn(){ return (typeof window.__GSZAUTH!=='undefined') ? !!window.__GSZAUTH : authed; }
   function renderFoot(){ var f=document.getElementById('cthmFoot'); if(!f) return;
     if(isLoggedIn()){ f.innerHTML='<button class="cthm-auth out" id="cthmSignOut"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>Sign Out</button>'; var so=document.getElementById('cthmSignOut'); if(so) so.addEventListener('click',signOut); }
-    else { f.innerHTML='<button class="cthm-auth in" id="cthmSignIn"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>Sign In / Register</button>'; var si=document.getElementById('cthmSignIn'); if(si) si.addEventListener('click',signIn); } }
+    else { f.innerHTML='<button class="cthm-auth in" id="cthmSignIn"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>Sign In</button><a class="cthm-auth reg" href="/signup"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Create Account</a>'; var si=document.getElementById('cthmSignIn'); if(si) si.addEventListener('click',signIn); } }
   function signIn(){ var t=document.querySelector('[data-auth-open],.hd-signin,.js-auth,.open-auth,[data-login]'); if(t){ close(); t.click(); return; } if(typeof window.openAuth==='function'){ close(); window.openAuth(); return; } location.href='/login?next='+encodeURIComponent(location.pathname||'/'); }
   function signOut(){ var btn=document.getElementById('cthmSignOut'); if(btn){ btn.disabled=true; btn.textContent='Signing out…'; } fetch('/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'fetch'}}).then(function(){ location.reload(); }).catch(function(){ var fm=document.createElement('form'); fm.method='POST'; fm.action='/logout'; document.body.appendChild(fm); fm.submit(); }); }
   function support(){ body.innerHTML='<p class="muted" style="margin:0 0 14px">Choose how you’d like to reach us — pick whatever suits you.</p>'
