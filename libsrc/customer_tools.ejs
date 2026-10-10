@@ -297,5 +297,8 @@
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+  // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
+  window.__gszTools=function(tab){ open(['purchases','code','renew','claim'].indexOf(tab)>=0?tab:'purchases'); };
+  try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ open(['purchases','code','renew','claim'].indexOf(_t)>=0?_t:'purchases'); if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
 })();
 </script>
