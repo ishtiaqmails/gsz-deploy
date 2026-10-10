@@ -309,6 +309,7 @@
       if(!ms.length){ if(load) load.outerHTML='<div class="muted errmsg">No payment methods available — contact support.</div>'; return; }
       var html='<div class="cthm-f"><label>Payment method</label><div>'+ms.map(function(m,i){ return '<label class="co-m"><input type="radio" name="com" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
         +'<div id="coAcct"></div>'
+        +'<div class="cthm-f"><label>Coupon code <span class="muted">(optional)</span></label><input id="coCoupon" type="text" placeholder="e.g. GALAXY10" autocapitalize="characters" style="text-transform:uppercase"></div>'
         +'<div class="cthm-f"><label>Transaction ID / sender name</label><input id="coTxn" type="text" placeholder="e.g. TID or who sent it"></div>'
         +'<div class="cthm-f"><label>Upload payment receipt</label><input id="coProof" type="file" accept="image/*,application/pdf"></div>'
         +'<div id="coOut"></div><button class="cbtn cbtn-p" style="width:100%" id="coSubmit">Submit Payment</button>';
@@ -325,7 +326,8 @@
     var pf=(document.getElementById('coProof')||{}).files; pf=pf&&pf[0];
     if(!method){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Choose a payment method.</div>'; return; }
     if(!pf){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please upload your payment receipt.</div>'; return; }
-    var fd=new FormData(); fd.append('product',p.slug); fd.append('plan',p.idx); fd.append('region','PK'); fd.append('method',method); fd.append('txn',txn); fd.append('renew',p.no); fd.append('proof',pf);
+    var coupon=((document.getElementById('coCoupon')||{}).value||'').trim();
+    var fd=new FormData(); fd.append('product',p.slug); fd.append('plan',p.idx); fd.append('region','PK'); fd.append('method',method); fd.append('txn',txn); fd.append('renew',p.no); if(coupon) fd.append('coupon',coupon); fd.append('proof',pf);
     btn.disabled=true; btn.textContent='Submitting…'; out.innerHTML='';
     fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
       var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var newNo=m?decodeURIComponent(m[1]):null;
