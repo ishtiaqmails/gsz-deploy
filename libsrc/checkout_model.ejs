@@ -1,0 +1,153 @@
+<% /* In-model Buy Now / Checkout — site-wide (included from app_nav, so it's on every page incl. product pages).
+      Sheet on phones/tablets, pop-up on desktop. Reuses GET /account/tools/buy-info + /account/tools/pay-methods
+      and the existing POST /checkout. Guest-friendly (collects email/WhatsApp when logged out). */
+   var _gbwn = String((typeof settings!=='undefined'&&settings&&settings.wa_number)?settings.wa_number:(typeof waNumber!=='undefined'?waNumber:'')).replace(/[^0-9]/g,''); %>
+<style>
+  .gbuy{--gb-ink:#eef2fb;--gb-mut:#9aa6c0;--gb-p:#111a2e;--gb-p2:#0e1627;--gb-ln:rgba(255,255,255,.12);--gb-grad:linear-gradient(135deg,#2f7bff,#29d3ff)}
+  .gbuy{position:fixed;inset:0;z-index:650;display:none}
+  .gbuy.on{display:block}
+  .gbuy-scrim{position:absolute;inset:0;background:rgba(3,6,14,.72);backdrop-filter:blur(4px)}
+  .gbuy-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 28px));max-height:min(90vh,780px);display:flex;flex-direction:column;background:#111a2e;border:1px solid rgba(255,255,255,.14);border-radius:20px;box-shadow:0 34px 90px -22px rgba(0,0,0,.85);overflow:hidden;color:var(--gb-ink)}
+  @media(max-width:860px),(max-width:1366px) and (pointer:coarse){.gbuy-card{left:0;right:0;top:auto;bottom:0;transform:none;width:100vw;max-height:92vh;border-radius:20px 20px 0 0}}
+  .gbuy-x{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:#0e1627;color:#9aa6c0;font-size:16px;cursor:pointer;z-index:2}
+  .gbuy-head{padding:20px 22px 12px}
+  .gbuy-head h3{font-family:var(--display,inherit);font-weight:800;font-size:18px;margin:0}
+  .gbuy-head p{color:var(--gb-mut);font-size:13px;margin:4px 0 0}
+  .gbuy-body{padding:14px 22px 22px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-top:1px solid rgba(255,255,255,.08)}
+  .gbuy-f{margin-bottom:12px}
+  .gbuy-f label{display:block;font-size:12.5px;color:var(--gb-mut);font-weight:600;margin-bottom:6px}
+  .gbuy input[type=text],.gbuy input[type=email],.gbuy input[type=file],.gbuy select{width:100%;background:#0e1627;border:1px solid var(--gb-ln);border-radius:11px;color:var(--gb-ink);padding:11px 13px;font-family:inherit;font-size:14px}
+  .gbuy .gb-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-weight:800;font-size:14px;padding:12px 16px;border-radius:12px;font-family:inherit}
+  .gbuy .gb-p{background:var(--gb-grad);color:#fff} .gbuy .gb-g{background:#16203a;color:var(--gb-ink);border:1px solid var(--gb-ln)}
+  .gbuy .gb-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
+  .gbuy .gb-m input{accent-color:#2f7bff}
+  .gbuy .muted{color:var(--gb-mut);font-size:12.5px} .gbuy .errmsg{color:#f0554e}
+  .gbuy .gb-acct pre{margin:0;white-space:pre-wrap;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px}
+  .gbuy-load{text-align:center;color:var(--gb-mut);padding:26px}
+  .gbuy-sum{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:14px}
+  .gbuy-sum b{font-size:14px} .gbuy-sum .pr{font-weight:800;color:#29d3ff}
+  .gbuy-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .gbuy-chip{padding:7px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:#0e1627;color:var(--gb-mut);font-weight:700;font-size:12.5px;cursor:pointer}
+  .gbuy-chip.on{background:var(--gb-grad);color:#fff;border-color:transparent}
+  .gbuy-now{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px;padding:13px 18px;border:0;border-radius:13px;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;box-shadow:0 12px 26px -12px rgba(41,211,255,.7)}
+  .gbuy-now svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<div class="gbuy" id="gbuy" aria-hidden="true">
+  <div class="gbuy-scrim" data-gbclose></div>
+  <div class="gbuy-card" role="dialog" aria-modal="true" aria-label="Checkout">
+    <button class="gbuy-x" data-gbclose aria-label="Close">✕</button>
+    <div class="gbuy-head"><h3 id="gbuyTitle">Checkout</h3><p id="gbuySub">Pay securely — no page change.</p></div>
+    <div class="gbuy-body" id="gbuyBody"><div class="gbuy-load">Loading…</div></div>
+  </div>
+</div>
+<script>
+(function(){
+  var modal=document.getElementById('gbuy'); if(!modal) return;
+  var body=document.getElementById('gbuyBody'), ttl=document.getElementById('gbuyTitle'), sub=document.getElementById('gbuySub');
+  var WANUM=<%- JSON.stringify(_gbwn) %>;
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
+  function isIn(){ return (typeof window.__GSZAUTH!=='undefined')?!!window.__GSZAUTH:false; }
+  window.__gszScrollLock = window.__gszScrollLock || (function(){ var n=0,y=0; return {
+    lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
+    unlock:function(){ if(n>0)n--; if(n>0) return; var b=document.body; b.style.position=''; b.style.top=''; b.style.left=''; b.style.right=''; b.style.width=''; b.style.overflow=''; window.scrollTo(0,y); } }; })();
+  function open(){ modal.classList.add('on'); window.__gszScrollLock.lock(); }
+  function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
+  modal.querySelectorAll('[data-gbclose]').forEach(function(x){ x.addEventListener('click',close); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && modal.classList.contains('on')) close(); });
+
+  var INFO=null, CHOSEN={ type:'' };
+  window.__gszBuy=function(opts){ opts=opts||{}; if(!opts.slug){ return; } open(); body.innerHTML='<div class="gbuy-load">Loading…</div>'; ttl.textContent='Checkout'; sub.textContent='Pay securely — no page change.';
+    fetch('/account/tools/buy-info?slug='+encodeURIComponent(opts.slug)+'&plan='+encodeURIComponent(opts.planIdx!=null?opts.planIdx:0),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok){ body.innerHTML='<div class="gbuy-load errmsg">'+esc((j&&j.error)||'Couldn’t load this product.')+'</div>'; return; }
+      if(!j.available){ body.innerHTML='<div class="gbuy-load">This plan is currently out of stock. Please try another plan or <a href="https://wa.me/'+WANUM+'" style="color:#29d3ff">message us</a>.</div>'; return; }
+      INFO=j; CHOSEN={ type:(j.typeOptions&&j.typeOptions.length?j.typeOptions[0].key:'') };
+      form();
+    }).catch(function(){ body.innerHTML='<div class="gbuy-load errmsg">Couldn’t load right now.</div>'; });
+  };
+
+  function form(){
+    var j=INFO;
+    ttl.textContent=j.name; sub.textContent=j.planLabel+' · '+money(j.price_pkr);
+    var h='<div class="gbuy-sum"><div><b>'+esc(j.name)+'</b><div class="muted">'+esc(j.planLabel)+'</div></div><div class="pr">'+money(j.price_pkr)+'</div></div>';
+    if(j.typeOptions && j.typeOptions.length>1){ h+='<div class="gbuy-f"><label>Choose type</label><div class="gbuy-chips" id="gbTypes">'+j.typeOptions.map(function(t,i){ return '<button type="button" class="gbuy-chip'+(i===0?' on':'')+'" data-type="'+esc(t.key)+'">'+esc(t.label)+'</button>'; }).join('')+'</div></div>'; }
+    if(!isIn()){
+      h+='<div class="gbuy-f"><label>Email</label><input type="email" id="gbEmail" placeholder="you@email.com"></div>'
+       +'<div class="gbuy-f"><label>WhatsApp number</label><input type="text" id="gbWa" placeholder="03xx… (add +code if outside Pakistan)"></div>';
+    }
+    (j.needFields||[]).forEach(function(f){
+      if(f==='mac') h+='<div class="gbuy-f"><label>Device MAC address</label><input type="text" id="gbMac" placeholder="AA:BB:CC:DD:EE:FF"></div>';
+      if(f==='link') h+='<div class="gbuy-f"><label>Target link</label><input type="text" id="gbLink" placeholder="https://…"></div>';
+      if(f==='qty') h+='<div class="gbuy-f"><label>Quantity</label><input type="text" id="gbQty" placeholder="e.g. 100"></div>';
+    });
+    if(j.wantsActEmail) h+='<div class="gbuy-f"><label>Activation email <span class="muted">(optional — defaults to your order email)</span></label><input type="email" id="gbActEmail" placeholder="account email to activate"></div>';
+    h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div>'
+     +'<div id="gbAcct"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" placeholder="e.g. GALAXY10" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Transaction ID / sender name</label><input type="text" id="gbTxn" placeholder="e.g. TID or who sent it"></div>'
+     +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
+     +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order</button>'
+     +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
+    body.innerHTML=h;
+    var tp=document.getElementById('gbTypes'); if(tp) tp.querySelectorAll('[data-type]').forEach(function(b){ b.addEventListener('click',function(){ tp.querySelectorAll('[data-type]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); CHOSEN.type=b.getAttribute('data-type'); }); });
+    loadPay();
+    document.getElementById('gbGo').addEventListener('click',submit);
+  }
+
+  var METHODS=[];
+  function loadPay(){
+    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(INFO.price_pkr),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      METHODS=(j&&j.methods)||[]; var box=document.getElementById('gbMethods'); if(!box) return;
+      if(!METHODS.length){ box.innerHTML='<div class="muted errmsg">No payment methods available — please contact support.</div>'; return; }
+      box.innerHTML=METHODS.map(function(m,i){ return '<label class="gb-m"><input type="radio" name="gbm" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('');
+      box.querySelectorAll('input[name=gbm]').forEach(function(r){ r.addEventListener('change',acct); });
+      acct();
+    }).catch(function(){ var box=document.getElementById('gbMethods'); if(box) box.innerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
+  }
+  function acct(){ var k=(body.querySelector('input[name=gbm]:checked')||{}).value; var m=METHODS.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('gbAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); box.innerHTML='<div class="gbuy-f gb-acct"><div class="muted" style="margin-bottom:4px">Send '+esc(m.pay||money(INFO.price_pkr))+' to:</div><pre>'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>'; }
+
+  function val(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; }
+  function submit(){
+    var out=document.getElementById('gbOut'), go=document.getElementById('gbGo');
+    function err(m){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc(m)+'</div>'; }
+    var method=(body.querySelector('input[name=gbm]:checked')||{}).value;
+    var pf=(document.getElementById('gbProof')||{}).files; pf=pf&&pf[0];
+    if(!isIn()){ var em=val('gbEmail'), wa=val('gbWa'); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err('Enter a valid email.'); return; } if(wa.replace(/[^0-9]/g,'').length<8){ err('Enter a valid WhatsApp number.'); return; } }
+    if((INFO.needFields||[]).indexOf('mac')>=0 && val('gbMac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the device MAC address.'); return; }
+    if((INFO.needFields||[]).indexOf('link')>=0 && !val('gbLink')){ err('Enter the target link.'); return; }
+    if((INFO.needFields||[]).indexOf('qty')>=0 && !/^[0-9]+$/.test(val('gbQty'))){ err('Enter a valid quantity.'); return; }
+    if(!method){ err('Choose a payment method.'); return; }
+    if(!pf){ err('Please upload your payment receipt.'); return; }
+    var fd=new FormData();
+    fd.append('product',INFO.slug); fd.append('plan',INFO.planIdx); fd.append('region','PK'); fd.append('method',method); fd.append('txn',val('gbTxn'));
+    if(CHOSEN.type) fd.append('type',CHOSEN.type);
+    var coupon=val('gbCoupon'); if(coupon) fd.append('coupon',coupon);
+    if(!isIn()){ fd.append('email',val('gbEmail')); fd.append('whatsapp',val('gbWa')); }
+    if((INFO.needFields||[]).indexOf('mac')>=0) fd.append('mac',val('gbMac'));
+    if((INFO.needFields||[]).indexOf('link')>=0) fd.append('link',val('gbLink'));
+    if((INFO.needFields||[]).indexOf('qty')>=0) fd.append('qty',val('gbQty'));
+    if(INFO.wantsActEmail && val('gbActEmail')) fd.append('act_email',val('gbActEmail'));
+    fd.append('proof',pf);
+    go.disabled=true; go.textContent='Placing order…'; out.innerHTML='';
+    fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var no=m?decodeURIComponent(m[1]):null;
+      if(!no){ return r.text().then(function(t){ var em=(t.match(/Order error:\s*([^<]+)/)||[])[1]; err(em?em.trim():'Couldn’t place the order. Please check your details and try again.'); go.disabled=false; go.textContent='Place Order'; }); }
+      body.innerHTML='<div class="gbuy-load"><div style="font-size:34px">✅</div><div style="font-weight:800;font-size:16px;color:#33d98a;margin-top:6px">Order placed</div><p class="muted">We’re verifying your payment — you’ll get your '+esc(INFO.name)+' shortly on WhatsApp &amp; email.</p><a class="gb-btn gb-p" style="margin-top:8px" href="/order/'+encodeURIComponent(no)+'">View order '+esc(no)+'</a></div>';
+    }).catch(function(){ err('Couldn’t place the order right now. Please try again.'); go.disabled=false; go.textContent='Place Order'; });
+  }
+
+  // ---- inject a "Buy Now" button on product pages (uses the selected plan pill) ----
+  function injectBuyNow(){
+    if(!/^\/product\//.test(location.pathname||'')) return;
+    var add=document.getElementById('addCartBtn'); if(!add) return;
+    if(document.getElementById('gbBuyNow')) return;
+    var slugM=(location.pathname.match(/\/product\/([^\/?#]+)/)||[])[1]; if(!slugM) return;
+    var btn=document.createElement('button'); btn.type='button'; btn.id='gbBuyNow'; btn.className='gbuy-now';
+    btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg> Buy Now';
+    add.parentNode.insertBefore(btn, add);
+    btn.addEventListener('click',function(){ var pill=document.querySelector('.ppill.sel[data-plan-idx]')||document.querySelector('.ppill.sel')||document.querySelector('.ppill[data-plan-idx]'); var idx=pill?parseInt(pill.getAttribute('data-plan-idx'),10):0; if(isNaN(idx))idx=0; window.__gszBuy({ slug: decodeURIComponent(slugM), planIdx: idx }); });
+  }
+  if(document.readyState!=='loading') injectBuyNow(); else document.addEventListener('DOMContentLoaded',injectBuyNow);
+})();
+</script>
