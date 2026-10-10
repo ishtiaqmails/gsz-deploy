@@ -1,0 +1,101 @@
+<%- include('_shell_top', { active:'issues', title:'Issues' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  var K  = (typeof kinds!=='undefined'&&kinds)?kinds:{};
+  var D  = (typeof decisions!=='undefined'&&decisions)?decisions:{};
+  var cn = (typeof counts!=='undefined'&&counts)?counts:{};
+  function nb(s){ return cn[s]||0; }
+  function spill(s){ s=String(s||'').toLowerCase(); var col=(s==='resolved'||s==='replaced')?['#e7f6ec','#12883f']:(s==='rejected'?['#fdeceb','#b42318']:['#fcf5df','#8a6d00']); return '<span class="spill" style="background:'+col[0]+';color:'+col[1]+'">'+s+'</span>'; }
+%>
+<style>
+  .iss-resp{margin-top:8px;border:1px solid #e6e8ee;border-radius:12px;background:#fafbfd;padding:12px}
+  .iss-resp summary{cursor:pointer;font-weight:700;font-size:13px;color:#2a7bff;list-style:none}
+  .iss-resp summary::-webkit-details-marker{display:none}
+  .iss-resp textarea,.iss-resp input[type=text]{width:100%;border:1px solid #d7dbe4;border-radius:9px;padding:8px 10px;font-family:inherit;font-size:13px;margin-top:8px;box-sizing:border-box}
+  .iss-resp textarea{min-height:58px;resize:vertical}
+  .iss-resp input[type=file]{margin-top:8px;font-size:12px;display:block}
+  .iss-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .iss-acts button{padding:7px 12px;font-size:12.5px;border:0;border-radius:9px;color:#fff;cursor:pointer;font-weight:700;font-family:inherit}
+  .b-stock{background:#12883f} .b-stock[disabled]{background:#9fb6a8;cursor:not-allowed}
+  .b-manual{background:#2a7bff} .b-fix{background:#7a5cff} .b-reject{background:#b42318}
+  .iss-thumb{display:inline-block;margin-top:4px;font-size:12px;color:#2a7bff;text-decoration:none;font-weight:600}
+  .iss-done{margin-top:6px;font-size:12.5px;color:#4a4f5c}
+  .iss-done .dlab{font-weight:700;color:#12883f}
+  .iss-done pre{margin:5px 0 0;white-space:pre-wrap;word-break:break-word;background:#f3f5f9;border:1px solid #e6e8ee;border-radius:8px;padding:8px;font-size:12px}
+  .iss-stockn{font-size:11px;color:#6b7280;margin-left:2px}
+</style>
+
+<div class="dcards c4">
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Open</span><b class="dval"><%= nb('open') %></b><span class="dsub <%= nb('open')>0?'alert':'' %>"><%= nb('open')>0?'need attention':'all clear' %></span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Resolved</span><b class="dval"><%= nb('resolved') %></b><span class="dsub">fixed</span></div></div>
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 2v6h6M21 22v-6h-6"/><path d="M21 12a9 9 0 0 0-15-6.7L3 8M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Replaced</span><b class="dval"><%= nb('replaced') %></b><span class="dsub">re-delivered</span></div></div>
+  <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Declined</span><b class="dval"><%= nb('rejected') %></b><span class="dsub">rejected</span></div></div>
+</div>
+
+<div class="chips">
+  <% ['open','resolved','replaced','rejected','all'].forEach(function(s){ %>
+    <a class="chip <%= filter===s?'on':'' %>" href="/admin/issues?status=<%= s %>"><%= s==='rejected'?'Declined':(s.charAt(0).toUpperCase()+s.slice(1)) %><% if(s!=='all'&&nb(s)){ %><span class="n"><%= nb(s) %></span><% } %></a>
+  <% }); %>
+</div>
+
+<% if (!rows.length) { %><div class="card dempty" style="padding:22px">No requests in this view.</div><% } else { %>
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th style="width:120px">Reported</th><th>Order</th><th>Customer</th><th>Request &amp; decision</th><th style="width:330px">Action</th></tr></thead>
+    <tbody>
+    <% rows.forEach(function(r){ var isOpen=(r.status==='open'); %>
+      <tr>
+        <td style="white-space:nowrap;font-size:12.5px;color:var(--muted)"><% try { %><%= new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %><% } catch(e) {} %></td>
+        <td>
+          <b><%= r.o_product || r.order_no || '—' %></b>
+          <div style="color:var(--muted);font-size:12px"><%= r.order_no || (r.order_id?('#'+r.order_id):'') %><%= r.o_plan?(' · '+r.o_plan):'' %></div>
+        </td>
+        <td style="font-size:13px"><%= r.c_name || '' %><div style="color:var(--muted);font-size:12px"><%= r.c_email || r.customer_email || '' %><%= r.c_wa?(' · +'+r.c_wa):'' %></div></td>
+        <td style="font-size:13px;max-width:340px">
+          <div style="white-space:pre-line;color:#333"><%= r.message %></div>
+          <% if (r.screenshot) { %><a class="iss-thumb" href="/admin/issue-file/<%= encodeURIComponent(r.screenshot) %>" target="_blank">📎 Customer screenshot →</a><% } %>
+          <% if (!isOpen && (r.decision || r.admin_response || r.replacement_credentials)) { %>
+            <div class="iss-done">
+              <% if (r.decision && D[r.decision]) { %><span class="dlab"><%= D[r.decision] %></span><% } %>
+              <% if (r.admin_response) { %><div style="margin-top:3px">“<%= r.admin_response %>”</div><% } %>
+              <% if (r.admin_screenshot) { %><a class="iss-thumb" href="/admin/issue-file/<%= encodeURIComponent(r.admin_screenshot) %>" target="_blank">📎 Your screenshot →</a><% } %>
+              <% if (r.replacement_credentials) { %><pre><%= r.replacement_credentials %></pre><% } %>
+            </div>
+          <% } %>
+        </td>
+        <td>
+          <% if (isOpen) { %>
+            <details class="iss-resp">
+              <summary>Respond &amp; decide</summary>
+              <form method="post" action="/admin/issues/<%= r.id %>/decide" enctype="multipart/form-data">
+                <input type="hidden" name="back" value="<%= filter %>">
+                <textarea name="response" placeholder="Message to the customer (shown in their account)…"></textarea>
+                <input type="text" name="credentials" placeholder="New credentials — only for Manual replacement">
+                <input type="file" name="shot" accept="image/*,application/pdf">
+                <div class="iss-acts">
+                  <button class="b-stock" type="submit" name="action" value="stock" <%= r._stock>0?'':'disabled' %>>Approve from stock<span class="iss-stockn"><%= r._stock>0?('('+r._stock+' avail)'):'(none)' %></span></button>
+                  <button class="b-manual" type="submit" name="action" value="manual">Manual replace</button>
+                  <button class="b-fix" type="submit" name="action" value="fix">Fix &amp; respond</button>
+                  <button class="b-reject" type="submit" name="action" value="reject">Reject</button>
+                </div>
+              </form>
+            </details>
+          <% } else { %>
+            <div style="margin-bottom:6px">now: <%- spill(r.status) %></div>
+            <form method="post" action="/admin/issues/<%= r.id %>/status" style="margin:0">
+              <input type="hidden" name="status" value="open"><input type="hidden" name="back" value="<%= filter %>">
+              <button class="btn btn-p" type="submit" style="padding:6px 11px;font-size:12.5px;background:#6b7280">Reopen</button>
+            </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+<%- include('_shell_bottom') %>

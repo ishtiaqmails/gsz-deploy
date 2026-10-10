@@ -63,6 +63,14 @@
   .cthm .co-m input{accent-color:#2f7bff}
   .cthm .co-acct{margin:0 0 12px}
   .cthm input[type=text],.cthm input[type=file]{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
+  .cthm-note{color:#9aa6c0;font-size:13px;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:12px}
+  .cthm-sep{font-size:11.5px;font-weight:800;letter-spacing:.07em;color:#9aa6c0;text-transform:uppercase;margin:18px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+  .cthm-claim{border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:13px;margin-bottom:10px;background:#0e1627}
+  .cthm-resp{margin-top:9px;border-left:2px solid #2f7bff;padding:2px 0 2px 11px}
+  .cthm-resp>div{font-size:13px;margin-top:2px}
+  .cthm-cred2{margin-top:10px}
+  .cthm-cred2 pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#111a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;font-size:13px}
+  .cthm-shot{display:inline-block;margin-top:9px;color:#29d3ff;font-weight:700;font-size:12.5px;text-decoration:none}
 </style>
 
 <section class="cth">
@@ -242,23 +250,48 @@
       else { var el=document.getElementById('coPoll'); if(el) el.innerHTML='Still verifying — we’ll message you on WhatsApp once done. You can close this.'; }
     }).catch(function(){ if(tries<40) setTimeout(function(){ pollRenew(newNo,origNo,tries+1); },3000); });
   }
+  function clBadge(st){ st=String(st||'').toLowerCase(); if(st==='replaced') return '<span class="cthm-pill ok">Replaced</span>'; if(st==='resolved') return '<span class="cthm-pill ok">Fixed</span>'; if(st==='rejected') return '<span class="cthm-pill bad">Declined</span>'; return '<span class="cthm-pill wait">In review</span>'; }
+  function clElig(o){ var done=['delivered','completed','done'].indexOf(String(o.status||'').toLowerCase())>=0; return done && (o.under_warranty || !o.warranty_days); }
+  function claimFeed(){
+    var feed=document.getElementById('clFeed'); if(!feed) return;
+    fetch('/account/tools/claims',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var cl=(j&&j.claims)||[]; if(!cl.length) return;
+      feed.innerHTML='<div class="cthm-sep">Your replacement requests</div>'+cl.map(function(i){
+        var resp=i.admin_response?('<div class="cthm-resp"><span class="muted" style="font-size:11.5px">Our response</span><div>'+esc(i.admin_response)+'</div></div>'):'';
+        var cred=i.credentials?('<div class="cthm-cred2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="muted">New access</span><button class="cbtn cbtn-g" style="padding:4px 11px;font-size:11.5px" data-cpy="'+esc(i.credentials)+'">Copy</button></div><pre>'+esc(i.credentials)+'</pre></div>'):'';
+        var shot=i.has_shot?('<a class="cthm-shot" href="/account/tools/issue-file/'+i.id+'" target="_blank" rel="noopener">View attached proof →</a>'):'';
+        return '<div class="cthm-claim"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="onm" style="font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(i.product_name||i.order_no)+'</div>'+clBadge(i.status)+'</div><div class="osub" style="margin:2px 0 7px">'+esc(i.order_no)+' · '+fmtd(i.created_at)+'</div><div class="muted" style="white-space:pre-wrap">'+esc(i.message)+'</div>'+resp+cred+shot+'</div>';
+      }).join('');
+      feed.querySelectorAll('[data-cpy]').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-cpy')); b.textContent='Copied ✓'; setTimeout(function(){b.textContent='Copy';},1400);}catch(e){} }); });
+    }).catch(function(){});
+  }
   function claim(orders){
-    if(!orders.length){ body.innerHTML='<div class="cthm-empty">You need an order before you can claim a replacement.</div>'; return; }
-    var opts=orders.map(function(o){ return '<option value="'+esc(o.order_no)+'">'+esc(o.product_name||'Order')+' · '+esc(o.order_no)+'</option>'; }).join('');
-    body.innerHTML='<div class="cthm-f"><label>Which order?</label><select id="clO">'+opts+'</select></div>'
-      +'<div class="cthm-f"><label>What went wrong?</label><select id="clR"><option>🔑 Password Changed / Incorrect</option><option>🔒 Account Locked / Household Error</option><option>📺 Screen Limit Exceeded</option><option>⌛ Service Expired Early</option><option>⚠️ Other Technical Issue</option></select></div>'
-      +'<div class="cthm-f"><label>Describe the issue</label><textarea id="clM" placeholder="Briefly describe the problem…"></textarea></div>'
-      +'<div id="clOut"></div><button class="cbtn cbtn-p" style="width:100%" id="clS">Submit Replacement Claim</button>';
-    document.getElementById('clS').addEventListener('click',function(){
-      var btn=this,out=document.getElementById('clOut');
-      var p={order_no:document.getElementById('clO').value,reason:document.getElementById('clR').value,message:document.getElementById('clM').value};
-      if(!p.message.trim()){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please describe the issue.</div>'; return; }
-      btn.disabled=true; btn.textContent='Submitting…';
-      fetch('/account/tools/claim',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify(p)}).then(function(r){return r.json();}).then(function(j){
-        if(j&&j.ok){ body.innerHTML='<div class="cthm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Replacement claim submitted</div><p class="muted">Our team will review it and reach you on WhatsApp.</p></div>'; }
-        else { out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc((j&&j.error)||'Could not submit. Please try again.')+'</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; }
-      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Could not submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; });
-    });
+    var elig=orders.filter(clElig);
+    var form;
+    if(!elig.length){ form='<div class="cthm-note">No orders are eligible for replacement right now. Only delivered items still under warranty can be replaced. Need help anyway? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff;font-weight:600">Message us →</a></div>'; }
+    else {
+      var opts=elig.map(function(o){ return '<option value="'+esc(o.order_no)+'">'+esc(o.product_name||'Order')+' · '+esc(o.order_no)+'</option>'; }).join('');
+      form='<div class="cthm-f"><label>Which order?</label><select id="clO">'+opts+'</select></div>'
+        +'<div class="cthm-f"><label>What went wrong?</label><textarea id="clM" placeholder="Tell us what happened — e.g. password changed, screen limit, not loading…"></textarea></div>'
+        +'<div class="cthm-f"><label>Screenshot <span class="muted">(optional — helps us fix it faster)</span></label><input id="clF" type="file" accept="image/*"></div>'
+        +'<div id="clOut"></div><button class="cbtn cbtn-p" style="width:100%" id="clS">Submit Replacement</button>';
+    }
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Something not working? Request a free replacement — our team reviews every request and responds right here.</p>'+form+'<div id="clFeed"></div>';
+    if(elig.length){
+      document.getElementById('clS').addEventListener('click',function(){
+        var btn=this,out=document.getElementById('clOut');
+        var ono=document.getElementById('clO').value, msg=document.getElementById('clM').value;
+        var f=(document.getElementById('clF')||{}).files; f=f&&f[0];
+        if(!msg.trim()){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please describe the issue.</div>'; return; }
+        var fd=new FormData(); fd.append('order_no',ono); fd.append('message',msg); if(f) fd.append('shot',f);
+        btn.disabled=true; btn.textContent='Submitting…';
+        fetch('/account/tools/claim',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+          if(j&&j.ok){ body.innerHTML='<div class="cthm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Replacement requested</div><p class="muted">Our team is on it. You’ll see the decision here and we’ll message you on WhatsApp.</p><button class="cbtn cbtn-g" id="clDone" style="margin-top:6px">View my requests</button></div>'; var d=document.getElementById('clDone'); if(d) d.addEventListener('click',function(){ setTab('claim'); }); }
+          else { out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc((j&&j.error)||'Could not submit. Please try again.')+'</div>'; btn.disabled=false; btn.textContent='Submit Replacement'; }
+        }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Could not submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Replacement'; });
+      });
+    }
+    claimFeed();
   }
   document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
