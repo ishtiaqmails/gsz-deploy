@@ -29,6 +29,12 @@
       <h2 style="margin:0 0 2px"><%= m.name %> <span style="color:var(--muted);font-weight:600;font-size:12.5px">· <%= m.key %></span></h2>
       <div class="sub" style="margin:0"><%= m.currency %><% if (m.logo) { %> · <span style="color:#16b765;font-weight:700">logo set</span><% } else { %> · no logo yet<% } %></div>
     </div>
+    <form method="post" action="/admin/payments/order" style="display:flex;align-items:center;gap:6px;margin:0">
+      <input type="hidden" name="key" value="<%= m.key %>">
+      <label class="fld" style="margin:0 2px 0 0">Order</label>
+      <input type="number" name="sort" value="<%= m.sort %>" min="1" style="width:62px">
+      <button class="btn" type="submit">Set</button>
+    </form>
     <form method="post" action="/admin/payments/logo" enctype="multipart/form-data" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0">
       <input type="hidden" name="key" value="<%= m.key %>">
       <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" required style="max-width:220px">

@@ -27,7 +27,7 @@ module.exports = function (pool) {
 
   async function logoMap() {
     const map = {};
-    try { (await pool.query('SELECT key, logo FROM payment_logos')).rows.forEach(r => { map[r.key] = r.logo; }); } catch (e) {}
+    try { (await pool.query('SELECT key, logo, sort FROM payment_logos')).rows.forEach(r => { map[r.key] = { logo: r.logo, sort: (r.sort == null ? 100 : r.sort) }; }); } catch (e) {}
     return map;
   }
 
@@ -54,8 +54,20 @@ module.exports = function (pool) {
       } catch (e) {}
     }
     const lm = await logoMap();
-    methods.forEach(m => { m.logo = lm[m.key] || null; });
+    methods.forEach(m => { const info = lm[m.key] || {}; m.logo = info.logo || null; m.sort = (info.sort == null ? 100 : info.sort); });
+    methods.sort((a, b) => a.sort - b.sort);
     res.render('admin/payments', { methods, source, flash: req.query.ok || null, active: 'payments', title: 'Payments' });
+  });
+
+  // --- set display order for one method (by bot key) ---
+  router.post('/payments/order', auth, express.urlencoded({ extended: true }), async (req, res) => {
+    const key = String((req.body && req.body.key) || '').trim();
+    const sort = parseInt(req.body && req.body.sort, 10);
+    if (!key || !Number.isFinite(sort)) return res.redirect('/admin/payments');
+    try {
+      await pool.query('INSERT INTO payment_logos(key, sort) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET sort=EXCLUDED.sort, updated_at=now()', [key, sort]);
+    } catch (e) {}
+    res.redirect('/admin/payments?ok=' + encodeURIComponent('Order updated'));
   });
 
   // --- upload a logo for one method (by bot key) ---
