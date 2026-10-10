@@ -80,6 +80,11 @@
   .cthm-cred2{margin-top:10px}
   .cthm-cred2 pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#111a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;font-size:13px}
   .cthm-shot{display:inline-block;margin-top:9px;color:#29d3ff;font-weight:700;font-size:12.5px;text-decoration:none}
+  .acc-fld{border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:13px;margin-bottom:10px;background:#0e1627}
+  .acc-top{display:flex;align-items:center;margin-bottom:5px;font-size:11.5px}
+  .acc-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .acc-val{font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acc-input{width:100%;background:#111a2e;border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
   .cthm-foot{padding:12px 22px calc(16px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:center;gap:9px}
   .cthm-foot:empty{display:none}
   .cthm-auth{flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:12px;font-weight:800;font-size:13.5px;cursor:pointer;border:0;font-family:inherit;text-decoration:none;white-space:nowrap}
@@ -109,6 +114,7 @@
       <a class="cth-tile" href="/account" data-tool="renew"><span class="ci" style="color:#33d98a;background:rgba(51,217,138,.14)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="cx"><div class="ctt">Renew Service</div><div class="ctd">Extend before expiry</div></span></a>
       <a class="cth-tile" href="/account" data-tool="trials"><span class="ci" style="color:#f4b64c;background:rgba(244,182,76,.15)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span class="cx"><div class="ctt">Free IPTV Trials</div><div class="ctd">Credentials, extend &amp; upgrade</div></span></a>
       <a class="cth-tile" href="/account" data-tool="claim"><span class="ci" style="color:#ff6cc4;background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="cx"><div class="ctt">Claim / Replace</div><div class="ctd">Report or replace</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="account"><span class="ci" style="color:#5b8bff;background:rgba(91,139,255,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span><span class="cx"><div class="ctt">My Account</div><div class="ctd">Details &amp; settings</div></span></a>
     </div>
   </div>
 </section>
@@ -147,7 +153,39 @@
     return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){ if(r.redirected && /\/login/.test(r.url)){ authed=false; return {orders:[]}; } return r.json(); }).then(function(j){ if(j&&j.auth===false) authed=false; cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
   function pc(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled') return 'bad'; return 'wait'; }
   function signin(){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">🔒</div><div style="font-weight:700;margin-top:6px">Sign in to use your tools</div><p class="muted">View orders, get codes, renew &amp; claim replacements.</p><a class="cbtn cbtn-p" style="margin-top:6px" href="/login">Sign in / Register</a></div>'; }
-  function render(tab){ renderFoot(); if(tab==='support'){ support(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else if(tab==='trials') trials(); else claim(o); }); }
+  function render(tab){ renderFoot(); if(tab==='support'){ support(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else if(tab==='trials') trials(); else if(tab==='account') account(); else claim(o); }); }
+  function account(){
+    body.innerHTML='<div class="cthm-load">Loading…</div>';
+    fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok){ body.innerHTML='<div class="cthm-empty errmsg">Couldn’t load your details.</div>'; return; }
+      var p=j.profile;
+      function vbadge(ok){ return ok?'<span class="cthm-pill ok" style="margin-left:6px">Verified</span>':'<span class="cthm-pill wait" style="margin-left:6px">Unverified</span>'; }
+      function fld(key,label,val){ var badge=key==='email'?vbadge(p.email_verified):(key==='wa'?vbadge(p.wa_verified):''); var right=key==='ref'?'<button class="cbtn cbtn-g acc-copy" style="padding:5px 12px;font-size:12px">Copy</button>':'<button class="cbtn cbtn-g acc-edit" style="padding:5px 12px;font-size:12px">Change</button>';
+        return '<div class="acc-fld" data-fld="'+key+'"><div class="acc-top"><span class="muted">'+label+'</span>'+badge+'</div><div class="acc-row"><div class="acc-val">'+esc(val||'—')+'</div>'+right+'</div><div class="acc-editbox" style="display:none;margin-top:9px"><input type="text" class="acc-input" value="'+esc(val||'')+'"><div style="display:flex;gap:8px;margin-top:8px"><button class="cbtn cbtn-p acc-save" style="flex:1">Save</button><button class="cbtn cbtn-g acc-cancel">Cancel</button></div><div class="acc-msg"></div></div></div>'; }
+      body.innerHTML='<p class="muted" style="margin:0 0 14px">Your account details — tap Change to update.</p>'
+        + fld('name','Name',p.name)
+        + fld('wa','WhatsApp',p.wa_number)
+        + fld('email','Email',p.email)
+        + '<div class="acc-fld"><div class="acc-top"><span class="muted">Member since</span></div><div class="acc-val">'+fmtd(p.member_since)+'</div></div>'
+        + (p.ref_code? fld('ref','Referral code',p.ref_code):'');
+      body.querySelectorAll('.acc-fld').forEach(function(f){
+        var key=f.getAttribute('data-fld');
+        var edit=f.querySelector('.acc-edit'), box=f.querySelector('.acc-editbox'), cancel=f.querySelector('.acc-cancel'), save=f.querySelector('.acc-save'), input=f.querySelector('.acc-input'), msg=f.querySelector('.acc-msg'), copy=f.querySelector('.acc-copy'), val=f.querySelector('.acc-val');
+        if(copy) copy.addEventListener('click',function(){ try{ navigator.clipboard.writeText(val.textContent); copy.textContent='Copied ✓'; setTimeout(function(){copy.textContent='Copy';},1400);}catch(e){} });
+        if(edit) edit.addEventListener('click',function(){ box.style.display='block'; edit.style.display='none'; try{input.focus();}catch(e){} });
+        if(cancel) cancel.addEventListener('click',function(){ box.style.display='none'; if(edit) edit.style.display=''; if(msg) msg.innerHTML=''; });
+        if(save) save.addEventListener('click',function(){
+          var v=input.value.trim(); save.disabled=true; save.textContent='Saving…'; if(msg) msg.innerHTML='';
+          fetch('/account/tools/profile',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify({field:key,value:v})}).then(function(r){return r.json();}).then(function(jj){
+            if(jj&&jj.ok){ val.textContent=jj.value||v; box.style.display='none'; if(edit) edit.style.display='';
+              if(key==='email'||key==='wa'){ var b=f.querySelector('.acc-top .cthm-pill'); if(b){ b.className='cthm-pill wait'; b.textContent='Unverified'; } }
+              save.disabled=false; save.textContent='Save'; }
+            else { if(msg) msg.innerHTML='<div class="muted errmsg" style="margin-top:6px">'+esc((jj&&jj.error)||'Could not update.')+'</div>'; save.disabled=false; save.textContent='Save'; }
+          }).catch(function(){ if(msg) msg.innerHTML='<div class="muted errmsg" style="margin-top:6px">Could not update.</div>'; save.disabled=false; save.textContent='Save'; });
+        });
+      });
+    }).catch(function(){ body.innerHTML='<div class="cthm-empty errmsg">Couldn’t load your details.</div>'; });
+  }
   function trialCard(t){
     var left = t.pending ? 'Setting up…' : (!t.active ? 'Expired' : ((t.hours_left>0?t.hours_left:1)+'h left'));
     var pill = t.pending?'<span class="cthm-pill wait">Setting up…</span>' : (t.active?'<span class="cthm-pill ok">'+esc(left)+'</span>':'<span class="cthm-pill bad">Expired</span>');
@@ -358,7 +396,7 @@
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
-  var _HUBTABS=['purchases','code','renew','claim','support','trials'];
+  var _HUBTABS=['purchases','code','renew','claim','support','trials','account'];
   window.__gszTools=function(tab){ open(_HUBTABS.indexOf(tab)>=0?tab:'purchases'); };
   try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ open(_HUBTABS.indexOf(_t)>=0?_t:'purchases'); if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
 })();

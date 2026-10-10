@@ -11,6 +11,7 @@ const file = path.join(ROOT, 'routes/account.js');
 let s = fs.readFileSync(file, 'utf8');
 
 const START = "  // ---- TRIALS (Hub) ----\n";
+const END   = "  // ---- END TRIALS (Hub) ----\n";
 const ANCHOR = "  // ---- FORGOT / RESET PASSWORD ----";
 
 const ROUTES =
@@ -50,13 +51,15 @@ const ROUTES =
 "      const prow=(await pool.query(\"SELECT p.slug, p.name FROM products p JOIN categories cat ON cat.id=p.category_id WHERE cat.slug='iptv' AND p.active AND NOT p.hidden AND (p.name ILIKE $1 OR p.name ILIKE $2) ORDER BY char_length(p.name) ASC LIMIT 1\",['%'+first+'%','%'+w1+'%'])).rows[0];\n" +
 "      res.json({ ok:true, slug: prow?prow.slug:null, name: prow?prow.name:null, category:'/category/iptv' });\n" +
 "    }catch(e){ res.json({ ok:false }); }\n" +
-"  });\n\n";
+"  });\n" +
+"  // ---- END TRIALS (Hub) ----\n\n";
 
-// remove any prior TRIALS block (from START up to the FORGOT anchor)
+// remove any prior TRIALS block precisely (START .. END), so neighbouring routes (e.g. profile) survive
 const si = s.indexOf(START);
 if (si >= 0) {
-  const ai = s.indexOf(ANCHOR, si);
-  if (ai >= 0) s = s.slice(0, si) + s.slice(ai);
+  const ei = s.indexOf(END, si);
+  if (ei >= 0) { let cut = ei + END.length; while (s[cut] === '\n') cut++; s = s.slice(0, si) + s.slice(cut); }
+  else { const ai = s.indexOf(ANCHOR, si); if (ai >= 0) s = s.slice(0, si) + s.slice(ai); } // legacy block w/o END marker
 }
 const i = s.indexOf(ANCHOR);
 if (i < 0) throw new Error('ANCHOR MISS: FORGOT/RESET comment not found in account.js');
