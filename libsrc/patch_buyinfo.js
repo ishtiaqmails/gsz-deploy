@@ -1,18 +1,19 @@
 'use strict';
 /* In-model Buy Now backend — resolves a product+plan to what the checkout model needs
-   (price, delivery fields, type options, stock). Inserted into routes/checkout.js so it
-   reuses botMeta/customerFields/wantsActEmail/availability/withinWindow directly (no logic
-   duplicated). The actual order still goes through the existing POST /checkout.
-   GET /account/tools/buy-info?slug=&plan=&type=
+   (price, delivery fields, type options w/ admin label overrides, stock). Inserted into
+   routes/checkout.js so it reuses botMeta/customerFields/wantsActEmail/availability/withinWindow.
+   Type labels follow the admin's own labelling (bot_type_labels override), like the rest of checkout.
+   GET /account/tools/buy-info?slug=&plan=
      -> { ok, name, slug, planIdx, planLabel, price_pkr, deliveryType, needFields:[],
           wantsActEmail, available, typeOptions:[{key,label}] }
-   Idempotent. Inserts before the module's final `return router;`. */
+   Re-appliable: removes its own prior block (START .. the module's return router) and reinserts. */
 const fs = require('fs'), path = require('path');
 const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_buyinfo.js <ROOT>'); process.exit(1); }
 const file = path.join(ROOT, 'routes/checkout.js');
 let s = fs.readFileSync(file, 'utf8');
 
-if (s.indexOf('/account/tools/buy-info') >= 0) { console.log('skip (already): buy-info present'); console.log('BUYINFO PATCH OK'); process.exit(0); }
+const START = "  // ---- IN-MODEL BUY:";
+const RET = "  return router;";
 
 const ROUTES =
 "  // ---- IN-MODEL BUY: resolve product+plan -> fields/price/stock (reuses checkout helpers) ----\n" +
@@ -32,17 +33,19 @@ const ROUTES =
 "      const needFields=customerFields(dt);\n" +
 "      let avail={available:true}; try{ avail=await availability(plan, dt); }catch(e){}\n" +
 "      let typeOptions=[];\n" +
-"      if(plan.source==='bot' && plan.bot_sku && !plan.bot_type){ try{ const bp=(await pool.query('SELECT types FROM bot_products WHERE sku=$1',[plan.bot_sku])).rows[0]; if(bp && Array.isArray(bp.types)) typeOptions=bp.types.map(function(t){ return { key:String(t.key||''), label:String(t.label||t.name||t.key||'') }; }).filter(function(t){return t.key;}); }catch(e){} }\n" +
+"      if(plan.source==='bot' && plan.bot_sku && !plan.bot_type){ try{ const bp=(await pool.query('SELECT types FROM bot_products WHERE sku=$1',[plan.bot_sku])).rows[0]; const raw=(bp && Array.isArray(bp.types))?bp.types:[]; let ov={}; try{ const lr=(await pool.query('SELECT type_key,label FROM bot_type_labels WHERE sku=$1',[plan.bot_sku])).rows; lr.forEach(function(r){ ov[r.type_key]=r.label; }); }catch(e){} typeOptions=raw.map(function(t){ var key=String(t.key||''); var c=ov[key]; return { key:key, label:(c!=null&&c!=='')?c:String(t.label||t.name||key) }; }).filter(function(t){return t.key;}); }catch(e){} }\n" +
 "      res.json({ ok:true, name:prow.name, slug:prow.slug, planIdx:idx, planLabel:plan.label, price_pkr:Number(plan.price_pkr)||0,\n" +
 "        deliveryType:dt, needFields:needFields, wantsActEmail:wantsActEmail(dt),\n" +
 "        available: !!(avail && avail.available), typeOptions:typeOptions });\n" +
 "    }catch(e){ res.json({ ok:false, error:'Could not load this product right now.' }); }\n" +
 "  });\n\n";
 
-const anchor = "  return router;";
-const i = s.lastIndexOf(anchor);
+// remove any prior buy-info block (START .. the module's return router)
+const si = s.indexOf(START);
+if (si >= 0) { const ri = s.indexOf(RET, si); if (ri >= 0) s = s.slice(0, si) + s.slice(ri); }
+const i = s.lastIndexOf(RET);
 if (i < 0) throw new Error('ANCHOR MISS: final return router; not found in checkout.js');
 s = s.slice(0, i) + ROUTES + s.slice(i);
 fs.writeFileSync(file, s);
-console.log('patched: added GET /account/tools/buy-info to checkout.js');
+console.log('patched: GET /account/tools/buy-info (type labels follow admin overrides)');
 console.log('BUYINFO PATCH OK');

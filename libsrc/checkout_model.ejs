@@ -85,19 +85,18 @@
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div>'
      +'<div id="gbAcct"></div>'
      +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" placeholder="e.g. GALAXY10" style="text-transform:uppercase"></div>'
-     +'<div class="gbuy-f"><label>Transaction ID / sender name</label><input type="text" id="gbTxn" placeholder="e.g. TID or who sent it"></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order</button>'
      +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
     body.innerHTML=h;
     var tp=document.getElementById('gbTypes'); if(tp) tp.querySelectorAll('[data-type]').forEach(function(b){ b.addEventListener('click',function(){ tp.querySelectorAll('[data-type]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); CHOSEN.type=b.getAttribute('data-type'); }); });
-    loadPay();
+    loadPayAmt(INFO.price_pkr);
     document.getElementById('gbGo').addEventListener('click',submit);
   }
 
-  var METHODS=[];
-  function loadPay(){
-    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(INFO.price_pkr),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+  var METHODS=[], CURAMT=0;
+  function loadPayAmt(amount){ CURAMT=Number(amount)||0;
+    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(CURAMT),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
       METHODS=(j&&j.methods)||[]; var box=document.getElementById('gbMethods'); if(!box) return;
       if(!METHODS.length){ box.innerHTML='<div class="muted errmsg">No payment methods available — please contact support.</div>'; return; }
       box.innerHTML=METHODS.map(function(m,i){ return '<label class="gb-m"><input type="radio" name="gbm" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('');
@@ -105,7 +104,9 @@
       acct();
     }).catch(function(){ var box=document.getElementById('gbMethods'); if(box) box.innerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
   }
-  function acct(){ var k=(body.querySelector('input[name=gbm]:checked')||{}).value; var m=METHODS.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('gbAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); box.innerHTML='<div class="gbuy-f gb-acct"><div class="muted" style="margin-bottom:4px">Send '+esc(m.pay||money(INFO.price_pkr))+' to:</div><pre>'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>'; }
+  function acct(){ var k=(body.querySelector('input[name=gbm]:checked')||{}).value; var m=METHODS.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('gbAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); var cpVal=m.account||lines;
+    box.innerHTML='<div class="gbuy-f gb-acct"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><span class="muted">Send '+esc(m.pay||money(CURAMT))+' to:</span><button type="button" class="gb-btn gb-g gb-copy" style="padding:5px 12px;font-size:12px">Copy '+(m.account?'number':'details')+'</button></div><pre>'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>';
+    var cpb=box.querySelector('.gb-copy'); if(cpb) cpb.addEventListener('click',function(){ try{ navigator.clipboard.writeText(cpVal); cpb.textContent='Copied ✓'; setTimeout(function(){ cpb.textContent='Copy '+(m.account?'number':'details'); },1400); }catch(e){} }); }
 
   function val(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; }
   function submit(){
@@ -120,7 +121,7 @@
     if(!method){ err('Choose a payment method.'); return; }
     if(!pf){ err('Please upload your payment receipt.'); return; }
     var fd=new FormData();
-    fd.append('product',INFO.slug); fd.append('plan',INFO.planIdx); fd.append('region','PK'); fd.append('method',method); fd.append('txn',val('gbTxn'));
+    fd.append('product',INFO.slug); fd.append('plan',INFO.planIdx); fd.append('region','PK'); fd.append('method',method);
     if(CHOSEN.type) fd.append('type',CHOSEN.type);
     var coupon=val('gbCoupon'); if(coupon) fd.append('coupon',coupon);
     if(!isIn()){ fd.append('email',val('gbEmail')); fd.append('whatsapp',val('gbWa')); }
@@ -137,17 +138,80 @@
     }).catch(function(){ err('Couldn’t place the order right now. Please try again.'); go.disabled=false; go.textContent='Place Order'; });
   }
 
-  // ---- inject a "Buy Now" button on product pages (uses the selected plan pill) ----
+  // ---- CART: in-model multi-item checkout (hijacks the cart's Proceed to Checkout) ----
+  var CARTCTX=null;
+  window.__gszCartCheckout=function(){
+    var items=(window.GSZCart && window.GSZCart.get && window.GSZCart.get())||[];
+    if(!items.length){ return; }
+    open(); ttl.textContent='Checkout'; sub.textContent='Your cart'; body.innerHTML='<div class="gbuy-load">Loading…</div>';
+    Promise.all(items.map(function(it){ return fetch('/account/tools/buy-info?slug='+encodeURIComponent(it.slug)+'&plan='+encodeURIComponent(it.planIdx||0),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return null;}); })).then(function(infos){ cartForm(items, infos); }).catch(function(){ body.innerHTML='<div class="gbuy-load errmsg">Couldn’t load your cart.</div>'; });
+  };
+  function cartForm(items, infos){
+    var total=0; items.forEach(function(it){ total += (Number(it.pricePkr)||0)*(Number(it.qty)||1); });
+    var h='<div style="margin-bottom:6px">'+items.map(function(it){ return '<div class="gbuy-sum"><div><b>'+esc(it.name||it.slug)+'</b><div class="muted">'+esc(it.planLabel||'')+((Number(it.qty)||1)>1?(' × '+it.qty):'')+'</div></div><div class="pr">'+money((Number(it.pricePkr)||0)*(Number(it.qty)||1))+'</div></div>'; }).join('')+'</div>';
+    items.forEach(function(it,i){ var nf=(infos[i]&&infos[i].needFields)||[]; if(!nf.length) return;
+      h+='<div class="gbuy-f"><label>'+esc(it.name||'Item')+' — details</label>';
+      if(nf.indexOf('mac')>=0) h+='<input type="text" id="ci'+i+'mac" placeholder="Device MAC (AA:BB:CC:DD:EE:FF)" style="margin-bottom:6px">';
+      if(nf.indexOf('link')>=0) h+='<input type="text" id="ci'+i+'link" placeholder="Target link (https://…)" style="margin-bottom:6px">';
+      if(nf.indexOf('qty')>=0) h+='<input type="text" id="ci'+i+'qty" placeholder="Quantity">';
+      h+='</div>';
+    });
+    if(!isIn()){ h+='<div class="gbuy-f"><label>Email</label><input type="email" id="gbEmail" placeholder="you@email.com"></div><div class="gbuy-f"><label>WhatsApp number</label><input type="text" id="gbWa" placeholder="03xx… (add +code if outside Pakistan)"></div>'; }
+    h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div><div id="gbAcct"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" placeholder="e.g. GALAXY10" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
+     +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order · '+money(total)+'</button>'
+     +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver.</p>';
+    sub.textContent=items.length+' item'+(items.length>1?'s':'')+' · '+money(total);
+    body.innerHTML=h;
+    CARTCTX={items:items, infos:infos, total:total};
+    loadPayAmt(total);
+    document.getElementById('gbGo').addEventListener('click',submitCart);
+  }
+  function submitCart(){
+    var out=document.getElementById('gbOut'), go=document.getElementById('gbGo');
+    function err(m){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc(m)+'</div>'; }
+    var items=CARTCTX.items, infos=CARTCTX.infos;
+    var method=(body.querySelector('input[name=gbm]:checked')||{}).value;
+    var pf=(document.getElementById('gbProof')||{}).files; pf=pf&&pf[0];
+    if(!isIn()){ var em=val('gbEmail'), wa=val('gbWa'); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err('Enter a valid email.'); return; } if(wa.replace(/[^0-9]/g,'').length<8){ err('Enter a valid WhatsApp number.'); return; } }
+    for(var i=0;i<items.length;i++){ var nf=(infos[i]&&infos[i].needFields)||[]; if(nf.indexOf('mac')>=0 && val('ci'+i+'mac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the MAC for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('link')>=0 && !val('ci'+i+'link')){ err('Enter the link for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('qty')>=0 && !/^[0-9]+$/.test(val('ci'+i+'qty'))){ err('Enter a valid quantity for "'+(items[i].name||'item')+'".'); return; } }
+    if(!method){ err('Choose a payment method.'); return; }
+    if(!pf){ err('Please upload your payment receipt.'); return; }
+    var cartJson=JSON.stringify(items.map(function(it){ return { slug:it.slug, planIdx:(Number(it.planIdx)||0), type:it.type||'', qty:(Number(it.qty)||1) }; }));
+    var fd=new FormData(); fd.append('cart',cartJson); fd.append('region','PK'); fd.append('method',method);
+    var coupon=val('gbCoupon'); if(coupon) fd.append('coupon',coupon);
+    if(!isIn()){ fd.append('email',val('gbEmail')); fd.append('whatsapp',val('gbWa')); }
+    items.forEach(function(it,i){ var nf=(infos[i]&&infos[i].needFields)||[]; if(nf.indexOf('mac')>=0) fd.append('li_'+i+'_mac',val('ci'+i+'mac')); if(nf.indexOf('link')>=0) fd.append('li_'+i+'_link',val('ci'+i+'link')); if(nf.indexOf('qty')>=0) fd.append('li_'+i+'_qty',val('ci'+i+'qty')); });
+    fd.append('proof',pf);
+    go.disabled=true; go.textContent='Placing order…'; out.innerHTML='';
+    fetch('/cart/place',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var no=m?decodeURIComponent(m[1]):null;
+      if(!no){ err('Couldn’t place the order. Please check your details and try again.'); go.disabled=false; go.textContent='Place Order'; return; }
+      try{ if(window.GSZCart&&window.GSZCart.clear) window.GSZCart.clear(); }catch(e){}
+      body.innerHTML='<div class="gbuy-load"><div style="font-size:34px">✅</div><div style="font-weight:800;font-size:16px;color:#33d98a;margin-top:6px">Order placed</div><p class="muted">We’re verifying your payment — you’ll get your items shortly on WhatsApp &amp; email.</p><a class="gb-btn gb-p" style="margin-top:8px" href="/order/'+encodeURIComponent(no)+'">View order '+esc(no)+'</a></div>';
+    }).catch(function(){ err('Couldn’t place the order right now. Please try again.'); go.disabled=false; go.textContent='Place Order'; });
+  }
+
+  // ---- wire the product page "Buy now" to the in-model checkout (uses the selected plan pill) ----
+  function openBuy(slug){ var pill=document.querySelector('.ppill.sel[data-plan-idx]')||document.querySelector('.ppill.sel')||document.querySelector('.ppill[data-plan-idx]'); var idx=pill?parseInt(pill.getAttribute('data-plan-idx'),10):0; if(isNaN(idx))idx=0; window.__gszBuy({ slug: slug, planIdx: idx }); }
   function injectBuyNow(){
     if(!/^\/product\//.test(location.pathname||'')) return;
-    var add=document.getElementById('addCartBtn'); if(!add) return;
-    if(document.getElementById('gbBuyNow')) return;
-    var slugM=(location.pathname.match(/\/product\/([^\/?#]+)/)||[])[1]; if(!slugM) return;
+    var slugM=(location.pathname.match(/\/product\/([^\/?#]+)/)||[])[1]; if(!slugM) return; var slug=decodeURIComponent(slugM);
+    // Prefer the page's own "Buy now" button so there's only ONE. Replace it (clone to drop its old
+    // handler/href) and wire it to the in-model checkout.
+    var native=document.getElementById('buyBtn');
+    if(native){ if(native.getAttribute('data-gbwired')) return; var clone=native.cloneNode(true); clone.removeAttribute('onclick'); clone.removeAttribute('href'); clone.setAttribute('data-gbwired','1'); native.parentNode.replaceChild(clone, native); clone.addEventListener('click',function(e){ e.preventDefault(); openBuy(slug); }); return; }
+    // Fallback: no native buy button -> add one next to Add to cart.
+    var add=document.getElementById('addCartBtn'); if(!add || document.getElementById('gbBuyNow')) return;
     var btn=document.createElement('button'); btn.type='button'; btn.id='gbBuyNow'; btn.className='gbuy-now';
     btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg> Buy Now';
     add.parentNode.insertBefore(btn, add);
-    btn.addEventListener('click',function(){ var pill=document.querySelector('.ppill.sel[data-plan-idx]')||document.querySelector('.ppill.sel')||document.querySelector('.ppill[data-plan-idx]'); var idx=pill?parseInt(pill.getAttribute('data-plan-idx'),10):0; if(isNaN(idx))idx=0; window.__gszBuy({ slug: decodeURIComponent(slugM), planIdx: idx }); });
+    btn.addEventListener('click',function(){ openBuy(slug); });
   }
   if(document.readyState!=='loading') injectBuyNow(); else document.addEventListener('DOMContentLoaded',injectBuyNow);
+
+  // hijack the cart's "Proceed to checkout" -> in-model cart checkout
+  document.addEventListener('click',function(e){ var go=e.target.closest?e.target.closest('.gszcart-go'):null; if(go){ e.preventDefault(); e.stopPropagation(); try{ if(window.GSZCart&&window.GSZCart.close) window.GSZCart.close(); }catch(x){} window.__gszCartCheckout(); } }, true);
 })();
 </script>

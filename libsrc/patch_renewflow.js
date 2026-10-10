@@ -42,15 +42,16 @@ const ROUTES =
 "  router.get('/account/tools/pay-methods', requireLogin, async (req, res) => {\n" +
 "    const amount=Math.max(0, Math.round(Number(req.query.amount)||0));\n" +
 "    const fmtPkr=function(n){ return 'Rs ' + Math.round(n).toLocaleString('en-US'); };\n" +
-"    let methods=[]; const bot=_rfBot();\n" +
+"    let methods=[]; const bot=_rfBot(); const _usd=function(p){ return (Math.round(Number(p||0)*0.0036*100)/100); };\n" +
 "    try{\n" +
 "      if(bot && bot.configured && bot.configured()){\n" +
 "        const accts=await bot.getPayAccounts();\n" +
-"        (accts||[]).forEach(function(a){ const cur=String(a.currency||'PKR').toUpperCase(); if(cur!=='PKR') return; /* region PK: pay in PKR */\n" +
-"          methods.push({ key:a.key, name:a.label||a.method||a.name||a.key, pay:fmtPkr(amount), title:a.title||'', account:a.account||'', details:a.details||'', instructions:a.instructions||'' }); });\n" +
+"        (accts||[]).forEach(function(a){ const cur=String(a.currency||'PKR').toUpperCase(); /* currency-aware: PKR + USDT/crypto */\n" +
+"          const pay=(cur==='PKR')?fmtPkr(amount):(cur+' '+_usd(amount));\n" +
+"          methods.push({ key:a.key, name:a.label||a.method||a.name||a.key, currency:cur, pay:pay, title:a.title||'', account:a.account||'', details:a.details||'', instructions:a.instructions||'' }); });\n" +
 "      }\n" +
 "    }catch(e){}\n" +
-"    if(!methods.length){ try{ const rows=(await pool.query(\"SELECT key, name, details, instructions, currency FROM payment_methods WHERE COALESCE(currency,'PKR')='PKR' ORDER BY id LIMIT 12\")).rows; methods=rows.map(function(m){ return { key:m.key, name:m.name, pay:fmtPkr(amount), title:'', account:'', details:m.details||'', instructions:m.instructions||'' }; }); }catch(e){} }\n" +
+"    if(!methods.length){ try{ const rows=(await pool.query(\"SELECT key, name, details, instructions, currency FROM payment_methods WHERE active ORDER BY sort,id LIMIT 12\")).rows; methods=rows.map(function(m){ const cur=String(m.currency||'PKR').toUpperCase(); return { key:m.key, name:m.name, currency:cur, pay:(cur==='PKR'?fmtPkr(amount):(cur+' '+_usd(amount))), title:'', account:'', details:m.details||'', instructions:m.instructions||'' }; }); }catch(e){} }\n" +
 "    res.json({ ok:true, methods });\n" +
 "  });\n\n";
 
