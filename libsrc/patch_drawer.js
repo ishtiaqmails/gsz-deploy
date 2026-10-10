@@ -25,21 +25,26 @@ const LINKS =
 '\n      <a class="dcat" href="https://whatsapp.com/channel/0029VbDvVgCDOQIbbuzNiF11" target="_blank" rel="noopener" style="--g1:#1fb457;--g2:#19c6ee"><span class="cg"><svg class="ic" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg></span><span><b>WhatsApp Channel</b></span></a>\n    ';
 
 const files = walk(VIEWS, []);
-const hit = files.find(f => { try { return /id=["']drawerCats["']/.test(fs.readFileSync(f, 'utf8')); } catch (e) { return false; } });
-if (!hit) throw new Error('ANCHOR MISS: no view contains id="drawerCats"');
+const hits = files.filter(f => { try { return /id=["']drawerCats["']/.test(fs.readFileSync(f, 'utf8')); } catch (e) { return false; } });
+if (!hits.length) throw new Error('ANCHOR MISS: no view contains id="drawerCats"');
 
-let s = fs.readFileSync(hit, 'utf8');
-if (s.indexOf('gsz-pages') >= 0) { console.log('skip (already): drawer already repurposed'); console.log('DRAWER PATCH OK'); process.exit(0); }
-
-const openM = /<div[^>]*id=["']drawerCats["'][^>]*>/.exec(s);
-if (!openM) throw new Error('ANCHOR MISS: drawerCats opening tag');
-const openEnd = openM.index + openM[0].length;
-const footRel = /<div[^>]*class=["'][^"']*drawer-foot[^"']*["'][^>]*>/.exec(s.slice(openEnd));
-if (!footRel) throw new Error('ANCHOR MISS: drawer-foot opening tag after drawerCats');
-const footStart = openEnd + footRel.index;
-
-const newInner = '\n      <!-- gsz-pages -->' + LINKS;
-s = s.slice(0, openEnd) + newInner + '\n  ' + s.slice(footStart);
-fs.writeFileSync(hit, s);
-console.log('patched: repurposed drawer categories -> pages in ' + path.relative(ROOT, hit));
+let patched = 0, skipped = 0;
+for (const hit of hits) {
+  let s = fs.readFileSync(hit, 'utf8');
+  if (s.indexOf('gsz-pages') >= 0) { console.log('skip (already): ' + path.relative(ROOT, hit)); skipped++; continue; }
+  const openM = /<div[^>]*id=["']drawerCats["'][^>]*>/.exec(s);
+  if (!openM) { console.log('skip (no drawerCats open tag): ' + path.relative(ROOT, hit)); continue; }
+  const openEnd = openM.index + openM[0].length;
+  // end of the category list: the drawer-foot if present, else the closing </div> of drawerCats
+  const footRel = /<div[^>]*class=["'][^"']*drawer-foot[^"']*["'][^>]*>/.exec(s.slice(openEnd));
+  const endRel = footRel ? footRel.index : s.slice(openEnd).indexOf('</div>');
+  if (endRel < 0) { console.log('skip (no end anchor): ' + path.relative(ROOT, hit)); continue; }
+  const endStart = openEnd + endRel;
+  const tail = footRel ? '\n  ' : '\n      '; // keep a close tag if we stopped at </div>
+  s = s.slice(0, openEnd) + '\n      <!-- gsz-pages -->' + LINKS + tail + s.slice(endStart);
+  fs.writeFileSync(hit, s);
+  console.log('patched: repurposed drawer categories -> pages in ' + path.relative(ROOT, hit));
+  patched++;
+}
+if (!patched && skipped) console.log('(all drawer copies already repurposed)');
 console.log('DRAWER PATCH OK');

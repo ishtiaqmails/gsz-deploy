@@ -75,6 +75,8 @@
     <button class="gna-tile" data-act="renew" type="button"><span class="gna-tz" style="color:#33d98a;background:rgba(51,217,138,.14)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span><b>Renew</b><small>Extend before expiry</small></span></button>
     <button class="gna-tile" data-act="trial" type="button"><span class="gna-tz" style="color:#f4b64c;background:rgba(244,182,76,.15)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span><b>Free Trials</b><small>Claim an IPTV trial</small></span></button>
     <button class="gna-tile" data-act="claim" type="button"><span class="gna-tz" style="color:#ff6cc4;background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span><b>Claim</b><small>Report or replace</small></span></button>
+    <a class="gna-tile" href="/account"><span class="gna-tz" style="color:#5b8bff;background:rgba(91,139,255,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span><span><b>My Account</b><small>Sign in &amp; profile</small></span></a>
+    <button class="gna-tile" data-act="currency" type="button"><span class="gna-tz" style="color:#f4b64c;background:rgba(244,182,76,.14)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.3a2.2 2.2 0 0 0-2.5-1.1 2 2 0 0 0-.2 3.8c1 .3 2 .6 2 1.7a2 2 0 0 1-2.6 1.6"/></svg></span><span><b>Change Currency</b><small>PKR · USD &amp; more</small></span></button>
     <button class="gna-tile" data-act="store" type="button"><span class="gna-tz" style="color:#2f7bff;background:rgba(47,123,255,.13)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span><b>Browse Store</b><small>Find new services</small></span></button>
     <a class="gna-tile" href="https://wa.me/<%= _wn %>" target="_blank" rel="noopener"><span class="gna-tz" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span><b>Support</b><small>Chat 24/7</small></span></a>
   </div>
@@ -117,6 +119,7 @@
     var a=t.getAttribute('data-act');
     if(a==='store'){ openSheet(ssheet); return; }
     if(a==='trial'){ closeSheet(); var tr=document.querySelector('.trial-open,.trial-cta,[data-trial]'); if(tr){ tr.click(); } else { location.href='/'; } return; }
+    if(a==='currency'){ closeSheet(); var cb=document.getElementById('curBtn'); if(cb){ cb.click(); } else { location.href='/account'; } return; }
     tools(a);
   }); });
   ssheet.querySelectorAll('a').forEach(function(a){ a.addEventListener('click',closeSheet); });
