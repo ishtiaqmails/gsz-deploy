@@ -1,0 +1,168 @@
+<% /* Customer Tools — Quick Access band + consolidated pop-up, self-contained, dark. Include on home.
+      Backend: GET /account/tools/orders, POST /account/tools/claim, /account/order/:no/otp, /subscription. */
+   var _wanum = String((typeof settings!=='undefined' && settings && settings.wa_number) ? settings.wa_number : (typeof waNumber!=='undefined'?waNumber:'')).replace(/[^0-9]/g,''); %>
+<style>
+  .cth{--p:#111a2e;--p2:#0e1627;--ph:#16203a;--ln:rgba(255,255,255,.08);--ln2:rgba(255,255,255,.14);--ink:#eef2fb;--ink2:#9aa6c0;--b:#2f7bff;--b2:#29d3ff;--grad:linear-gradient(135deg,#2f7bff,#29d3ff);--ok:#33d98a;--warn:#f4b64c;--bad:#f0554e;--pur:#9a6cff;--pink:#ff6cc4}
+  .cth{max-width:1200px;margin:18px auto 0;padding:0 20px}
+  .cth-band{background:linear-gradient(135deg,rgba(47,123,255,.13),rgba(41,211,255,.03));border:1px solid var(--ln2);border-radius:20px;padding:22px 24px}
+  .cth-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .cth-kick{color:var(--b2);font-weight:800;font-size:11.5px;letter-spacing:.09em}
+  .cth-h h2{font-family:var(--display,inherit);font-weight:800;font-size:20px;letter-spacing:-.01em;margin:3px 0 0;color:var(--ink)}
+  .cth-sub{color:var(--ink2);font-size:12.5px;text-align:right;max-width:240px}
+  .cth-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:1060px){.cth-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:760px){.cth-grid{grid-template-columns:repeat(2,1fr)}.cth-sub{display:none}}
+  @media(max-width:430px){.cth-grid{grid-template-columns:1fr}}
+  .cth-tile{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--p);border:1px solid var(--ln);transition:.16s;cursor:pointer;text-align:left;color:var(--ink);text-decoration:none;font-family:inherit}
+  .cth-tile:hover{border-color:rgba(47,123,255,.45);transform:translateY(-2px);box-shadow:0 10px 22px -14px rgba(0,0,0,.7)}
+  .cth-tile .ci{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+  .cth-tile .ci svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+  .cth-tile .cx{min-width:0}
+  .cth-tile .ctt{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cth-tile .ctd{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* modal */
+  .cthm{position:fixed;inset:0;z-index:600;display:none}
+  .cthm.on{display:block}
+  .cthm-scrim{position:absolute;inset:0;background:rgba(3,6,14,.72);backdrop-filter:blur(4px)}
+  .cthm-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 28px));max-height:min(88vh,760px);display:flex;flex-direction:column;background:#111a2e;border:1px solid rgba(255,255,255,.14);border-radius:20px;box-shadow:0 34px 90px -22px rgba(0,0,0,.85);overflow:hidden;color:#eef2fb}
+  @media(max-width:560px){.cthm-card{left:0;right:0;top:auto;bottom:0;transform:none;width:100vw;max-height:92vh;border-radius:20px 20px 0 0}}
+  .cthm-x{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:#0e1627;color:#9aa6c0;font-size:16px;cursor:pointer;z-index:2}
+  .cthm-head{padding:22px 22px 14px}
+  .cthm-head h3{font-family:var(--display,inherit);font-weight:800;font-size:19px;margin:0 0 4px}
+  .cthm-head p{color:#9aa6c0;font-size:13px;margin:0;max-width:92%}
+  .cthm-tabs{display:flex;gap:8px;padding:0 22px 14px}
+  .cthm-tab{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0e1627;color:#9aa6c0;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .cthm-tab.on{background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;border-color:transparent}
+  .cthm-body{padding:16px 22px 22px;overflow-y:auto;border-top:1px solid rgba(255,255,255,.08)}
+  .cthm-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:10px}
+  .cthm .onm{font-weight:700;font-size:14px} .cthm .osub{font-size:12px;color:#9aa6c0}
+  .cthm-empty{color:#9aa6c0;text-align:center;padding:30px 10px}
+  .cthm-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .cthm-pill.ok{color:#33d98a;background:rgba(51,217,138,.14)} .cthm-pill.wait{color:#f4b64c;background:rgba(244,182,76,.15)} .cthm-pill.bad{color:#f0554e;background:rgba(240,85,78,.14)}
+  .cthm-f{margin-bottom:12px}
+  .cthm-f label{display:block;font-size:12.5px;color:#9aa6c0;font-weight:600;margin-bottom:6px}
+  .cthm select,.cthm textarea{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:11px 13px;font-family:inherit;font-size:14px}
+  .cthm textarea{min-height:92px;resize:vertical}
+  .cthm .cbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:11px;text-decoration:none;font-family:inherit}
+  .cthm .cbtn-p{background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff} .cthm .cbtn-g{background:#16203a;color:#eef2fb;border:1px solid rgba(255,255,255,.14)}
+  .cthm .codebox{font-family:ui-monospace,Menlo,monospace;font-size:21px;font-weight:800;letter-spacing:3px;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 16px;text-align:center;color:#29d3ff}
+  .cthm .muted{color:#9aa6c0;font-size:12.5px} .cthm .okmsg{color:#33d98a;font-weight:700} .cthm .errmsg{color:#f0554e}
+  .cthm-load{text-align:center;color:#9aa6c0;padding:26px}
+</style>
+
+<section class="cth">
+  <div class="cth-band">
+    <div class="cth-h">
+      <div><div class="cth-kick">QUICK ACCESS</div><h2>Customer Tools</h2></div>
+      <div class="cth-sub">Everything in one place — orders, codes, renewals, trials &amp; support. No page hopping.</div>
+    </div>
+    <div class="cth-grid">
+      <a class="cth-tile" href="/account" data-tool="purchases"><span class="ci" style="color:#29d3ff;background:rgba(47,123,255,.15)"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><span class="cx"><div class="ctt">My Orders</div><div class="ctd">Purchases &amp; status</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="purchases"><span class="ci" style="color:#9a6cff;background:rgba(154,108,255,.15)"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span><span class="cx"><div class="ctt">My Subscriptions</div><div class="ctd">Active services</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="code"><span class="ci" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3"/><path d="m16 7 3 3"/><path d="m18 5 3 3"/></svg></span><span class="cx"><div class="ctt">Get Login Code</div><div class="ctd">Sign-in &amp; OTP codes</div></span></a>
+      <a class="cth-tile" href="/account" data-tool="renew"><span class="ci" style="color:#33d98a;background:rgba(51,217,138,.14)"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="cx"><div class="ctt">Renew Service</div><div class="ctd">Extend before expiry</div></span></a>
+      <button class="cth-tile trial-open" type="button"><span class="ci" style="color:#f4b64c;background:rgba(244,182,76,.15)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg></span><span class="cx"><div class="ctt">Free IPTV Trials</div><div class="ctd">Claim on WhatsApp</div></span></button>
+      <a class="cth-tile" href="/account" data-tool="claim"><span class="ci" style="color:#ff6cc4;background:rgba(255,108,196,.14)"><svg viewBox="0 0 24 24"><path d="m12 2 8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span class="cx"><div class="ctt">Claim / Replace</div><div class="ctd">Report or replace</div></span></a>
+      <a class="cth-tile" href="/"><span class="ci" style="color:#2f7bff;background:rgba(47,123,255,.13)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span class="cx"><div class="ctt">Browse Store</div><div class="ctd">Find new services</div></span></a>
+      <a class="cth-tile" href="https://wa.me/<%= _wanum %>" target="_blank" rel="noopener"><span class="ci" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="cx"><div class="ctt">WhatsApp Support</div><div class="ctd">Chat with us 24/7</div></span></a>
+    </div>
+  </div>
+</section>
+
+<div class="cthm" id="cthm" aria-hidden="true">
+  <div class="cthm-scrim" data-close></div>
+  <div class="cthm-card" role="dialog" aria-modal="true">
+    <button class="cthm-x" data-close aria-label="Close">✕</button>
+    <div class="cthm-head"><h3>Customer Tools</h3><p>View credentials, fetch sign-in codes, renew &amp; claim replacements.</p></div>
+    <div class="cthm-tabs">
+      <button class="cthm-tab" data-tab="purchases">Purchases</button>
+      <button class="cthm-tab" data-tab="code">Get Code</button>
+      <button class="cthm-tab" data-tab="renew">Renew</button>
+      <button class="cthm-tab" data-tab="claim">Claim</button>
+    </div>
+    <div class="cthm-body" id="cthmBody"><div class="cthm-load">Loading…</div></div>
+  </div>
+</div>
+<script>
+(function(){
+  var modal=document.getElementById('cthm'); if(!modal) return;
+  var body=document.getElementById('cthmBody');
+  var tabs=modal.querySelectorAll('.cthm-tab');
+  var cache=null, authed=true;
+  var WANUM=<%- JSON.stringify(_wanum) %>;
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
+  function open(tab){ modal.classList.add('on'); document.body.style.overflow='hidden'; setTab(tab||'purchases'); }
+  function close(){ modal.classList.remove('on'); document.body.style.overflow=''; }
+  function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
+  function loadOrders(){ if(cache) return Promise.resolve(cache);
+    return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){ if(r.redirected && /\/login/.test(r.url)){ authed=false; return {orders:[]}; } return r.json(); }).then(function(j){ if(j&&j.auth===false) authed=false; cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
+  function pc(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled') return 'bad'; return 'wait'; }
+  function signin(){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">🔒</div><div style="font-weight:700;margin-top:6px">Sign in to use your tools</div><p class="muted">View orders, get codes, renew &amp; claim replacements.</p><a class="cbtn cbtn-p" style="margin-top:6px" href="/login">Sign in / Register</a></div>'; }
+  function render(tab){ body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else claim(o); }); }
+  function pur(orders){
+    if(!orders.length){ body.innerHTML='<div class="cthm-empty">No purchases yet.<br><a href="/" style="color:#29d3ff;font-weight:600">Browse products →</a></div>'; return; }
+    body.innerHTML=orders.map(function(o){
+      var cred=o.credentials?('<pre style="margin:4px 0 0;white-space:pre-wrap;word-break:break-word;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px">'+esc(o.credentials)+'</pre>'):'<div class="muted">Not delivered yet — details appear here when ready.</div>';
+      return '<div class="cthm-row" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div style="min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no||'')+(o.plan_label?(' · '+esc(o.plan_label)):'')+'</div></div><span class="cthm-pill '+pc(o.status)+'">'+esc(o.status||'')+'</span></div>'+cred+'</div>';
+    }).join('');
+  }
+  function code(orders){
+    if(!orders.length){ body.innerHTML='<div class="cthm-empty">No orders to fetch codes for.</div>'; return; }
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Fetch the latest sign-in code / login link for your order.</p>'+orders.map(function(o){
+      return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="cbtn cbtn-g" data-code="'+esc(o.order_no)+'">Get code</button></div><div class="code-out" data-for="'+esc(o.order_no)+'"></div>';
+    }).join('');
+    body.querySelectorAll('button[data-code]').forEach(function(b){ b.addEventListener('click',function(){
+      var no=b.getAttribute('data-code'); var out=body.querySelector('.code-out[data-for="'+no+'"]');
+      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Fetching…</div>';
+      fetch('/account/order/'+encodeURIComponent(no)+'/otp',{method:'POST',headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok&&j.value){ out.innerHTML='<div class="codebox" style="margin:6px 0 12px">'+esc(j.value)+'</div>'; }
+        else { var rz=(j&&j.reason)||'error'; var m=rz==='waiting'?'No code yet — try again shortly.':(rz==='not_supported'?'This product doesn’t use a code.':'Couldn’t fetch right now.'); out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">'+esc(m)+'</div>'; }
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t fetch right now.</div>'; });
+    }); });
+  }
+  function renew(orders){
+    if(!orders.length){ body.innerHTML='<div class="cthm-empty">No subscriptions to renew yet.</div>'; return; }
+    body.innerHTML='<p class="muted" style="margin:0 0 12px">Check a subscription’s expiry and renew it in one tap.</p>'+orders.map(function(o){
+      return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="cbtn cbtn-g" data-renew="'+esc(o.order_no)+'">Check &amp; renew</button></div><div class="renew-out" data-for="'+esc(o.order_no)+'"></div>';
+    }).join('');
+    body.querySelectorAll('button[data-renew]').forEach(function(b){ b.addEventListener('click',function(){
+      var no=b.getAttribute('data-renew'); var out=body.querySelector('.renew-out[data-for="'+no+'"]');
+      out.innerHTML='<div class="muted" style="margin:6px 0 12px">Checking…</div>';
+      fetch('/account/order/'+encodeURIComponent(no)+'/subscription',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok||(!j.active&&!j.renewable)){ out.innerHTML='<div class="muted" style="margin:6px 0 12px">No active subscription found for this order.</div>'; return; }
+        var h='';
+        if(j.expires_at){ var dl=(j.days_left!=null)?(' ('+(j.days_left>=0?(j.days_left+'d left'):(Math.abs(j.days_left)+'d ago'))+')'):''; h+='<div class="muted" style="margin:6px 0 8px">Expires '+esc(String(j.expires_at).slice(0,10))+dl+'</div>'; }
+        if(j.renewable && j.options && j.options.length){ h+=j.options.map(function(op){
+          var href=(j.slug&&op.idx!=null&&op.idx>=0&&op.price_pkr!=null)?('/checkout?p='+encodeURIComponent(j.slug)+'&plan='+op.idx+'&renew='+encodeURIComponent(no)):('https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no));
+          var price=(op.price_pkr!=null)?money(op.price_pkr):'';
+          return '<a class="cbtn cbtn-p" style="width:100%;margin-bottom:8px;justify-content:space-between" href="'+href+'">'+esc(op.label)+'<span>'+price+'</span></a>';
+        }).join(''); } else { h+='<a class="cbtn cbtn-p" style="width:100%" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a>'; }
+        out.innerHTML='<div style="margin:6px 0 12px">'+h+'</div>';
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 12px">Couldn’t check right now.</div>'; });
+    }); });
+  }
+  function claim(orders){
+    if(!orders.length){ body.innerHTML='<div class="cthm-empty">You need an order before you can claim a replacement.</div>'; return; }
+    var opts=orders.map(function(o){ return '<option value="'+esc(o.order_no)+'">'+esc(o.product_name||'Order')+' · '+esc(o.order_no)+'</option>'; }).join('');
+    body.innerHTML='<div class="cthm-f"><label>Which order?</label><select id="clO">'+opts+'</select></div>'
+      +'<div class="cthm-f"><label>What went wrong?</label><select id="clR"><option>🔑 Password Changed / Incorrect</option><option>🔒 Account Locked / Household Error</option><option>📺 Screen Limit Exceeded</option><option>⌛ Service Expired Early</option><option>⚠️ Other Technical Issue</option></select></div>'
+      +'<div class="cthm-f"><label>Describe the issue</label><textarea id="clM" placeholder="Briefly describe the problem…"></textarea></div>'
+      +'<div id="clOut"></div><button class="cbtn cbtn-p" style="width:100%" id="clS">Submit Replacement Claim</button>';
+    document.getElementById('clS').addEventListener('click',function(){
+      var btn=this,out=document.getElementById('clOut');
+      var p={order_no:document.getElementById('clO').value,reason:document.getElementById('clR').value,message:document.getElementById('clM').value};
+      if(!p.message.trim()){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please describe the issue.</div>'; return; }
+      btn.disabled=true; btn.textContent='Submitting…';
+      fetch('/account/tools/claim',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify(p)}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok){ body.innerHTML='<div class="cthm-empty"><div style="font-size:34px">✅</div><div class="okmsg" style="font-size:16px;margin-top:6px">Replacement claim submitted</div><p class="muted">Our team will review it and reach you on WhatsApp.</p></div>'; }
+        else { out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">'+esc((j&&j.error)||'Could not submit. Please try again.')+'</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; }
+      }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Could not submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Replacement Claim'; });
+    });
+  }
+  document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
+  tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
+  modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+})();
+</script>
