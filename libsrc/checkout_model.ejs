@@ -194,7 +194,7 @@
   }
 
   // ---- wire the product page "Buy now" to the in-model checkout (uses the selected plan pill) ----
-  function openBuy(slug){ var pill=document.querySelector('.ppill.sel[data-plan-idx]')||document.querySelector('.ppill.sel')||document.querySelector('.ppill[data-plan-idx]'); var idx=pill?parseInt(pill.getAttribute('data-plan-idx'),10):0; if(isNaN(idx))idx=0; window.__gszBuy({ slug: slug, planIdx: idx }); }
+  function openBuy(slug){ var pill=document.querySelector('.ppill.sel')||document.querySelector('.ppill'); var idx=pill?parseInt(pill.getAttribute('data-idx'),10):0; if(isNaN(idx))idx=0; window.__gszBuy({ slug: slug, planIdx: idx }); }
   function injectBuyNow(){
     if(!/^\/product\//.test(location.pathname||'')) return;
     var slugM=(location.pathname.match(/\/product\/([^\/?#]+)/)||[])[1]; if(!slugM) return; var slug=decodeURIComponent(slugM);
