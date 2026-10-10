@@ -83,7 +83,7 @@
       if(f==='link') h+='<div class="gbuy-f"><label>Target link</label><input type="text" id="gbLink" placeholder="https://…"></div>';
       if(f==='qty') h+='<div class="gbuy-f"><label>Quantity</label><input type="text" id="gbQty" placeholder="e.g. 100"></div>';
     });
-    if(j.wantsActEmail) h+='<div class="gbuy-f"><label>Activation email <span class="muted">(optional — defaults to your order email)</span></label><input type="email" id="gbActEmail" placeholder="account email to activate"></div>';
+    if(j.wantsActEmail){ var _ael=(j.deliveryType==='vendor_invite')?'Email to receive your invite':(j.deliveryType==='portal')?'Email for your account login':(j.deliveryType==='amember')?'Email for your account access':'Email for activation'; h+='<div class="gbuy-f"><label>'+_ael+'</label><input type="email" id="gbActEmail" placeholder="you@email.com"></div>'; }
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div>'
      +'<div id="gbAcct"></div>'
      +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"></div>'
@@ -117,6 +117,7 @@
     var method=(body.querySelector('input[name=gbm]:checked')||{}).value;
     var pf=(document.getElementById('gbProof')||{}).files; pf=pf&&pf[0];
     if(!isIn()){ var em=val('gbEmail'), wa=val('gbWa'); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err('Enter a valid email.'); return; } if(wa.replace(/[^0-9]/g,'').length<8){ err('Enter a valid WhatsApp number.'); return; } }
+    if(INFO.wantsActEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('gbActEmail'))){ err('Enter the email for this product.'); return; }
     if((INFO.needFields||[]).indexOf('mac')>=0 && val('gbMac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the device MAC address.'); return; }
     if((INFO.needFields||[]).indexOf('link')>=0 && !val('gbLink')){ err('Enter the target link.'); return; }
     if((INFO.needFields||[]).indexOf('qty')>=0 && !/^[0-9]+$/.test(val('gbQty'))){ err('Enter a valid quantity.'); return; }
@@ -130,7 +131,7 @@
     if((INFO.needFields||[]).indexOf('mac')>=0) fd.append('mac',val('gbMac'));
     if((INFO.needFields||[]).indexOf('link')>=0) fd.append('link',val('gbLink'));
     if((INFO.needFields||[]).indexOf('qty')>=0) fd.append('qty',val('gbQty'));
-    if(INFO.wantsActEmail && val('gbActEmail')) fd.append('act_email',val('gbActEmail'));
+    if(INFO.wantsActEmail) fd.append('act_email',val('gbActEmail'));
     fd.append('proof',pf);
     go.disabled=true; go.textContent='Placing order…'; out.innerHTML='';
     fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
@@ -151,11 +152,12 @@
   function cartForm(items, infos){
     var total=0; items.forEach(function(it){ total += (Number(it.pricePkr)||0)*(Number(it.qty)||1); });
     var h='<div style="margin-bottom:6px">'+items.map(function(it){ return '<div class="gbuy-sum"><div><b>'+esc(it.name||it.slug)+'</b><div class="muted">'+esc(it.planLabel||'')+((Number(it.qty)||1)>1?(' × '+it.qty):'')+'</div></div><div class="pr">'+money((Number(it.pricePkr)||0)*(Number(it.qty)||1))+'</div></div>'; }).join('')+'</div>';
-    items.forEach(function(it,i){ var nf=(infos[i]&&infos[i].needFields)||[]; if(!nf.length) return;
+    items.forEach(function(it,i){ var inf=infos[i]||{}; var nf=inf.needFields||[]; var wae=!!inf.wantsActEmail; if(!nf.length && !wae) return;
       h+='<div class="gbuy-f"><label>'+esc(it.name||'Item')+' — details</label>';
       if(nf.indexOf('mac')>=0) h+='<input type="text" id="ci'+i+'mac" placeholder="Device MAC (AA:BB:CC:DD:EE:FF)" style="margin-bottom:6px">';
       if(nf.indexOf('link')>=0) h+='<input type="text" id="ci'+i+'link" placeholder="Target link (https://…)" style="margin-bottom:6px">';
-      if(nf.indexOf('qty')>=0) h+='<input type="text" id="ci'+i+'qty" placeholder="Quantity">';
+      if(nf.indexOf('qty')>=0) h+='<input type="text" id="ci'+i+'qty" placeholder="Quantity" style="margin-bottom:6px">';
+      if(wae) h+='<input type="email" id="ci'+i+'email" placeholder="'+((inf.deliveryType==='vendor_invite')?'Email to receive your invite':(inf.deliveryType==='portal')?'Email for your account login':'Email for your account access')+'">';
       h+='</div>';
     });
     if(!isIn()){ h+='<div class="gbuy-f"><label>Email</label><input type="email" id="gbEmail" placeholder="you@email.com"></div><div class="gbuy-f"><label>WhatsApp number</label><input type="text" id="gbWa" placeholder="03xx… (add +code if outside Pakistan)"></div>'; }
@@ -177,14 +179,14 @@
     var method=(body.querySelector('input[name=gbm]:checked')||{}).value;
     var pf=(document.getElementById('gbProof')||{}).files; pf=pf&&pf[0];
     if(!isIn()){ var em=val('gbEmail'), wa=val('gbWa'); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err('Enter a valid email.'); return; } if(wa.replace(/[^0-9]/g,'').length<8){ err('Enter a valid WhatsApp number.'); return; } }
-    for(var i=0;i<items.length;i++){ var nf=(infos[i]&&infos[i].needFields)||[]; if(nf.indexOf('mac')>=0 && val('ci'+i+'mac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the MAC for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('link')>=0 && !val('ci'+i+'link')){ err('Enter the link for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('qty')>=0 && !/^[0-9]+$/.test(val('ci'+i+'qty'))){ err('Enter a valid quantity for "'+(items[i].name||'item')+'".'); return; } }
+    for(var i=0;i<items.length;i++){ var nf=(infos[i]&&infos[i].needFields)||[]; var wae=!!(infos[i]&&infos[i].wantsActEmail); if(nf.indexOf('mac')>=0 && val('ci'+i+'mac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the MAC for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('link')>=0 && !val('ci'+i+'link')){ err('Enter the link for "'+(items[i].name||'item')+'".'); return; } if(nf.indexOf('qty')>=0 && !/^[0-9]+$/.test(val('ci'+i+'qty'))){ err('Enter a valid quantity for "'+(items[i].name||'item')+'".'); return; } if(wae && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('ci'+i+'email'))){ err('Enter the email for "'+(items[i].name||'item')+'".'); return; } }
     if(!method){ err('Choose a payment method.'); return; }
     if(!pf){ err('Please upload your payment receipt.'); return; }
     var cartJson=JSON.stringify(items.map(function(it){ return { slug:it.slug, planIdx:(Number(it.planIdx)||0), type:it.type||'', qty:(Number(it.qty)||1) }; }));
     var fd=new FormData(); fd.append('cart',cartJson); fd.append('region','PK'); fd.append('method',method);
     var coupon=val('gbCoupon'); if(coupon) fd.append('coupon',coupon);
     if(!isIn()){ fd.append('email',val('gbEmail')); fd.append('whatsapp',val('gbWa')); }
-    items.forEach(function(it,i){ var nf=(infos[i]&&infos[i].needFields)||[]; if(nf.indexOf('mac')>=0) fd.append('li_'+i+'_mac',val('ci'+i+'mac')); if(nf.indexOf('link')>=0) fd.append('li_'+i+'_link',val('ci'+i+'link')); if(nf.indexOf('qty')>=0) fd.append('li_'+i+'_qty',val('ci'+i+'qty')); });
+    items.forEach(function(it,i){ var nf=(infos[i]&&infos[i].needFields)||[]; if(nf.indexOf('mac')>=0) fd.append('li_'+i+'_mac',val('ci'+i+'mac')); if(nf.indexOf('link')>=0) fd.append('li_'+i+'_link',val('ci'+i+'link')); if(nf.indexOf('qty')>=0) fd.append('li_'+i+'_qty',val('ci'+i+'qty')); if(infos[i]&&infos[i].wantsActEmail) fd.append('li_'+i+'_email',val('ci'+i+'email')); });
     fd.append('proof',pf);
     go.disabled=true; go.textContent='Placing order…'; out.innerHTML='';
     fetch('/cart/place',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
