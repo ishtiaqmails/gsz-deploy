@@ -43,8 +43,37 @@ module.exports = function (pool) {
     return call(method, base, path, c.wa_bot_webhook_secret || '');
   }
 
-  router.get('/whatsapp', auth, (req, res) => {
-    res.render('admin/whatsapp', { active: 'whatsapp', title: 'WhatsApp Connection', flash: req.query.ok || null });
+  // Normalise to send-ready digits: strip non-digits; a local 0XXXXXXXXXX (PK) -> 92XXXXXXXXXX.
+  function normNum(v) { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '0') d = '92' + d.slice(1); return d; }
+
+  router.get('/whatsapp', auth, async (req, res) => {
+    const c = await cfg();
+    res.render('admin/whatsapp', {
+      active: 'whatsapp', title: 'WhatsApp Connection', flash: req.query.ok || null,
+      nums: {
+        verify: c.wa_verify_number || '', owner: c.wa_owner_numbers || '',
+        support: c.wa_support_number || '', sales: c.wa_sales_number || ''
+      }
+    });
+  });
+
+  // Save any of the system's WhatsApp numbers; everything reads wa_settings live, so a
+  // change here applies everywhere (verification link, support redirects, notifications,
+  // store contact, admin reset code).
+  router.post('/whatsapp/numbers', auth, body, async (req, res) => {
+    const map = {
+      wa_verify_number: req.body.verify, wa_owner_numbers: req.body.owner,
+      wa_support_number: req.body.support, wa_sales_number: req.body.sales
+    };
+    try {
+      for (const k in map) {
+        if (map[k] === undefined) continue;
+        await pool.query(
+          'INSERT INTO wa_settings(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=$2, updated_at=now()',
+          [k, normNum(map[k])]);
+      }
+      res.redirect('/admin/whatsapp?ok=' + encodeURIComponent('Numbers saved — applied everywhere'));
+    } catch (e) { res.redirect('/admin/whatsapp?ok=' + encodeURIComponent('Could not save numbers')); }
   });
 
   router.get('/whatsapp/status.json', auth, async (req, res) => {
