@@ -4,18 +4,23 @@
 #  • bot verifies on "VERIFY <code>", a bare code, OR legacy GX- code
 #  • verified accounts stop being asked (webhook now sets customers.wa_verified; + backfill)
 #  • verify screen shows the destination number with a copy button
+#  • changing the WhatsApp number unlinks the old one -> forces re-verification
 set -Eeuo pipefail
 GSZ=/opt/gsz; SRC=/opt/gsz-deploy/libsrc; TS=$(date +%s)
 cd "$GSZ"
 WR=routes/whatsapp.js
+AC=routes/account.js
 HM=views/partials/hub_model.ejs
 cp -f "$WR" "$WR.bak.$TS"
+cp -f "$AC" "$AC.bak.$TS"
 cp -f "$HM" "$HM.bak.$TS"
-restore(){ echo "!! failed — restoring"; cp -f "$WR.bak.$TS" "$WR"; cp -f "$HM.bak.$TS" "$HM"; }
+restore(){ echo "!! failed — restoring"; cp -f "$WR.bak.$TS" "$WR"; cp -f "$AC.bak.$TS" "$AC"; cp -f "$HM.bak.$TS" "$HM"; }
 trap restore ERR
 
 node "$SRC/patch_waverify.js" "$GSZ"
 node --check "$WR"
+node "$SRC/patch_wachange.js" "$GSZ"
+node --check "$AC"
 
 cp -f "$SRC/hub_model.ejs" "$HM"
 node -e "const ejs=require('ejs'),fs=require('fs');ejs.compile(fs.readFileSync('$HM','utf8'),{filename:process.cwd()+'/'+'$HM'});console.log('  hub_model ejs ok');"

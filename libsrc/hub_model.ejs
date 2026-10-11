@@ -156,8 +156,9 @@
         if(save) save.addEventListener('click',function(){
           var v=input.value.trim(); save.disabled=true; save.textContent='Saving…'; if(msg) msg.innerHTML='';
           fetch('/account/tools/profile',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify({field:key,value:v})}).then(function(r){return r.json();}).then(function(jj){
-            if(jj&&jj.ok){ val.textContent=jj.value||v; box.style.display='none'; if(edit) edit.style.display='';
-              if(key==='email'||key==='wa'){ var b=f.querySelector('.acc-top .cthm-pill'); if(b){ b.className='cthm-pill wait'; b.textContent='Unverified'; } }
+            if(jj&&jj.ok){ if(key==='wa'){ account(); return; } /* number changed → re-verify needed: re-render so the Verify card shows */
+              val.textContent=jj.value||v; box.style.display='none'; if(edit) edit.style.display='';
+              if(key==='email'){ var b=f.querySelector('.cthm-pill'); if(b){ b.className='cthm-pill wait'; b.textContent='Unverified'; } }
               save.disabled=false; save.textContent='Save'; }
             else { if(msg) msg.innerHTML='<div class="muted errmsg" style="margin-top:6px">'+esc((jj&&jj.error)||'Could not update.')+'</div>'; save.disabled=false; save.textContent='Save'; }
           }).catch(function(){ if(msg) msg.innerHTML='<div class="muted errmsg" style="margin-top:6px">Could not update.</div>'; save.disabled=false; save.textContent='Save'; });
