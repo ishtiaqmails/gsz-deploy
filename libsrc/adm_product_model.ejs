@@ -133,8 +133,6 @@
       <input class="inp" id="pm_short" placeholder="One line customers see on the product card">
       <label class="fld">Long description <span class="q">· product page</span></label>
       <textarea id="pm_long" placeholder="Full description shown on the product page"></textarea>
-      <label class="fld">Availability note <span class="q">· country restriction</span></label>
-      <input class="inp" id="pm_geo" placeholder="e.g. Not available in USA — leave blank if worldwide">
 
       <div class="sec open" id="pmSecPlans">
         <button class="sec-h" type="button" onclick="pmSec('pmSecPlans')"><span class="ic" style="background:rgba(47,108,255,.12)">📦</span>
@@ -146,13 +144,13 @@
 
       <div class="sec" id="pmSecCap">
         <button class="sec-h" type="button" onclick="pmSec('pmSecCap')"><span class="ic" style="background:rgba(25,183,101,.14)">🔧</span>
-          <span class="st"><b>Capabilities</b><small>OTP · login link · household — shown on the product page</small></span>
+          <span class="st"><b>Capabilities</b><small>Netflix · login code · get link — customer tools on the product</small></span>
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="sec-c">
-          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_otp"><span class="track"></span><span class="lbl">Requires OTP<small>Customer can fetch sign-in codes</small></span></label></div>
-          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_link" onchange="document.getElementById('pm_linkwrap').style.display=this.checked?'block':'none'"><span class="track"></span><span class="lbl">Has login link<small>Show a “Login here” button</small></span></label></div>
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_netflix"><span class="track"></span><span class="lbl">Netflix System<small>Household management + Netflix login codes</small></span></label></div>
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_code"><span class="track"></span><span class="lbl">Login Code<small>Customer can get their login / sign-in code</small></span></label></div>
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_link" onchange="document.getElementById('pm_linkwrap').style.display=this.checked?'block':'none'"><span class="track"></span><span class="lbl">Get Link<small>Customer gets an access link</small></span></label></div>
           <div id="pm_linkwrap" style="display:none"><input class="inp" id="pm_linkurl" placeholder="https://app.example.com/login"></div>
-          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_house"><span class="track"></span><span class="lbl">Has household<small>Show the “Update household” action</small></span></label></div>
         </div>
       </div>
 
@@ -233,10 +231,14 @@
       +'</div>'
       +'<div class="typeblock t-manual"><p class="note" style="margin:0">You’ll deliver this plan manually after each order.</p></div>'
       +'<div class="typeblock t-portal"><label class="fld">Portal product</label><select class="inp p_portal"><option value="">— select portal product —</option></select><p class="note" style="margin:6px 0 0">Delivered from the Accounts Portal (read-only).</p></div>'
+      +'<label class="fld">Warranty <span class="q">· replacement window, this plan</span></label>'
+      +'<input class="inp p_warr" placeholder="e.g. 7 days / 30 days — used by claims &amp; replacements">'
       +'<label class="fld">Product note <span class="q">· one note for this plan</span></label>'
       +'<input class="inp p_note" placeholder="Short note shown with this plan">'
       +'<label class="fld">Delivery instructions <span class="q">· shown on delivery</span></label>'
       +'<textarea class="p_dinstr" placeholder="Sent to the customer after delivery"></textarea>'
+      +'<label class="fld">Availability note <span class="q">· country restriction, this plan</span></label>'
+      +'<input class="inp p_avail" placeholder="e.g. Not available in USA — blank = worldwide">'
       +'<label class="fld">Limited-time availability <span class="q">· optional</span></label>'
       +'<div class="row2 pm-dates"><div><span class="pm-slbl">From</span><input class="inp p_from" type="date"></div><div><span class="pm-slbl">Until</span><input class="inp p_until" type="date"></div></div>'
     +'</div>';
@@ -252,8 +254,10 @@
     if(d.duration_unit){el.querySelector('.p_du').value=d.duration_unit;}
     el.querySelector('.p_pkr').value=(d.price_pkr!=null?parseFloat(d.price_pkr):'');
     el.querySelector('.p_usd').value=(d.price_usd!=null?parseFloat(d.price_usd):'');
+    el.querySelector('.p_warr').value=d.warranty||'';
     el.querySelector('.p_note').value=d.product_note||'';
     el.querySelector('.p_dinstr').value=d.delivery_instructions||'';
+    el.querySelector('.p_avail').value=d.avail_note||'';
     el.querySelector('.p_from').value=d.avail_from?String(d.avail_from).slice(0,10):'';
     el.querySelector('.p_until').value=d.avail_until?String(d.avail_until).slice(0,10):'';
     el.querySelector('.p_bpk').value=d.bot_plan_key||'';
@@ -318,9 +322,9 @@
   /* ---------- open / populate ---------- */
   function reset(){
     document.getElementById('pm_id').value='';document.getElementById('pm_name').value='';
-    document.getElementById('pm_short').value='';document.getElementById('pm_long').value='';document.getElementById('pm_geo').value='';
+    document.getElementById('pm_short').value='';document.getElementById('pm_long').value='';
     document.getElementById('pm_linkurl').value='';document.getElementById('pm_linkwrap').style.display='none';
-    ['pm_mostsell','pm_otp','pm_link','pm_house'].forEach(function(i){document.getElementById(i).checked=false;});
+    ['pm_mostsell','pm_netflix','pm_code','pm_link'].forEach(function(i){document.getElementById(i).checked=false;});
     document.getElementById('pm_cat').innerHTML=catOptions();
     document.getElementById('pm_imgbox').innerHTML='No image';document.getElementById('pm_imgnote').style.display='none';
     document.getElementById('pmPlans').innerHTML='';document.getElementById('pmFaqs').innerHTML='';document.getElementById('pmDls').innerHTML='';
@@ -342,10 +346,9 @@
       document.getElementById('pm_cat').value=p.category_id||'';
       document.getElementById('pm_short').value=p.short_desc||'';
       document.getElementById('pm_long').value=p.long_desc||'';
-      document.getElementById('pm_geo').value=p.geo_note||'';
       document.getElementById('pm_mostsell').checked=!!p.most_selling;
-      document.getElementById('pm_otp').checked=!!p.req_otp;
-      document.getElementById('pm_house').checked=!!p.has_household;
+      document.getElementById('pm_netflix').checked=!!p.nf_enabled;
+      document.getElementById('pm_code').checked=!!p.req_otp;
       document.getElementById('pm_link').checked=!!p.has_link;
       document.getElementById('pm_linkurl').value=p.link_url||'';
       document.getElementById('pm_linkwrap').style.display=p.has_link?'block':'none';
@@ -375,10 +378,12 @@
         bot_sku:source==='bot'?p.querySelector('.p_bsku').value:'',
         bot_plan_key:p.querySelector('.p_bpk').value,
         bot_type:p.querySelector('.p_bt').value,
+        warranty:p.querySelector('.p_warr').value,
         version_labels:source==='bot'?versions:[],
         custom_fields:source==='inventory'?cf.map(function(x){return {label:x};}):[],
         product_note:p.querySelector('.p_note').value,
         delivery_instructions:p.querySelector('.p_dinstr').value,
+        avail_note:p.querySelector('.p_avail').value,
         avail_from:p.querySelector('.p_from').value||null,
         avail_until:p.querySelector('.p_until').value||null,
         nf_portal_product_id:source==='portal'?(p.querySelector('.p_portal').value||''):'',
@@ -391,12 +396,11 @@
       category_id:document.getElementById('pm_cat').value,
       short_desc:document.getElementById('pm_short').value,
       long_desc:document.getElementById('pm_long').value,
-      geo_note:document.getElementById('pm_geo').value,
       most_selling:document.getElementById('pm_mostsell').checked,
-      req_otp:document.getElementById('pm_otp').checked,
+      netflix:document.getElementById('pm_netflix').checked,
+      req_otp:document.getElementById('pm_code').checked,
       has_link:document.getElementById('pm_link').checked,
       link_url:document.getElementById('pm_linkurl').value,
-      has_household:document.getElementById('pm_house').checked,
       plans:plans,
       faqs:[].slice.call(document.querySelectorAll('#pmFaqs .mini')).map(function(m){return {q:m.querySelector('.fq').value,a:m.querySelector('.fa').value};}),
       downloads:[].slice.call(document.querySelectorAll('#pmDls .mini')).map(function(m){return {label:m.querySelector('.dl').value,url:m.querySelector('.du').value};})
