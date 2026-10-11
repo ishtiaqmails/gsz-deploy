@@ -1,0 +1,145 @@
+<%- include('_shell_top', { active:'whatsapp', title:'WhatsApp Connection' }) %>
+<style>
+  .wa-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:start}
+  .wa-card{padding:22px}
+  .wa-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+  .wa-logo{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;background:#e7f7ee;color:#1fa855}
+  .wa-logo svg{width:26px;height:26px;fill:currentColor}
+  .wa-htitle{font-weight:800;font-size:16px}
+  .wa-hsub{color:var(--muted);font-size:12.5px}
+  .wa-state{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .wa-dot{width:11px;height:11px;border-radius:50%;flex:none;background:#c7ccda}
+  .wa-dot.on{background:#1fa855;box-shadow:0 0 0 4px rgba(31,168,85,.16)}
+  .wa-dot.off{background:#e0453f;box-shadow:0 0 0 4px rgba(224,69,63,.14)}
+  .wa-dot.wait{background:#e8a33d;box-shadow:0 0 0 4px rgba(232,163,61,.16)}
+  .wa-slabel{font-weight:700;font-size:16px}
+  .wa-kv{display:grid;grid-template-columns:120px 1fr;gap:9px 14px;font-size:14px;margin:4px 0 2px}
+  .wa-kv .k{color:var(--muted)}
+  .wa-kv .num{font-weight:700;letter-spacing:.2px}
+  .wa-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--hair)}
+  .wa-note{display:flex;gap:9px;align-items:flex-start;margin-top:16px;padding:11px 13px;border-radius:11px;background:#fff7ed;border:1px solid #f4dcb8;color:#8a5a12;font-size:13px;line-height:1.45}
+  .wa-note svg{flex:none;width:17px;height:17px;margin-top:1px}
+  .wa-note.bad{background:#fdeaea;border-color:#f3c3c0;color:#9b2a24}
+  .wa-qrbox{text-align:center}
+  .wa-qrbox h3{font-weight:800;font-size:15px;margin:0 0 4px}
+  .wa-qrbox p{color:var(--muted);font-size:13px;margin:0 auto 16px;max-width:300px;line-height:1.5}
+  .wa-qr{width:260px;height:260px;margin:0 auto;border-radius:16px;border:1px solid var(--hair);background:#fff;display:grid;place-items:center;overflow:hidden}
+  .wa-qr img{width:100%;height:100%;object-fit:contain}
+  .wa-qr .ph{color:var(--muted);font-size:13px;padding:20px}
+  .wa-steps{text-align:left;max-width:300px;margin:16px auto 0;font-size:13px;color:#49527a;line-height:1.7}
+  .wa-steps b{color:var(--ink)}
+  .wa-ok{display:grid;place-items:center;gap:12px;padding:20px 10px;text-align:center}
+  .wa-ok .big{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:#e7f7ee;color:#1fa855}
+  .wa-ok .big svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:2.4}
+  .wa-ok b{font-size:15px}.wa-ok span{color:var(--muted);font-size:13px}
+  @media(max-width:860px){ .wa-grid{grid-template-columns:1fr} .wa-qr{width:230px;height:230px} }
+</style>
+
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="wa-grid">
+  <!-- status / controls -->
+  <div class="card wa-card">
+    <div class="wa-head">
+      <span class="wa-logo"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.6-6.1c-.250-.13-1.5-.74-1.7-.82-.23-.08-.4-.13-.56.13s-.64.82-.79.99-.29.19-.54.06a6.7 6.7 0 0 1-2-1.23 7.4 7.4 0 0 1-1.36-1.7c-.14-.25 0-.38.11-.51s.25-.29.37-.44a1.7 1.7 0 0 0 .25-.42.46.46 0 0 0 0-.44c-.06-.13-.56-1.35-.77-1.85s-.41-.42-.56-.43h-.48a.92.92 0 0 0-.67.31 2.8 2.8 0 0 0-.87 2.08 4.86 4.86 0 0 0 1 2.58 11.15 11.15 0 0 0 4.27 3.78c.6.26 1.06.41 1.42.53a3.42 3.42 0 0 0 1.57.1 2.56 2.56 0 0 0 1.68-1.18 2.08 2.08 0 0 0 .14-1.18c-.06-.11-.23-.17-.48-.29Z"/></svg></span>
+      <div><div class="wa-htitle">Verification WhatsApp</div><div class="wa-hsub">The number customers message to verify</div></div>
+    </div>
+
+    <div class="wa-state"><span class="wa-dot" id="waDot"></span><span class="wa-slabel" id="waState">Checking…</span></div>
+    <div class="wa-kv">
+      <span class="k">Number</span><span class="num" id="waNum">—</span>
+      <span class="k">Status</span><span id="waStatus2">—</span>
+      <span class="k">Connected</span><span id="waUptime">—</span>
+    </div>
+
+    <div class="wa-note bad" id="waOffline" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <span><b>Bot process not reachable.</b> The gszwabot service may be stopped. Check <code>pm2 logs gszwabot</code> on the server.</span>
+    </div>
+
+    <div class="wa-acts">
+      <button class="btn btn-g" type="button" id="waRec" onclick="waReconnect()">↻ Reconnect</button>
+      <button class="btn btn-g" type="button" id="waOut" style="color:#b42318" onclick="waLogout()">Log out &amp; re-pair</button>
+    </div>
+  </div>
+
+  <!-- QR / connected -->
+  <div class="card wa-card" id="waRight">
+    <div class="wa-qrbox" id="waQrBox" style="display:none">
+      <h3>Scan to connect</h3>
+      <p>Open WhatsApp on the verification phone → <b>Linked devices</b> → <b>Link a device</b>, then scan this code.</p>
+      <div class="wa-qr" id="waQr"><span class="ph">Waiting for QR…</span></div>
+      <div class="wa-steps">
+        <div><b>1.</b> Settings → Linked devices</div>
+        <div><b>2.</b> Tap “Link a device”</div>
+        <div><b>3.</b> Point the camera here</div>
+      </div>
+    </div>
+    <div class="wa-ok" id="waConnected" style="display:none">
+      <span class="big"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>
+      <b>Connected &amp; ready</b>
+      <span>Customers can verify on WhatsApp right now.</span>
+    </div>
+    <div class="wa-ok" id="waChecking"><span style="color:var(--muted);font-size:13px">Loading connection…</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var poll=null, busy=false;
+  function fmtNum(n){ n=String(n||'').replace(/[^0-9]/g,''); return n?('+'+n):'—'; }
+  function fmtSince(ts){
+    if(!ts) return 'just now';
+    var s=Math.max(0,Math.floor((Date.now()-ts)/1000));
+    if(s<60) return s+'s ago'; var m=Math.floor(s/60); if(m<60) return m+'m ago';
+    var h=Math.floor(m/60); var mm=m%60; if(h<24) return h+'h '+mm+'m ago';
+    var d=Math.floor(h/24); return d+'d ago';
+  }
+  function show(id,on){ var e=document.getElementById(id); if(e) e.style.display=on?'':'none'; }
+
+  function paint(d){
+    show('waChecking', false);
+    var dot=document.getElementById('waDot'), lab=document.getElementById('waState');
+    if(!d || !d.reachable){
+      dot.className='wa-dot off'; lab.textContent='Bot offline';
+      document.getElementById('waStatus2').textContent='Not reachable';
+      show('waOffline', true); show('waQrBox', false); show('waConnected', false);
+      document.getElementById('waNum').textContent='—'; document.getElementById('waUptime').textContent='—';
+      return;
+    }
+    show('waOffline', false);
+    document.getElementById('waNum').textContent=fmtNum(d.number);
+    if(d.connected){
+      dot.className='wa-dot on'; lab.textContent='Connected';
+      document.getElementById('waStatus2').textContent='Online';
+      document.getElementById('waUptime').textContent = d.connectedAt ? fmtSince(d.connectedAt) : 'connected';
+      show('waConnected', true); show('waQrBox', false);
+    } else {
+      dot.className='wa-dot wait'; lab.textContent= d.hasQr ? 'Waiting for scan' : 'Connecting…';
+      document.getElementById('waStatus2').textContent= d.hasQr ? 'Scan the QR to link' : 'Starting up';
+      document.getElementById('waUptime').textContent='—';
+      show('waConnected', false); show('waQrBox', true);
+      var box=document.getElementById('waQr');
+      if(d.qrImg){ box.innerHTML='<img alt="WhatsApp QR" src="'+d.qrImg+'">'; }
+      else { box.innerHTML='<span class="ph">Waiting for QR…</span>'; }
+    }
+  }
+
+  function tick(){
+    fetch('/admin/whatsapp/status.json',{credentials:'include'})
+      .then(function(r){return r.json();}).then(paint).catch(function(){ paint(null); });
+  }
+  function act(url, okMsg){
+    if(busy) return; busy=true;
+    var rec=document.getElementById('waRec'), out=document.getElementById('waOut');
+    rec.disabled=true; out.disabled=true;
+    fetch(url,{method:'POST',credentials:'include'}).then(function(r){return r.json();})
+      .finally(function(){ setTimeout(function(){ rec.disabled=false; out.disabled=false; busy=false; tick(); }, 1500); });
+  }
+  window.waReconnect=function(){ act('/admin/whatsapp/reconnect'); };
+  window.waLogout=function(){ if(confirm('Log this number out and start a fresh QR pairing? Verification will pause until you re-scan.')) act('/admin/whatsapp/logout'); };
+
+  tick(); poll=setInterval(tick, 3000);
+})();
+</script>
+<%- include('_shell_bottom') %>
