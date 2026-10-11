@@ -136,7 +136,7 @@
   function open(tab){ var want=tab||'purchases'; modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(want);
     window.__gszEntitle(function(f){ gszApplyNeeds(modal);
       var btn=modal.querySelector('.cthm-tab[data-tab="'+want+'"]');
-      if(!btn || btn.style.display==='none'){ var pick=null; tabs.forEach(function(t){ if(!pick && t.style.display!=='none') pick=t.getAttribute('data-tab'); }); if(pick) setTab(pick); }
+      if(btn && btn.style.display==='none'){ var pick=null; tabs.forEach(function(t){ if(!pick && t.style.display!=='none') pick=t.getAttribute('data-tab'); }); if(pick) setTab(pick); }
     });
   }
   function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
