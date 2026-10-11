@@ -1,0 +1,13 @@
+<%- include('../partials/auth2_top', { title:'Sign in', heading:'Welcome back', sub:'Access your orders, downloads and trials in one place.' }) %>
+<% if (typeof error!=='undefined' && error) { %><div class="aw-err"><%= error %></div><% } %>
+<form method="post" action="/login" autocomplete="on">
+  <input type="hidden" name="next" value="<%= typeof next!=='undefined'?next:'' %>">
+  <label for="email">Email or phone number</label>
+  <input id="email" type="text" name="email" value="<%= typeof email!=='undefined'?email:'' %>" placeholder="you@email.com  or  92 300 1234567" required autocomplete="username">
+  <label for="password">Password</label>
+  <input id="password" type="password" name="password" placeholder="Your password" required autocomplete="current-password">
+  <button class="aw-btn" type="submit">Sign in</button>
+</form>
+<p class="aw-alt" style="margin-top:16px"><a href="/forgot">Forgot password?</a></p>
+<p class="aw-alt">New here? <a href="/signup">Create an account</a></p>
+<%- include('../partials/auth2_bottom') %>

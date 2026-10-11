@@ -1,0 +1,21 @@
+<%- include('../partials/auth2_top', { title:'Create account', heading:'Create your account', sub:'One account for your orders, downloads and free trials.' }) %>
+<% if (typeof error!=='undefined' && error) { %><div class="aw-err"><%= error %></div><% } %>
+<form method="post" action="/signup" autocomplete="on">
+  <label for="name">Full name</label>
+  <input id="name" type="text" name="name" value="<%= (typeof form!=='undefined'&&form.name)||'' %>" placeholder="Your name" required autocomplete="name">
+  <label for="email">Email address</label>
+  <input id="email" type="email" name="email" value="<%= (typeof form!=='undefined'&&form.email)||'' %>" placeholder="you@email.com" required autocomplete="email">
+  <label for="wa">WhatsApp number</label>
+  <div class="aw-row">
+    <select name="wa_country" id="wa_country"><% var selCt=((typeof form!=='undefined'&&form.wa_country)||'PK'); (typeof countries!=='undefined'?countries:[]).forEach(function(ct){ %><option value="<%= ct.iso %>" <%= ct.iso===selCt?'selected':'' %>>+<%= ct.code %> · <%= ct.name %></option><% }); %></select>
+    <input id="wa" type="tel" name="wa" value="<%= (typeof form!=='undefined'&&form.wa)||'' %>" placeholder="300 1234567" required autocomplete="tel" style="flex:1">
+  </div>
+  <p class="aw-hint">Local format is fine — you'll verify it later.</p>
+  <label for="password">Password</label>
+  <input id="password" type="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+  <label for="password2">Confirm password</label>
+  <input id="password2" type="password" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+  <button class="aw-btn" type="submit">Create account</button>
+</form>
+<p class="aw-alt">Already have an account? <a href="/login">Sign in</a></p>
+<%- include('../partials/auth2_bottom') %>

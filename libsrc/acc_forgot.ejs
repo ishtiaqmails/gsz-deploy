@@ -1,0 +1,9 @@
+<%- include('../partials/auth2_top', { title:'Forgot password', heading:'Forgot password', sub:'Enter your email or phone and we’ll send a 6-digit reset code to your verified email and WhatsApp.' }) %>
+<% if (typeof error!=='undefined' && error) { %><div class="aw-err"><%= error %><% if (typeof noacct!=='undefined' && noacct) { %> <a href="/signup" style="color:#b42318;font-weight:700;text-decoration:underline">Create one</a>.<% } %></div><% } %>
+<form method="post" action="/forgot" autocomplete="on">
+  <label for="idf">Email or phone number</label>
+  <input id="idf" type="text" name="idf" value="<%= typeof idf!=='undefined'?idf:'' %>" placeholder="you@email.com  or  92 300 1234567" required autocomplete="username">
+  <button class="aw-btn" type="submit">Send reset code</button>
+</form>
+<p class="aw-alt">Remembered it? <a href="/login">Back to sign in</a></p>
+<%- include('../partials/auth2_bottom') %>
