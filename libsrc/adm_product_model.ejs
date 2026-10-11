@@ -231,8 +231,11 @@
       +'</div>'
       +'<div class="typeblock t-manual"><p class="note" style="margin:0">You’ll deliver this plan manually after each order.</p></div>'
       +'<div class="typeblock t-portal"><label class="fld">Portal product</label><select class="inp p_portal"><option value="">— select portal product —</option></select><p class="note" style="margin:6px 0 0">Delivered from the Accounts Portal (read-only).</p></div>'
-      +'<label class="fld">Warranty <span class="q">· replacement window, this plan</span></label>'
-      +'<input class="inp p_warr" placeholder="e.g. 7 days / 30 days — used by claims &amp; replacements">'
+      +'<label class="fld">Warranty <span class="q">· replacement window — used by claims</span></label>'
+      +'<div class="row2">'
+        +'<div><input class="inp p_warr_val" type="number" step="1" placeholder="e.g. 7"></div>'
+        +'<div><select class="inp p_warr_unit"><option value="">No warranty</option><option>Day</option><option>Days</option><option>Week</option><option>Weeks</option><option>Month</option><option>Months</option><option>Year</option><option>Years</option><option>Lifetime</option></select></div>'
+      +'</div>'
       +'<label class="fld">Product note <span class="q">· one note for this plan</span></label>'
       +'<input class="inp p_note" placeholder="Short note shown with this plan">'
       +'<label class="fld">Delivery instructions <span class="q">· shown on delivery</span></label>'
@@ -254,7 +257,10 @@
     if(d.duration_unit){el.querySelector('.p_du').value=d.duration_unit;}
     el.querySelector('.p_pkr').value=(d.price_pkr!=null?parseFloat(d.price_pkr):'');
     el.querySelector('.p_usd').value=(d.price_usd!=null?parseFloat(d.price_usd):'');
-    el.querySelector('.p_warr').value=d.warranty||'';
+    (function(){var _w=(d.warranty||'').trim(),_wv='',_wu='';
+      if(/^lifetime$/i.test(_w)){_wu='Lifetime';}
+      else{var m=_w.match(/^(\d+(?:\.\d+)?)\s*(.+)$/);if(m){_wv=m[1];var _u=m[2].trim().toLowerCase();var _map={day:'Day',days:'Days',week:'Week',weeks:'Weeks',month:'Month',months:'Months',year:'Year',years:'Years'};_wu=_map[_u]||'';}}
+      el.querySelector('.p_warr_val').value=_wv; if(_wu)el.querySelector('.p_warr_unit').value=_wu;})();
     el.querySelector('.p_note').value=d.product_note||'';
     el.querySelector('.p_dinstr').value=d.delivery_instructions||'';
     el.querySelector('.p_avail').value=d.avail_note||'';
@@ -378,7 +384,7 @@
         bot_sku:source==='bot'?p.querySelector('.p_bsku').value:'',
         bot_plan_key:p.querySelector('.p_bpk').value,
         bot_type:p.querySelector('.p_bt').value,
-        warranty:p.querySelector('.p_warr').value,
+        warranty:(function(){var v=(p.querySelector('.p_warr_val').value||'').trim(),u=p.querySelector('.p_warr_unit').value;return u==='Lifetime'?'Lifetime':((u&&v)?(v+' '+u):'');})(),
         version_labels:source==='bot'?versions:[],
         custom_fields:source==='inventory'?cf.map(function(x){return {label:x};}):[],
         product_note:p.querySelector('.p_note').value,
