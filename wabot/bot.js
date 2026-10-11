@@ -78,13 +78,26 @@ let lastCloseCode = null;   // last disconnect status code
 const startedAt = Date.now();
 let suppressAutoRestart = false; // true only during an admin-triggered logout/relogin
 
+// ---- sent-message store: lets us answer WhatsApp retry/resend requests, which fixes the
+// recipient-side "Waiting for this message. This may take a while." (a failed decryption
+// asks the sender to resend; without this the resend can't be fulfilled). ----
+const sentStore = new Map(); // message id -> WAMessageContent
+function remember(id, content) { if (!id || !content) return; sentStore.set(id, content); if (sentStore.size > 1500) { sentStore.delete(sentStore.keys().next().value); } }
+async function sendText(to, text) {
+  const r = await sock.sendMessage(to, { text: String(text) });
+  try { if (r && r.key && r.key.id && r.message) remember(r.key.id, r.message); } catch (e) {}
+  return r;
+}
+
 async function start() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
   sock = makeWASocket({
     version,
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
-    logger, markOnlineOnConnect: false, syncFullHistory: false
+    logger, markOnlineOnConnect: false, syncFullHistory: false,
+    // Resend on retry-receipt so recipients never get stuck on "Waiting for this message".
+    getMessage: async (key) => { return sentStore.get(key.id) || undefined; }
   });
 
   sock.ev.on('creds.update', saveCreds);
@@ -121,7 +134,7 @@ async function start() {
           if (Date.now() - last < COOLDOWN) continue;        // throttle unsupported spam
           lastRedirect.set(jid, Date.now());
         }
-        await sock.sendMessage(jid, { text: resp.reply });
+        await sendText(jid, resp.reply);
       } catch (e) { console.error('[wabot msg] ' + e.message); }
     }
   });
@@ -169,7 +182,7 @@ http.createServer((req, res) => {
         if (!to || !text) { res.writeHead(400, { 'Content-Type': 'application/json' }); return res.end('{"ok":false,"error":"to+text required"}'); }
         if (!sock || !sock.user) { res.writeHead(503, { 'Content-Type': 'application/json' }); return res.end('{"ok":false,"error":"not connected"}'); }
         const jid = String(to).indexOf('@') >= 0 ? String(to) : (String(to).replace(/[^0-9]/g, '') + '@s.whatsapp.net');
-        const r = await sock.sendMessage(jid, { text: String(text) });
+        const r = await sendText(jid, text);
         res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, id: r && r.key && r.key.id }));
       } catch (e) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: e.message })); }
     });
