@@ -4,30 +4,27 @@
   .pl-search{position:relative;flex:1;min-width:220px}
   .pl-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2}
   .pl-search input{margin:0;padding-left:36px;width:100%}
-  .iv-fields{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .iv-chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef2fb;color:#49527a}
-  .iv-chip.none{background:#fdeceb;color:#b42318}
+  .iv-chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2fb;color:#49527a;margin:1px 3px 1px 0;display:inline-block}
+  .iv-none{color:#b42318;font-size:12px}
   .iv-prod{padding:0;overflow:hidden;margin-bottom:16px}
   .iv-ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--hair)}
   .iv-pname{font-weight:700;font-size:15px}
-  .iv-ph .sp{flex:1}
   table.iv-plans{width:100%;border-collapse:collapse}
   table.iv-plans th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:9px 16px;font-weight:700}
-  table.iv-plans td{padding:11px 16px;border-top:1px solid var(--hair);font-size:14px}
-  table.iv-plans td.num b{font-weight:700}
+  table.iv-plans td{padding:11px 16px;border-top:1px solid var(--hair);font-size:14px;vertical-align:middle}
   .iv-av{color:#16b765;font-weight:700}
   .iv-av.z{color:#b42318}
-  .iv-lbl{display:none}
   .iv-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
   .iv-act .btn{padding:6px 11px}
   .iv-empty{padding:26px 18px;color:var(--muted)}
-  /* modal */
+  .iv-lbl{display:none}
+  /* add modal */
   .ivm-scrim{position:fixed;inset:0;background:rgba(18,22,40,.5);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 14px}
   .ivm-scrim.on{display:flex}
   .ivm-card{background:#fff;border-radius:18px;width:100%;max-width:720px;box-shadow:0 24px 60px rgba(18,22,40,.25);padding:22px 22px 20px}
-  .ivm-h{font-family:var(--display,inherit);font-weight:800;font-size:19px;margin:0 0 3px}
+  .ivm-h{font-weight:800;font-size:19px;margin:0 0 3px}
   .ivm-sub{color:var(--muted);font-size:13px;margin:0 0 16px}
-  .ivm-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .ivm-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
   .ivm-col label{display:block;font-weight:700;font-size:12.5px;margin:0 0 5px}
   .ivm-col textarea{width:100%;min-height:150px;border:1px solid var(--hair);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;resize:vertical}
   .ivm-cnt{font-size:11.5px;color:var(--muted);margin-top:4px;text-align:right}
@@ -50,19 +47,14 @@
     .iv-act .btn{flex:1;justify-content:center}
   }
 </style>
-<%
-  function fj(a){ return JSON.stringify(a||[]).replace(/"/g,'&quot;'); }
-  var money = function(n){ return 'Rs ' + Math.round(Number(n||0)).toLocaleString('en-US'); };
-%>
-<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-  <div style="flex:1"></div>
-  <button class="btn btn-g" type="button" onclick="ivFields('')">⚙️ Set product fields</button>
-</div>
+<% function fj(a){ return JSON.stringify(a||[]).replace(/"/g,'&quot;'); }
+   function money(n){ return 'Rs ' + Math.round(Number(n||0)).toLocaleString('en-US'); } %>
+
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
 
 <div class="dcards c3">
   <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Stock products</span><b class="dval"><%= d.stats.products %></b><span class="dsub">stock-based</span></div></div>
+    <div class="dmeta"><span class="dlbl">Stock products</span><b class="dval"><%= d.stats.products %></b><span class="dsub">own inventory</span></div></div>
   <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/></svg></span>
     <div class="dmeta"><span class="dlbl">Available units</span><b class="dval"><%= d.stats.units %></b><span class="dsub">ready to deliver</span></div></div>
   <div class="dcard" style="--t:#9a6cff"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.3a2.2 2.2 0 0 0-2.5-1.1 2 2 0 0 0-.2 3.8c1 .3 2 .6 2 1.7a2 2 0 0 1-2.6 1.6"/></svg></span>
@@ -76,40 +68,24 @@
 
 <div id="ivList">
 <% if (!d.prods.length) { %>
-  <div class="card iv-empty">No stock-based products yet. Set a product’s fields, then turn a plan to own inventory.</div>
+  <div class="card iv-empty">No stocked plans yet. On the <b>product page</b>, set a plan’s type to <b>Inventory</b> and give it fields — it appears here automatically.</div>
 <% } %>
 <% d.prods.forEach(function(pr){ %>
   <div class="card iv-prod" data-name="<%= (pr.name||'').toLowerCase() %>">
-    <div class="iv-ph">
-      <div class="iv-pname"><%= pr.name %></div>
-      <div class="iv-fields">
-        <% if (pr.fields.length) { pr.fields.forEach(function(f){ %><span class="iv-chip"><%= f %></span><% }); } else { %><span class="iv-chip none">No fields set</span><% } %>
-      </div>
-      <div class="sp"></div>
-      <button class="btn btn-g" type="button" onclick="ivFields('<%= pr.id %>', <%= fj(pr.fields) %>, '<%= (pr.name||'').replace(/'/g,"\\'") %>')">Edit fields</button>
-    </div>
+    <div class="iv-ph"><div class="iv-pname"><%= pr.name %></div></div>
     <table class="iv-plans">
-      <thead><tr><th>Plan</th><th>Price</th><th>Available</th><th>Sold</th><th></th></tr></thead>
+      <thead><tr><th>Plan</th><th>Fields</th><th>Available</th><th>Sold</th><th></th></tr></thead>
       <tbody>
-        <% pr.plans.forEach(function(pl){ var inv = pl.source==='inventory'; %>
+        <% pr.plans.forEach(function(pl){ var hasF = pl.fields && pl.fields.length; %>
         <tr data-name="<%= ((pr.name||'')+' '+(pl.label||'')).toLowerCase() %>">
-          <td class="num"><b><%= pl.label %></b></td>
-          <td><span class="iv-lbl">Price</span><%= money(pl.price_pkr) %></td>
+          <td class="num"><b><%= pl.label %></b><div style="color:var(--muted);font-size:12px"><%= money(pl.price_pkr) %></div></td>
+          <td><span class="iv-lbl">Fields</span><% if (hasF) { pl.fields.forEach(function(f){ %><span class="iv-chip"><%= f %></span><% }); } else { %><span class="iv-none">Set fields on product page</span><% } %></td>
           <td><span class="iv-lbl">Available</span><span class="iv-av <%= pl.avail?'':'z' %>"><%= pl.avail %></span></td>
           <td><span class="iv-lbl">Sold</span><%= pl.sold %></td>
           <td>
             <div class="iv-act">
-              <% if (inv) { %>
-                <% if (pr.fields.length) { %>
-                  <button class="btn btn-p" type="button" onclick="ivAdd('<%= pl.id %>','<%= (pr.name||'').replace(/'/g,"\\'") %>','<%= (pl.label||'').replace(/'/g,"\\'") %>', <%= fj(pr.fields) %>)">➕ Add</button>
-                <% } else { %>
-                  <button class="btn btn-g" type="button" onclick="ivFields('<%= pr.id %>', <%= fj(pr.fields) %>, '<%= (pr.name||'').replace(/'/g,"\\'") %>')">Set fields first</button>
-                <% } %>
-                <a class="btn btn-g" href="/admin/inventory/manage/<%= pl.id %>">⚙️ Manage</a>
-                <form method="post" action="/admin/inventory/plan/<%= pl.id %>/disable" style="display:inline" onsubmit="return confirm('Remove this plan from own inventory?')"><button class="btn btn-g" type="submit">Disable</button></form>
-              <% } else { %>
-                <form method="post" action="/admin/inventory/plan/enable" style="display:inline"><input type="hidden" name="plan_id" value="<%= pl.id %>"><button class="btn btn-g" type="submit">Enable stock</button></form>
-              <% } %>
+              <% if (hasF) { %><button class="btn btn-p" type="button" onclick="ivAdd('<%= pl.id %>','<%= (pr.name||'').replace(/'/g,"\\'") %>','<%= (pl.label||'').replace(/'/g,"\\'") %>', <%= fj(pl.fields) %>)">➕ Add</button><% } %>
+              <a class="btn btn-g" href="/admin/inventory/manage/<%= pl.id %>">⚙️ Manage</a>
             </div>
           </td>
         </tr>
@@ -136,26 +112,8 @@
       </div>
     </div>
     <div class="ivm-foot">
-      <button class="btn btn-g" type="button" onclick="ivClose('ivAddScrim')">Cancel</button>
+      <button class="btn btn-g" type="button" onclick="document.getElementById('ivAddScrim').classList.remove('on')">Cancel</button>
       <button class="btn btn-p" type="submit">Add to Stock</button>
-    </div>
-  </form>
-</div>
-
-<!-- Set / edit fields modal -->
-<div class="ivm-scrim" id="ivFieldsScrim">
-  <form class="ivm-card" method="post" action="/admin/inventory/product/fields" style="max-width:520px">
-    <div class="ivm-h" id="ivFieldsTitle">Set product fields</div>
-    <div class="ivm-sub">The credential fields every stock unit carries, comma-separated — e.g. <b>Email, Password</b> or <b>Email, Prime Pass, Mail Pass</b>.</div>
-    <select name="product_id" id="ivFieldsProd" class="inp" style="width:100%;margin-bottom:12px">
-      <option value="">— pick a product —</option>
-      <% d.allProducts.forEach(function(p){ %><option value="<%= p.id %>"><%= p.name %></option><% }); %>
-    </select>
-    <label style="display:block;font-weight:700;font-size:12.5px;margin:0 0 5px">Fields (comma-separated)</label>
-    <input type="text" name="fields" id="ivFieldsInput" placeholder="Email, Password" style="width:100%">
-    <div class="ivm-foot">
-      <button class="btn btn-g" type="button" onclick="ivClose('ivFieldsScrim')">Cancel</button>
-      <button class="btn btn-p" type="submit">Save fields</button>
     </div>
   </form>
 </div>
@@ -163,9 +121,6 @@
 <script>
 (function(){
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
-  window.ivClose=function(id){var m=document.getElementById(id);if(m)m.classList.remove('on');};
-  [].slice.call(document.querySelectorAll('.ivm-scrim')).forEach(function(m){ m.addEventListener('click',function(e){ if(e.target===m) m.classList.remove('on'); }); });
-
   window.ivAdd=function(planId,prodName,planLabel,fields){
     document.getElementById('ivAddPlan').value=planId;
     document.getElementById('ivAddTitle').textContent='Add Stock — '+prodName+' · '+planLabel;
@@ -176,13 +131,7 @@
     document.getElementById('ivAddScrim').classList.add('on');
   };
   window.ivCount=function(t){ var lines=t.value.split('\n').filter(function(x){return x.trim();}).length; var c=t.parentElement.querySelector('.ivm-cnt'); if(c) c.textContent=lines+' line'+(lines===1?'':'s'); };
-
-  window.ivFields=function(pid,fields,name){
-    document.getElementById('ivFieldsInput').value=(fields||[]).join(', ');
-    var sel=document.getElementById('ivFieldsProd'); if(pid){ sel.value=pid; } else { sel.value=''; }
-    document.getElementById('ivFieldsTitle').textContent=name?('Fields — '+name):'Set product fields';
-    document.getElementById('ivFieldsScrim').classList.add('on');
-  };
+  document.getElementById('ivAddScrim').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
 
   window.ivFilter=function(){
     var q=(document.getElementById('ivSearch').value||'').toLowerCase().trim();
