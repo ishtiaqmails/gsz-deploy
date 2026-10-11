@@ -12,6 +12,9 @@
   .pl-name{display:flex;align-items:center;gap:10px;min-width:0}
   .pl-name b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pl-ms{color:#9a6cff;font-size:13px;flex:none}
+  .pl-star{border:0;background:none;cursor:pointer;color:#d2cde0;font-size:17px;line-height:1;padding:0 2px;flex:none}
+  .pl-star.on{color:#9a6cff}
+  .pl-star:hover{color:#9a6cff;transform:scale(1.12)}
   .pl-act{display:flex;gap:6px;justify-content:flex-end}
   .pl-act .btn{padding:6px 10px}
   .pl-empty{padding:26px 18px;color:var(--muted)}
@@ -130,7 +133,7 @@
         <td><input type="checkbox" class="plsel" value="<%= r.id %>" onchange="plSelChg()"></td>
         <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
         <td class="pl-num"></td>
-        <td><span class="pl-name"><% if(r.image){ %><img class="pl-thumb" src="/static/img/<%= r.image %>" alt=""><% } else { %><span class="pl-thumb"></span><% } %><b><%= r.name %></b><% if(r.most_selling){ %><span class="pl-ms" title="Most Selling">★</span><% } %></span></td>
+        <td><span class="pl-name"><% if(r.image){ %><img class="pl-thumb" src="/static/img/<%= r.image %>" alt=""><% } else { %><span class="pl-thumb"></span><% } %><b><%= r.name %></b><form method="post" action="/admin/products/<%= r.id %>/most-selling" style="display:inline;margin:0"><button type="submit" class="pl-star<%= r.most_selling?' on':'' %>" title="<%= r.most_selling?'Most Selling — click to unmark':'Mark as Most Selling' %>">★</button></form></span></td>
         <td style="color:var(--muted)"><%= r.cat || '—' %></td>
         <td><% if(isH){ %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span><% } else { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } %></td>
         <td style="text-align:right"><div class="pl-act">
