@@ -17,6 +17,7 @@
   table.iv-plans td.num b{font-weight:700}
   .iv-av{color:#16b765;font-weight:700}
   .iv-av.z{color:#b42318}
+  .iv-lbl{display:none}
   .iv-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
   .iv-act .btn{padding:6px 11px}
   .iv-empty{padding:26px 18px;color:var(--muted)}
@@ -43,7 +44,8 @@
     table.iv-plans tbody,table.iv-plans tr,table.iv-plans td{display:block;width:auto}
     table.iv-plans tr{border-top:1px solid var(--hair);padding:12px 16px}
     table.iv-plans td{border:0;padding:3px 0}
-    table.iv-plans td.num{color:var(--muted);font-size:12.5px}
+    table.iv-plans td.num{font-size:14px}
+    .iv-lbl{display:inline;color:var(--muted);font-weight:600;font-size:12px;margin-right:4px}
     .iv-act{justify-content:stretch;margin-top:9px}
     .iv-act .btn{flex:1;justify-content:center}
   }
@@ -92,9 +94,9 @@
         <% pr.plans.forEach(function(pl){ var inv = pl.source==='inventory'; %>
         <tr data-name="<%= ((pr.name||'')+' '+(pl.label||'')).toLowerCase() %>">
           <td class="num"><b><%= pl.label %></b></td>
-          <td><%= money(pl.price_pkr) %></td>
-          <td><span class="iv-av <%= pl.avail?'':'z' %>"><%= pl.avail %></span></td>
-          <td><%= pl.sold %></td>
+          <td><span class="iv-lbl">Price</span><%= money(pl.price_pkr) %></td>
+          <td><span class="iv-lbl">Available</span><span class="iv-av <%= pl.avail?'':'z' %>"><%= pl.avail %></span></td>
+          <td><span class="iv-lbl">Sold</span><%= pl.sold %></td>
           <td>
             <div class="iv-act">
               <% if (inv) { %>
