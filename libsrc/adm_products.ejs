@@ -1,21 +1,62 @@
 <%- include('_shell_top', { active:'products', title:'Products' }) %>
 <style>
+  .pl-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .pl-search{position:relative;flex:1;min-width:220px}
+  .pl-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2}
+  .pl-search input{margin:0;padding-left:36px}
+  .pl-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  #prodTable td.drag{width:28px;text-align:center;color:var(--muted);cursor:grab}
   #prodTable tr.dragging{opacity:.5;background:#f3f5fb}
-  #prodTable td.drag{width:30px;text-align:center;color:var(--muted);cursor:grab}
-  #prodTable td.drag svg{width:18px;height:18px;vertical-align:middle;pointer-events:none}
-  #prodSaved{display:inline-block;margin-left:10px;font-size:13px;color:#0b7a42;opacity:0;transition:opacity .2s}
-  #prodSaved.on{opacity:1}
-  .bulkwrap summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
-  .bulkwrap summary::-webkit-details-marker{display:none}
-  .bulkwrap[open] summary .chev{transform:rotate(90deg)}
-  .bulkwrap summary .chev{transition:.15s;color:var(--muted)}
-  .bulkrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  body.pl-filtered #prodTable td.drag{opacity:.25;cursor:not-allowed}
+  .pl-thumb{width:34px;height:34px;border-radius:9px;object-fit:cover;border:1px solid var(--hair);flex:none;background:#f2f4fb}
+  .pl-name{display:flex;align-items:center;gap:10px;min-width:0}
+  .pl-name b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-ms{color:#9a6cff;font-size:13px;flex:none}
+  .pl-act{display:flex;gap:6px;justify-content:flex-end}
+  .pl-act .btn{padding:6px 10px}
+  .pl-empty{padding:26px 18px;color:var(--muted)}
+  .pl-page{display:flex;gap:6px;align-items:center;justify-content:center;padding:16px;flex-wrap:wrap}
+  .pl-page button{border:1px solid var(--hair);background:#fff;color:var(--ink);border-radius:9px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer}
+  .pl-page button.on{background:var(--grad);color:#fff;border-color:transparent}
+  .pl-page button:disabled{opacity:.4;cursor:default}
+  /* bulk */
+  .pl-bulk{position:sticky;top:72px;z-index:18;margin-bottom:16px;display:none}
+  .pl-bulk.show{display:block}
+  .pl-bulk .card{padding:16px 18px;border:1.5px solid color-mix(in srgb,var(--brand) 35%,#fff)}
+  .pl-bulk-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .pl-bulk-h b{font-size:15px}
+  .pl-cnt{background:var(--grad);color:#fff;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px}
+  .pl-brow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .pl-brow input,.pl-brow select{margin:0;min-width:0}
+  .pl-brow .lb{font-size:12.5px;font-weight:700;color:var(--muted);min-width:92px}
+  .pl-sub{border-top:1px dashed var(--hair);margin-top:14px;padding-top:12px}
+  .pl-sub h4{margin:0 0 2px;font-size:13.5px}
+  .pl-sub .hint{margin:0 0 6px;color:var(--muted);font-size:12px}
+  @media(max-width:620px){ .pl-brow .lb{min-width:100%} }
+  /* ---- mobile app model: rows become cards ---- */
+  @media(max-width:700px){
+    .pl-bulk{position:static;top:auto}
+    .card[style*="overflow:hidden"]{overflow:visible!important}
+    #prodTable{min-width:0!important}
+    #prodTable thead{display:none}
+    #prodTable tbody,#prodTable tr,#prodTable td{display:block;width:auto}
+    #prodTable tr{border:1px solid var(--hair);border-radius:13px;margin:12px;padding:12px 14px;position:relative;background:#fff}
+    #prodTable td{padding:3px 0;border:0}
+    #prodTable td.drag,#prodTable td.pl-num{display:none}
+    #prodTable td:first-child{position:absolute;top:12px;right:12px;padding:0}
+    #prodTable .pl-name b{white-space:normal}
+    #prodTable td:nth-child(5){color:var(--muted);font-size:12.5px;margin-top:2px}
+    #prodTable td:nth-child(6){margin-top:6px}
+    .pl-act{justify-content:stretch;margin-top:10px}
+    .pl-act .btn{flex:1;justify-content:center}
+  }
 </style>
 <%
   var total=rows.length;
   var live=rows.filter(function(r){return r.active && !r.hidden;}).length;
   var hidden=total-live;
-  var trending=rows.filter(function(r){return r.trending;}).length;
+  var selling=rows.filter(function(r){return r.most_selling;}).length;
+  var catMap={}; rows.forEach(function(r){ if(r.cat_slug){ (catMap[r.cat_slug]=catMap[r.cat_slug]||{name:r.cat,n:0}).n++; } });
 %>
 <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
   <div style="flex:1"></div>
@@ -30,71 +71,156 @@
     <div class="dmeta"><span class="dlbl">Live</span><b class="dval"><%= live %></b><span class="dsub">visible on site</span></div></div>
   <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 21 12a9 9 0 0 1-1.1 2.3M6.1 6.1A9 9 0 0 0 3 12a9 9 0 0 0 12 8.5"/><path d="m2 2 20 20"/></svg></span>
     <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= hidden %></b><span class="dsub">not shown</span></div></div>
-  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="m12 2 2.6 6.3L21 9l-5 4.3L17.5 20 12 16.5 6.5 20 8 13.3 3 9l6.4-.7L12 2Z"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Trending</span><b class="dval"><%= trending %></b><span class="dsub">featured picks</span></div></div>
+  <div class="dcard" style="--t:#9a6cff"><span class="dic"><svg viewBox="0 0 24 24"><path d="m12 2 2.6 6.3L21 9l-5 4.3L17.5 20 12 16.5 6.5 20 8 13.3 3 9l6.4-.7L12 2Z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Most Selling</span><b class="dval"><%= selling %></b><span class="dsub">featured picks</span></div></div>
 </div>
 
-<form id="bulkf" method="post" action="/admin/products/bulk"></form>
-<details class="card bulkwrap" style="margin-bottom:16px">
-  <summary><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>Bulk actions on selected products</summary>
-  <div class="bulkrow">
-    <b style="font-size:13.5px;min-width:90px">Set note:</b>
-    <input form="bulkf" type="text" name="note" placeholder="Note to apply to the selected products" style="flex:1;min-width:220px;margin:0">
-    <button form="bulkf" name="op" value="set" class="btn btn-p" type="submit">Apply</button>
-    <button form="bulkf" name="op" value="clear" class="btn btn-g" type="submit">Clear note</button>
+<!-- Bulk bar (shows when rows selected) -->
+<div class="pl-bulk" id="plBulk">
+  <div class="card">
+    <div class="pl-bulk-h"><span class="pl-cnt" id="plCnt">0 selected</span><b>Bulk actions</b>
+      <div style="flex:1"></div>
+      <button class="btn btn-g" type="button" onclick="plVis('unhide')">Show</button>
+      <button class="btn btn-g" type="button" onclick="plVis('hide')">Hide</button>
+      <button class="btn btn-g" style="color:#b42318" type="button" onclick="plVis('delete')">Delete</button>
+    </div>
+    <div class="pl-sub">
+      <h4>Download buttons</h4>
+      <p class="hint">Add a button to all selected products, or edit / delete / hide one that already exists on them.</p>
+      <div class="pl-brow"><span class="lb">Add new:</span>
+        <input type="text" id="dlAddLabel" placeholder="Label (e.g. Download APK)" style="flex:1 1 150px">
+        <input type="text" id="dlAddUrl" placeholder="https://..." style="flex:2 1 200px">
+        <button class="btn btn-p" type="button" onclick="plDl('add')">Add to selected</button>
+      </div>
+      <div class="pl-brow"><span class="lb">Existing:</span>
+        <select id="dlPick" style="flex:1 1 160px" onchange="plDlPick()"><option value="">— pick a button on selected —</option></select>
+        <input type="text" id="dlEditUrl" placeholder="New URL (for Edit)" style="flex:2 1 180px">
+        <button class="btn btn-g" type="button" onclick="plDl('edit')">Edit URL</button>
+        <button class="btn btn-g" type="button" onclick="plDl('hide')">Hide</button>
+        <button class="btn btn-g" type="button" onclick="plDl('unhide')">Unhide</button>
+        <button class="btn btn-g" style="color:#b42318" type="button" onclick="plDl('delete')">Delete</button>
+      </div>
+    </div>
   </div>
-  <div class="bulkrow">
-    <b style="font-size:13.5px;min-width:90px">Add download:</b>
-    <input form="bulkf" type="text" name="dl_label" placeholder="Label (e.g. Download APK)" style="min-width:160px;margin:0">
-    <input form="bulkf" type="text" name="dl_url" placeholder="https://..." style="flex:1;min-width:200px;margin:0">
-    <button form="bulkf" name="op" value="add-download" class="btn btn-p" type="submit">Add to selected</button>
-  </div>
-</details>
+</div>
+
+<div class="pl-tools">
+  <div class="pl-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" id="plSearch" placeholder="Search products…" autocomplete="off" oninput="plRender()"></div>
+</div>
+<div class="pl-chips" id="plChips">
+  <button class="chip on" data-cat="" type="button" onclick="plCat(this)">All <span class="n"><%= total %></span></button>
+  <% Object.keys(catMap).forEach(function(slug){ %>
+    <button class="chip" data-cat="<%= slug %>" type="button" onclick="plCat(this)"><%= catMap[slug].name %> <span class="n"><%= catMap[slug].n %></span></button>
+  <% }); %>
+</div>
 
 <div class="card" style="padding:0;overflow:hidden">
-  <div style="padding:14px 18px 0"><span class="fld" style="margin:0">Catalog order</span><span id="prodSaved">Order saved ✓</span></div>
   <table id="prodTable">
-    <thead><tr><th style="width:34px"><input type="checkbox" id="selall" title="Select all"></th><th style="width:30px" title="Drag to reorder"></th><th>Product</th><th>Category</th><th>From</th><th>Trending</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <thead><tr>
+      <th style="width:34px"><input type="checkbox" id="selall" title="Select all on page"></th>
+      <th style="width:28px" title="Drag to reorder"></th>
+      <th style="width:44px">#</th>
+      <th>Product</th><th>Category</th><th>Status</th>
+      <th style="text-align:right">Actions</th>
+    </tr></thead>
     <tbody>
-    <% if (!rows.length) { %><tr><td colspan="8" style="color:var(--muted);padding:24px 18px">No products yet. <a href="#" onclick="pmOpen('');return false" style="color:var(--brand);font-weight:600">Add your first →</a></td></tr><% } %>
-    <% rows.forEach(function(r, i){ %>
-      <tr data-id="<%= r.id %>">
-        <td><input type="checkbox" name="ids" value="<%= r.id %>" form="bulkf"></td>
-        <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
-        <td style="font-weight:600"><%= r.name %></td>
+    <% rows.forEach(function(r){ var isH=(r.hidden||!r.active); %>
+      <tr data-id="<%= r.id %>" data-name="<%= (r.name||'').toLowerCase().replace(/"/g,'') %>" data-cat="<%= r.cat_slug||'' %>">
+        <td><input type="checkbox" class="plsel" value="<%= r.id %>" onchange="plSelChg()"></td>
+        <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
+        <td class="pl-num"></td>
+        <td><span class="pl-name"><% if(r.image){ %><img class="pl-thumb" src="/static/img/<%= r.image %>" alt=""><% } else { %><span class="pl-thumb"></span><% } %><b><%= r.name %></b><% if(r.most_selling){ %><span class="pl-ms" title="Most Selling">★</span><% } %></span></td>
         <td style="color:var(--muted)"><%= r.cat || '—' %></td>
-        <td style="white-space:nowrap;font-weight:700">Rs <%= r.price ? Math.round(r.price).toLocaleString('en-US') : '—' %></td>
-        <td>
-          <form method="post" action="/admin/products/<%= r.id %>/trending" style="display:inline">
-            <button class="btn btn-g" style="padding:6px 11px;<%= r.trending ? 'color:#c8890a;font-weight:700' : 'color:var(--muted)' %>" type="submit" title="<%= r.trending ? 'Remove from Trending' : 'Mark as Trending' %>"><%= r.trending ? '★ Trending' : '☆ Mark' %></button>
-          </form>
-        </td>
-        <td>
-          <% if (r.hidden || !r.active) { %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span>
-          <% } else { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } %>
-        </td>
-        <td style="text-align:right;white-space:nowrap">
-          <button class="btn btn-g" style="padding:6px 11px" type="button" onclick="pmOpen(<%= r.id %>)">Edit</button>
-          <form method="post" action="/admin/products/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= (r.hidden||!r.active) ? 'Show' : 'Hide' %></button></form>
-          <form method="post" action="/admin/products/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this product permanently?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
-        </td>
+        <td><% if(isH){ %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span><% } else { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } %></td>
+        <td style="text-align:right"><div class="pl-act">
+          <button class="btn btn-g" type="button" onclick="pmOpen(<%= r.id %>)">Edit</button>
+          <form method="post" action="/admin/products/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" type="submit"><%= isH ? 'Show' : 'Hide' %></button></form>
+          <form method="post" action="/admin/products/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this product permanently?')"><button class="btn btn-g" style="color:#b42318" type="submit">Delete</button></form>
+        </div></td>
       </tr>
     <% }); %>
     </tbody>
   </table>
+  <div class="pl-empty" id="plEmpty" style="display:none">No products match your search.</div>
+  <div class="pl-page" id="plPage"></div>
 </div>
-<script src="/static/js/admin-sort.js?v=1"></script>
-<script>
-(function(){var sa=document.getElementById('selall');if(sa)sa.addEventListener('change',function(){document.querySelectorAll('input[name="ids"]').forEach(function(c){c.checked=sa.checked;});});})();
-adminSort({
-  tbody: '#prodTable tbody', handle: '.drag', idAttr: 'data-id',
-  endpoint: '/admin/products/reorder',
-  onsaved: function (d) { if (d && d.ok) { var s = document.getElementById('prodSaved'); if (s) { s.classList.add('on'); setTimeout(function () { s.classList.remove('on'); }, 1600); } } }
-});
-</script>
+
 <script>
 window.__PM_CATS = <%- JSON.stringify(typeof cats!=='undefined'?cats:[]) %>;
 window.__PM_BOTS = <%- JSON.stringify(typeof bots!=='undefined'?bots:[]) %>;
+window.__PM_DL   = <%- JSON.stringify(typeof dlmap!=='undefined'?dlmap:{}) %>;
 </script>
 <%- include('product_model') %>
+<script src="/static/js/admin-sort.js?v=1"></script>
+<script>
+(function(){
+  var PER=20, page=1;
+  var rows=function(){return [].slice.call(document.querySelectorAll('#prodTable tbody tr'));};
+  function matched(){
+    var q=(document.getElementById('plSearch').value||'').toLowerCase().trim();
+    var words=q?q.split(/\s+/):[];
+    var cat=(document.querySelector('#plChips .chip.on')||{}).getAttribute? document.querySelector('#plChips .chip.on').getAttribute('data-cat'):'';
+    return rows().filter(function(tr){
+      if(cat && tr.getAttribute('data-cat')!==cat) return false;
+      var n=tr.getAttribute('data-name')||'';
+      return words.every(function(w){return n.indexOf(w)>=0;});
+    });
+  }
+  window.plRender=function(){
+    var m=matched(); rows().forEach(function(tr){tr.style.display='none';});
+    var pages=Math.max(1,Math.ceil(m.length/PER)); if(page>pages)page=pages;
+    var start=(page-1)*PER;
+    m.slice(start,start+PER).forEach(function(tr,i){tr.style.display='';tr.querySelector('.pl-num').textContent=start+i+1;});
+    document.getElementById('plEmpty').style.display=m.length?'none':'block';
+    // filtered state disables reorder
+    var q=document.getElementById('plSearch').value.trim();var cat=(document.querySelector('#plChips .chip.on')||{}).getAttribute?document.querySelector('#plChips .chip.on').getAttribute('data-cat'):'';
+    document.body.classList.toggle('pl-filtered', !!(q||cat||pages>1));
+    // pagination
+    var pg=document.getElementById('plPage');pg.innerHTML='';
+    if(pages>1){
+      var mk=function(txt,p,dis,on){var b=document.createElement('button');b.textContent=txt;if(on)b.className='on';if(dis)b.disabled=true;b.onclick=function(){page=p;plRender();window.scrollTo(0,0);};pg.appendChild(b);};
+      mk('‹',page-1,page<=1);
+      for(var p=1;p<=pages;p++){ if(pages>7 && p>2 && p<pages-1 && Math.abs(p-page)>1){ if(p===3||p===pages-2){var s=document.createElement('span');s.textContent='…';s.style.color='var(--muted)';pg.appendChild(s);} continue;} mk(String(p),p,false,p===page); }
+      mk('›',page+1,page>=pages);
+    }
+    plSelChg();
+  };
+  window.plCat=function(b){document.querySelectorAll('#plChips .chip').forEach(function(x){x.classList.remove('on');});b.classList.add('on');page=1;plRender();};
+  // selection + bulk
+  window.plSelChg=function(){
+    var sel=[].slice.call(document.querySelectorAll('.plsel:checked')).map(function(c){return c.value;});
+    var bar=document.getElementById('plBulk');bar.classList.toggle('show',sel.length>0);
+    document.getElementById('plCnt').textContent=sel.length+' selected';
+    // self-aware: distinct download labels across selected
+    var DL=window.__PM_DL||{};var labels={};
+    sel.forEach(function(id){(DL[id]||[]).forEach(function(d){labels[d.label]=(labels[d.label]||0)+1;});});
+    var pick=document.getElementById('dlPick');var cur=pick.value;
+    pick.innerHTML='<option value="">— pick a button on selected —</option>'+Object.keys(labels).map(function(l){return '<option value="'+l.replace(/"/g,'&quot;')+'">'+l+' ('+labels[l]+')</option>';}).join('');
+    if(cur)pick.value=cur;
+  };
+  window.plDlPick=function(){};
+  function selIds(){return [].slice.call(document.querySelectorAll('.plsel:checked')).map(function(c){return parseInt(c.value,10);});}
+  function post(url,body,okMsg){
+    fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json();}).then(function(j){ if(j.ok){location.href='/admin/products?ok='+encodeURIComponent(okMsg);} else {alert('Failed: '+(j.error||'unknown'));} })
+      .catch(function(e){alert('Failed: '+e.message);});
+  }
+  window.plVis=function(op){var ids=selIds();if(!ids.length)return;if(op==='delete'&&!confirm('Delete '+ids.length+' product(s) permanently?'))return;
+    post('/admin/products/bulk-visibility',{ids:ids,op:op}, ids.length+' product(s) updated');};
+  window.plDl=function(op){var ids=selIds();if(!ids.length)return;
+    var body={ids:ids,op:op};
+    if(op==='add'){body.label=document.getElementById('dlAddLabel').value;body.url=document.getElementById('dlAddUrl').value;}
+    else{body.label=document.getElementById('dlPick').value; if(!body.label){alert('Pick a download button first.');return;} if(op==='edit')body.url=document.getElementById('dlEditUrl').value;}
+    if(op==='delete'&&!confirm('Delete "'+body.label+'" from selected products?'))return;
+    post('/admin/products/bulk-downloads',body,'Downloads updated');};
+  // select all (current page)
+  var sa=document.getElementById('selall');
+  if(sa)sa.addEventListener('change',function(){rows().forEach(function(tr){if(tr.style.display!=='none'){var c=tr.querySelector('.plsel');if(c)c.checked=sa.checked;}});plSelChg();});
+  // drag reorder (disabled while filtered/paginated)
+  adminSort({tbody:'#prodTable tbody',handle:'.drag',idAttr:'data-id',endpoint:'/admin/products/reorder',
+    onsaved:function(d){ if(d&&d.ok){ plRender(); } }});
+  plRender();
+})();
+</script>
 <%- include('_shell_bottom') %>
