@@ -1,63 +1,115 @@
 <%- include('_shell_top', { active:'categories', title:'Categories' }) %>
 <style>
+  .ct-ic{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;background:#eef2fb;color:#5b6bb5}
+  .ct-ic svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .ct-name{display:flex;align-items:center;gap:11px;min-width:0}
+  .ct-name b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef2fb;color:#49527a}
+  .ct-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .ct-act .btn{padding:6px 10px}
+  #catTable td.drag{width:28px;text-align:center;color:var(--muted);cursor:grab}
+  #catTable td.drag svg{width:17px;height:17px;vertical-align:middle;pointer-events:none}
   #catTable tr.dragging{opacity:.5;background:#f3f5fb}
-  #catTable td.drag{width:30px;text-align:center;color:var(--muted);cursor:grab}
-  #catTable td.drag svg{width:18px;height:18px;vertical-align:middle;pointer-events:none}
-  #catSaved{display:inline-block;margin-left:10px;font-size:13px;color:#0b7a42;opacity:0;transition:opacity .2s}
-  #catSaved.on{opacity:1}
+  .ct-lbl{display:none}
+  .ivm-scrim{position:fixed;inset:0;background:rgba(18,22,40,.5);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 14px}
+  .ivm-scrim.on{display:flex}
+  .ivm-card{background:#fff;border-radius:18px;width:100%;max-width:460px;box-shadow:0 24px 60px rgba(18,22,40,.25);padding:22px}
+  .ivm-h{font-weight:800;font-size:18px;margin:0 0 14px}
+  .ivm-f{margin-bottom:12px}.ivm-f label{display:block;font-weight:700;font-size:12.5px;margin:0 0 5px}
+  .ivm-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+  @media(max-width:700px){
+    #catTable thead{display:none}
+    #catTable tbody,#catTable tr,#catTable td{display:block;width:auto}
+    #catTable tr{border:1px solid var(--hair);border-radius:13px;margin:12px;padding:12px 14px;position:relative;background:#fff}
+    #catTable td{border:0;padding:3px 0}
+    #catTable td.drag{position:absolute;top:14px;right:12px;width:auto}
+    #catTable td.ct-num{display:none}
+    .ct-lbl{display:inline;color:var(--muted);font-weight:600;font-size:12px;margin-right:4px}
+    .ct-act{justify-content:stretch;margin-top:10px}.ct-act .btn{flex:1;justify-content:center}
+  }
 </style>
+<%
+  function catSvg(slug){ var m={
+    entertainment:'<rect x="2.5" y="4" width="19" height="16" rx="2.5"/><polygon points="10 8 16 12 10 16 10 8"/>',
+    iptv:'<rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8M12 17.5V21"/>',
+    vpns:'<path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5z"/>',
+    vpn:'<path d="M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5z"/>',
+    tools:'<path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/>',
+    players:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    sports:'<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18M3 12h18"/>',
+    gaming:'<path d="M6 11h4M8 9v4"/><circle cx="16" cy="10" r="1"/><circle cx="18" cy="13" r="1"/><rect x="2.5" y="6" width="19" height="12" rx="4"/>'
+  }; return m[slug]||'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'; }
+  var total=rows.length, active=rows.filter(function(r){return r.active;}).length, hidden=total-active;
+%>
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+  <div style="flex:1"></div>
+  <button class="btn btn-p" type="button" onclick="catOpen('')">+ Add category</button>
+</div>
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
-<% var live=rows.filter(function(r){return r.active;}).length; var prods=rows.reduce(function(a,r){return a+(r.n||0);},0); %>
-<div class="dcards">
-  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="11" width="18" height="4" rx="1"/><rect x="3" y="18" width="12" height="4" rx="1"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Categories</span><b class="dval"><%= rows.length %></b><span class="dsub">total</span></div></div>
-  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Live</span><b class="dval"><%= live %></b><span class="dsub">shown on site</span></div></div>
-  <div class="dcard" style="--t:#8a2bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
-    <div class="dmeta"><span class="dlbl">Products</span><b class="dval"><%= prods %></b><span class="dsub">across categories</span></div></div>
+
+<div class="dcards c3">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total categories</span><b class="dval"><%= total %></b><span class="dsub">in your store</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Active</span><b class="dval"><%= active %></b><span class="dsub">visible to customers</span></div></div>
+  <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 21 12a9 9 0 0 1-1.1 2.3M6.1 6.1A9 9 0 0 0 3 12a9 9 0 0 0 12 8.5"/><path d="m2 2 20 20"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Hidden</span><b class="dval"><%= hidden %></b><span class="dsub">dashboard only</span></div></div>
 </div>
 
-<div class="card">
-  <h2 style="margin-bottom:12px">Add a category</h2>
-  <form method="post" action="/admin/categories/save" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
-    <div><label class="fld">Name</label><input type="text" name="name" placeholder="e.g. Music" required style="margin:0"></div>
-    <div><label class="fld">Tag (small label)</label><input type="text" name="tag" placeholder="e.g. Streaming" style="margin:0"></div>
-    <button class="btn btn-p" type="submit">Add</button>
-  </form>
-</div>
+<p class="hint" style="margin:0 0 12px;color:var(--muted);font-size:13px"><b>Drag the handle</b> to reorder — the order here is the order customers see across your store.</p>
 
 <div class="card" style="padding:0;overflow:hidden">
-  <div style="padding:14px 18px 0"><span class="fld" style="margin:0">Order &amp; manage</span><span id="catSaved">Order saved ✓</span><span style="color:var(--muted);font-size:12.5px;margin-left:8px">— drag ⠿ to reorder</span></div>
   <table id="catTable">
-    <thead><tr><th style="width:30px"></th><th>Category</th><th>Tag</th><th>Products</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <thead><tr><th style="width:28px"></th><th style="width:40px">#</th><th>Category</th><th>Tag</th><th>Products</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
     <tbody>
-    <% rows.forEach(function(r){ %>
+    <% if (!rows.length) { %><tr><td colspan="7" style="padding:26px 16px;color:var(--muted)">No categories yet. Tap “Add category”.</td></tr><% } %>
+    <% rows.forEach(function(r, i){ %>
       <tr data-id="<%= r.id %>">
         <td class="drag" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></td>
+        <td class="ct-num"><%= i+1 %></td>
+        <td><div class="ct-name"><span class="ct-ic"><svg viewBox="0 0 24 24"><%- catSvg(r.slug) %></svg></span><b><%= r.name %></b></div></td>
+        <td><span class="ct-lbl">Tag</span><% if (r.tag) { %><span class="ct-tag"><%= r.tag %></span><% } else { %><span style="color:var(--muted)">—</span><% } %></td>
+        <td><span class="ct-lbl">Products</span><%= r.n %></td>
+        <td><span class="ct-lbl">Status</span><% if (r.active) { %><span style="color:#16935c;font-weight:700">Live</span><% } else { %><span style="color:#b42318;font-weight:700">Hidden</span><% } %></td>
         <td>
-          <form id="catf<%= r.id %>" method="post" action="/admin/categories/save"></form>
-          <input form="catf<%= r.id %>" type="hidden" name="id" value="<%= r.id %>">
-          <input form="catf<%= r.id %>" type="text" name="name" value="<%= r.name %>" required style="margin:0;font-weight:600;min-width:140px">
-        </td>
-        <td><input form="catf<%= r.id %>" type="text" name="tag" value="<%= r.tag || '' %>" placeholder="—" style="margin:0;min-width:120px"></td>
-        <td><%= r.n %></td>
-        <td><% if (r.active) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } else { %><span class="spill" style="background:#fdecec;color:#b42318">Hidden</span><% } %></td>
-        <td style="text-align:right;white-space:nowrap">
-          <button form="catf<%= r.id %>" class="btn btn-p" style="padding:6px 11px" type="submit">Save</button>
-          <form method="post" action="/admin/categories/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" style="padding:6px 11px" type="submit"><%= r.active ? 'Hide' : 'Show' %></button></form>
-          <form method="post" action="/admin/categories/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete category “<%= r.name %>”?<%= r.n>0 ? ('\\n\\n'+r.n+' product(s) will become uncategorized (they are NOT deleted).') : '' %>')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+          <div class="ct-act">
+            <button class="btn btn-g" type="button" onclick="catOpen('<%= r.id %>','<%= (r.name||'').replace(/'/g,"&#39;") %>','<%= (r.tag||'').replace(/'/g,"&#39;") %>')">Edit</button>
+            <form method="post" action="/admin/categories/<%= r.id %>/toggle" style="display:inline"><button class="btn btn-g" type="submit"><%= r.active ? 'Hide' : 'Show' %></button></form>
+            <form method="post" action="/admin/categories/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete category “<%= r.name %>”?<%= r.n>0 ? (' — '+r.n+' product(s) will become uncategorized (NOT deleted).') : '' %>')"><button class="btn btn-g" style="color:#b42318" type="submit">Delete</button></form>
+          </div>
         </td>
       </tr>
     <% }); %>
     </tbody>
   </table>
 </div>
+
+<!-- Add / Edit category modal -->
+<div class="ivm-scrim" id="catScrim">
+  <form class="ivm-card" method="post" action="/admin/categories/save">
+    <div class="ivm-h" id="catTitle">Add category</div>
+    <input type="hidden" name="id" id="catId">
+    <div class="ivm-f"><label>Category name</label><input type="text" name="name" id="catName" placeholder="e.g. Streaming" required style="width:100%"></div>
+    <div class="ivm-f"><label>Tag <span style="font-weight:500;color:var(--muted)">· small label (optional)</span></label><input type="text" name="tag" id="catTag" placeholder="e.g. Entertainment" style="width:100%"></div>
+    <div class="ivm-foot">
+      <button class="btn btn-g" type="button" onclick="document.getElementById('catScrim').classList.remove('on')">Cancel</button>
+      <button class="btn btn-p" type="submit">Save</button>
+    </div>
+  </form>
+</div>
+
 <script src="/static/js/admin-sort.js?v=1"></script>
 <script>
-  adminSort({
-    tbody: '#catTable tbody', handle: '.drag', idAttr: 'data-id',
-    endpoint: '/admin/categories/reorder',
-    onsaved: function (d) { if (d && d.ok) { var s = document.getElementById('catSaved'); if (s) { s.classList.add('on'); setTimeout(function () { s.classList.remove('on'); }, 1600); } } }
-  });
+  window.catOpen=function(id,name,tag){
+    document.getElementById('catId').value=id||'';
+    document.getElementById('catName').value=name||'';
+    document.getElementById('catTag').value=tag||'';
+    document.getElementById('catTitle').textContent=id?'Edit category':'Add category';
+    document.getElementById('catScrim').classList.add('on');
+    setTimeout(function(){ try{document.getElementById('catName').focus();}catch(e){} },30);
+  };
+  document.getElementById('catScrim').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+  if(window.adminSort) adminSort({ tbody:'#catTable tbody', handle:'.drag', idAttr:'data-id', endpoint:'/admin/categories/reorder' });
 </script>
 <%- include('_shell_bottom') %>
