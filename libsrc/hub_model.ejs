@@ -102,11 +102,11 @@
     <button class="cthm-x" data-close aria-label="Close">✕</button>
     <div class="cthm-head"><h3>Galaxy Hub</h3><p>Your orders, access, renewals, trials &amp; support — all in one place.</p></div>
     <div class="cthm-tabs">
-      <button class="cthm-tab" data-tab="purchases" data-need="orders" style="display:none">Orders</button>
-      <button class="cthm-tab" data-tab="code" data-need="access" style="display:none">Access</button>
-      <button class="cthm-tab" data-tab="renew" data-need="renewable" style="display:none">Renew</button>
+      <button class="cthm-tab" data-tab="purchases">Orders</button>
+      <button class="cthm-tab" data-tab="code">Access</button>
+      <button class="cthm-tab" data-tab="renew">Renew</button>
       <button class="cthm-tab" data-tab="trials">Trials</button>
-      <button class="cthm-tab" data-tab="claim" data-need="orders" style="display:none">Claim</button>
+      <button class="cthm-tab" data-tab="claim">Claim</button>
       <button class="cthm-tab" data-tab="account">Account</button>
     </div>
     <div class="cthm-body" id="cthmBody"><div class="cthm-load">Loading…</div></div>
@@ -122,23 +122,10 @@
   var WANUM=<%- JSON.stringify(_wanum) %>;
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
   function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
-  /* ---------- Quick Access entitlements (which tools a customer sees) ---------- */
-  window.__gszEntitle = window.__gszEntitle || (function(){ var cache=null, waiting=[], fetching=false;
-    return function(cb){ if(cache){ cb(cache); return; } waiting.push(cb); if(fetching) return; fetching=true;
-      fetch('/account/tools/entitlements',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return {ok:false,loggedIn:false,orders:false,access:false,renewable:false};}).then(function(j){ cache=j||{}; var w=waiting; waiting=[]; w.forEach(function(f){try{f(cache);}catch(e){}}); }); };
-  })();
-  function gszApplyNeeds(root){ var els=(root||document).querySelectorAll('[data-need]'); if(!els.length) return;
-    window.__gszEntitle(function(f){ [].forEach.call(els,function(el){ var need=el.getAttribute('data-need'); var ok= need==='orders'?!!f.orders:(need==='access'?!!f.access:(need==='renewable'?!!f.renewable:true)); el.style.display= ok?'':'none'; }); }); }
-  window.__gszApplyNeeds=gszApplyNeeds;
   window.__gszScrollLock = window.__gszScrollLock || (function(){ var n=0,y=0; return {
     lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
     unlock:function(){ if(n>0)n--; if(n>0) return; var b=document.body; b.style.position=''; b.style.top=''; b.style.left=''; b.style.right=''; b.style.width=''; b.style.overflow=''; window.scrollTo(0,y); } }; })();
-  function open(tab){ var want=tab||'purchases'; modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(want);
-    window.__gszEntitle(function(f){ gszApplyNeeds(modal);
-      var btn=modal.querySelector('.cthm-tab[data-tab="'+want+'"]');
-      if(btn && btn.style.display==='none'){ var pick=null; tabs.forEach(function(t){ if(!pick && t.style.display!=='none') pick=t.getAttribute('data-tab'); }); if(pick) setTab(pick); }
-    });
-  }
+  function open(tab){ modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(tab||'purchases'); }
   function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
   function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
   function loadOrders(){ if(cache) return Promise.resolve(cache);
@@ -577,8 +564,6 @@
   }
   document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
-  function gszNeedsInit(){ try{ gszApplyNeeds(document); }catch(e){} }  /* filter Quick Access tiles + Hub tabs to what the customer actually has */
-  if(document.readyState!=='loading'){ gszNeedsInit(); } else { document.addEventListener('DOMContentLoaded',gszNeedsInit); }
   /* IPTV Free Trial (.trial-open) -> open the Hub Trials tab, not the old trial modal */
   document.addEventListener('click',function(e){ var t=(e.target&&e.target.closest)?e.target.closest('.trial-open'):null; if(t){ e.preventDefault(); e.stopImmediatePropagation(); if(window.__gszTools) window.__gszTools('trials'); } }, true);
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
