@@ -43,6 +43,13 @@
   .cthm-acts .cbtn{flex:1;min-width:90px}
   .cthm .co-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
   .cthm .co-m input{accent-color:#2f7bff}
+  .cthm .co-mtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .cthm .co-mtile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 7px 11px;min-height:122px;border:1.5px solid rgba(255,255,255,.14);border-radius:13px;background:#0e1627;cursor:pointer;text-align:center;transition:border-color .12s,background .12s}
+  .cthm .co-mtile.sel{border-color:#2f7bff;background:rgba(47,123,255,.12)}
+  .cthm .co-mlogo{width:40px;height:40px;border-radius:10px;object-fit:contain;background:#fff;padding:3px;flex:none}
+  .cthm .co-mmono{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;flex:none}
+  .cthm .co-mname{font-size:11px;font-weight:700;line-height:1.25;letter-spacing:.2px;color:#eef2fb}
+  .cthm .co-mpay{font-size:12px;color:#29d3ff;font-weight:800;margin-top:auto;padding-top:3px}
   .cthm .co-acct{margin:0 0 12px}
   .cthm input[type=text],.cthm input[type=email],.cthm input[type=password],.cthm input[type=tel],.cthm input[type=number],.cthm input[type=file]{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:11px;color:#eef2fb;padding:10px 12px;font-family:inherit;font-size:14px}
   .cthm input[type=file]{padding:6px}
@@ -326,10 +333,10 @@
   function coStep(p){
     body.innerHTML='<button class="cthm-back" id="coBack">← Back</button><div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(p.label)+'</div><div class="muted">Order '+esc(p.no)+' · '+money(p.price)+'</div></div><div class="cthm-load">Loading payment options…</div>';
     document.getElementById('coBack').addEventListener('click',function(){ setTab('renew'); });
-    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(p.price),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(p.price),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
       var ms=(j&&j.methods)||[]; var load=body.querySelector('.cthm-load');
       if(!ms.length){ if(load) load.outerHTML='<div class="muted errmsg">No payment methods available — contact support.</div>'; return; }
-      var html='<div class="cthm-f"><label>Payment method</label><div>'+ms.map(function(m,i){ return '<label class="co-m"><input type="radio" name="com" value="'+esc(m.key)+'"'+(i===0?' checked':'')+'><span>'+esc(m.name)+'</span><span class="muted" style="margin-left:auto">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
+      var html='<div class="cthm-f"><label>Payment method</label><div class="co-mtiles">'+ms.map(function(m,i){ var lg=m.logo?('<img class="co-mlogo" src="/static/img/'+esc(m.logo)+'" alt="">'):('<span class="co-mmono">'+esc((m.name||'?').charAt(0).toUpperCase())+'</span>'); return '<label class="co-mtile'+(i===0?' sel':'')+'"><input type="radio" name="com" value="'+esc(m.key)+'"'+(i===0?' checked':'')+' style="position:absolute;opacity:0;width:0;height:0">'+lg+'<span class="co-mname">'+esc(m.name)+'</span><span class="co-mpay">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
         +'<div id="coAcct"></div>'
         +'<div class="cthm-f"><label>Coupon code <span class="muted">(optional)</span></label><input id="coCoupon" type="text" autocapitalize="characters" style="text-transform:uppercase"></div>'
         +'<div class="cthm-f"><label>Upload payment receipt</label><input id="coProof" type="file" accept="image/*,application/pdf"></div>'
@@ -338,7 +345,7 @@
       function acct(){ var k=(body.querySelector('input[name=com]:checked')||{}).value; var m=ms.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('coAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); var cpVal=m.account||lines;
         box.innerHTML='<div class="co-acct"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><span class="muted">Send '+esc(m.pay||money(p.price))+' to:</span><button type="button" class="cbtn cbtn-g co-copy" style="padding:5px 12px;font-size:12px">Copy '+(m.account?'number':'details')+'</button></div><pre style="margin:0;white-space:pre-wrap;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px">'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>';
         var cpb=box.querySelector('.co-copy'); if(cpb) cpb.addEventListener('click',function(){ try{ navigator.clipboard.writeText(cpVal); cpb.textContent='Copied ✓'; setTimeout(function(){ cpb.textContent='Copy '+(m.account?'number':'details'); },1400); }catch(e){} }); }
-      acct(); body.querySelectorAll('input[name=com]').forEach(function(r){ r.addEventListener('change',acct); });
+      acct(); body.querySelectorAll('input[name=com]').forEach(function(r){ r.addEventListener('change',function(){ body.querySelectorAll('.co-mtile').forEach(function(t){t.classList.remove('sel');}); var t=r.closest('.co-mtile'); if(t) t.classList.add('sel'); acct(); }); });
       document.getElementById('coSubmit').addEventListener('click',function(){ submitRenew(p); });
     }).catch(function(){ var l=body.querySelector('.cthm-load'); if(l) l.outerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
   }
