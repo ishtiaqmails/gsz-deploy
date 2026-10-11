@@ -27,6 +27,10 @@
   .cu-bulk b{font-size:14px}
   .cu-bulk .sp{flex:1}
   .cu-bulk .btn{padding:6px 12px}
+  .cu-page{display:flex;gap:6px;align-items:center;justify-content:center;padding:16px;flex-wrap:wrap}
+  .cu-page button{border:1px solid var(--hair);background:#fff;color:var(--ink);border-radius:9px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer}
+  .cu-page button.on{background:var(--grad);color:#fff;border-color:transparent}
+  .cu-page button:disabled{opacity:.4;cursor:default}
   .cu-lbl{display:none}
   .ivm-scrim{position:fixed;inset:0;background:rgba(18,22,40,.5);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 14px}
   .ivm-scrim.on{display:flex}
@@ -76,7 +80,7 @@
 
 <div class="cu-tools">
   <div class="cu-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input type="text" id="cuSearch" placeholder="Search name, email or WhatsApp…" autocomplete="off" oninput="cuFilter()"></div>
+    <input type="text" id="cuSearch" placeholder="Search name, email or WhatsApp…" autocomplete="off" oninput="cuRender()"></div>
 </div>
 <div class="cu-tabs">
   <button type="button" class="cu-tab on" data-flt="all" onclick="cuTab(this)">All</button>
@@ -132,6 +136,7 @@
     <% }); %>
     </tbody>
   </table>
+  <div class="cu-page" id="cuPage"></div>
 </div>
 <p class="hint" id="cuNone" style="display:none;color:var(--muted);font-size:13px;margin:14px 2px">No customers match.</p>
 
@@ -157,37 +162,49 @@
 (function(){
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
   function fmt(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
-  var curFlt='all';
-
-  window.cuTab=function(btn){
-    [].slice.call(document.querySelectorAll('.cu-tab')).forEach(function(b){b.classList.remove('on');});
-    btn.classList.add('on'); curFlt=btn.getAttribute('data-flt'); cuFilter();
-  };
-  window.cuFilter=function(){
+  var curFlt='all', PER=20, page=1;
+  function allRows(){ return [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')); }
+  function matched(){
     var q=(document.getElementById('cuSearch').value||'').toLowerCase().trim();
-    var shown=0;
-    [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')).forEach(function(r){
+    return allRows().filter(function(r){
       var okQ=!q || (r.getAttribute('data-search')||'').indexOf(q)>=0;
       var okF=curFlt==='all' || (' '+(r.getAttribute('data-flags')||'')+' ').indexOf(' '+curFlt+' ')>=0;
-      var vis=okQ&&okF; r.style.display=vis?'':'none'; if(vis){shown++;} else { var cb=r.querySelector('.cu-chk'); if(cb) cb.checked=false; }
+      return okQ && okF;
     });
-    document.getElementById('cuNone').style.display=shown?'none':'';
+  }
+  window.cuRender=function(){
+    var m=matched(); allRows().forEach(function(r){r.style.display='none';});
+    var pages=Math.max(1,Math.ceil(m.length/PER)); if(page>pages)page=pages;
+    var start=(page-1)*PER;
+    m.slice(start,start+PER).forEach(function(r,i){ r.style.display=''; var n=r.querySelector('.num'); if(n) n.textContent=start+i+1; });
+    document.getElementById('cuNone').style.display=m.length?'none':'';
+    var pg=document.getElementById('cuPage'); pg.innerHTML='';
+    if(pages>1){
+      var mk=function(txt,p,dis,on){var b=document.createElement('button');b.textContent=txt;if(on)b.className='on';if(dis)b.disabled=true;b.onclick=function(){page=p;cuRender();window.scrollTo(0,0);};pg.appendChild(b);};
+      mk('‹',page-1,page<=1);
+      for(var p=1;p<=pages;p++){ if(pages>7 && p>2 && p<pages-1 && Math.abs(p-page)>1){ if(p===3||p===pages-2){var s=document.createElement('span');s.textContent='…';s.style.color='var(--muted)';pg.appendChild(s);} continue;} mk(String(p),p,false,p===page); }
+      mk('›',page+1,page>=pages);
+    }
     cuSelChanged();
   };
+  window.cuTab=function(btn){
+    [].slice.call(document.querySelectorAll('.cu-tab')).forEach(function(b){b.classList.remove('on');});
+    btn.classList.add('on'); curFlt=btn.getAttribute('data-flt'); page=1; cuRender();
+  };
 
-  function visBoxes(){ return [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')).filter(function(r){return r.style.display!=='none';}).map(function(r){return r.querySelector('.cu-chk');}).filter(Boolean); }
-  function checkedBoxes(){ return visBoxes().filter(function(b){return b.checked;}); }
+  function pageBoxes(){ return matched().slice((page-1)*PER, (page-1)*PER+PER).map(function(r){return r.querySelector('.cu-chk');}).filter(Boolean); }
+  function allChecked(){ return allRows().map(function(r){return r.querySelector('.cu-chk');}).filter(function(b){return b && b.checked;}); }
   window.cuSelChanged=function(){
-    var sel=checkedBoxes(), n=sel.length;
+    var n=allChecked().length;
     document.getElementById('cuBulk').classList.toggle('on', n>0);
     document.getElementById('cuBulkN').textContent=n;
-    var all=document.getElementById('cuAll'), vis=visBoxes();
-    all.checked = vis.length>0 && n===vis.length; all.indeterminate = n>0 && n<vis.length;
+    var all=document.getElementById('cuAll'), pb=pageBoxes(), pc=pb.filter(function(b){return b.checked;}).length;
+    if(all){ all.checked = pb.length>0 && pc===pb.length; all.indeterminate = pc>0 && pc<pb.length; }
   };
-  window.cuToggleAll=function(cb){ visBoxes().forEach(function(b){b.checked=cb.checked;}); cuSelChanged(); };
-  window.cuClearSel=function(){ visBoxes().forEach(function(b){b.checked=false;}); cuSelChanged(); };
+  window.cuToggleAll=function(cb){ pageBoxes().forEach(function(b){b.checked=cb.checked;}); cuSelChanged(); };
+  window.cuClearSel=function(){ allChecked().forEach(function(b){b.checked=false;}); cuSelChanged(); };
   window.cuBulkDo=function(action){
-    var ids=checkedBoxes().map(function(b){return b.value;});
+    var ids=allChecked().map(function(b){return b.value;});
     if(!ids.length) return;
     if(action==='delete' && !confirm('Delete '+ids.length+' customer(s)? Their order history is kept but the accounts are removed.')) return;
     document.getElementById('cuBulkAction').value=action;
@@ -227,6 +244,7 @@
     }).catch(function(){ body.innerHTML='<div class="cu-empty">Could not load this customer.</div>'; });
   };
   document.getElementById('cuScrim').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+  cuRender();
 })();
 </script>
 <%- include('_shell_bottom') %>
