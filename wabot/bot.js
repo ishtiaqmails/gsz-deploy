@@ -12,6 +12,7 @@ const { Boom } = require('@hapi/boom');
 const P = require('pino');
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
 const { URL } = require('url');
 
 const WEBSITE_BASE = process.env.WEBSITE_BASE || 'http://127.0.0.1:3900';
@@ -70,6 +71,12 @@ function extractText(m) {
 
 const lastRedirect = new Map();
 let sock = null;
+// ---- live connection state (read by the website's WhatsApp Connection panel) ----
+let latestQR = null;        // current pairing QR string, or null when connected
+let connectedAt = null;     // ms timestamp of the last successful 'open'
+let lastCloseCode = null;   // last disconnect status code
+const startedAt = Date.now();
+let suppressAutoRestart = false; // true only during an admin-triggered logout/relogin
 
 async function start() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
@@ -84,13 +91,15 @@ async function start() {
 
   sock.ev.on('connection.update', (u) => {
     const { connection, lastDisconnect, qr } = u;
-    if (qr) { try { require('qrcode-terminal').generate(qr, { small: true }); } catch (e) { console.log('Scan this QR (raw):', qr); } }
-    if (connection === 'open') console.log('[wabot] connected as ' + (sock.user && sock.user.id));
+    if (qr) { latestQR = qr; try { require('qrcode-terminal').generate(qr, { small: true }); } catch (e) { console.log('Scan this QR (raw):', qr); } }
+    if (connection === 'open') { latestQR = null; connectedAt = Date.now(); console.log('[wabot] connected as ' + (sock.user && sock.user.id)); }
     if (connection === 'close') {
+      connectedAt = null;
       const code = (lastDisconnect && lastDisconnect.error && new Boom(lastDisconnect.error).output.statusCode) || 0;
+      lastCloseCode = code;
       const loggedOut = code === DisconnectReason.loggedOut;
       console.log('[wabot] closed (' + code + ')' + (loggedOut ? ' — logged out; delete the auth folder and re-scan.' : ' — reconnecting'));
-      if (!loggedOut) setTimeout(() => start().catch(e => console.error('[wabot] restart ' + e.message)), 3000);
+      if (!loggedOut && !suppressAutoRestart) setTimeout(() => start().catch(e => console.error('[wabot] restart ' + e.message)), 3000);
     }
   });
 
@@ -124,6 +133,34 @@ http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/health') {
     const connected = !!(sock && sock.user);
     res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, connected }));
+  }
+  // Full status for the admin WhatsApp Connection panel.
+  if (req.method === 'GET' && req.url === '/status') {
+    const connected = !!(sock && sock.user);
+    const uid = connected ? (sock.user.id || '') : '';
+    const number = uid ? String(uid).split(':')[0].split('@')[0] : '';
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({
+      ok: true, connected, number, user: uid || null,
+      qr: connected ? null : latestQR,
+      connectedAt, startedAt, lastCloseCode, uptimeMs: Date.now() - startedAt
+    }));
+  }
+  // Admin: force a reconnect (drops the socket; the close handler reconnects).
+  if (req.method === 'POST' && req.url === '/reconnect') {
+    try { if (sock) sock.end(new Error('manual-reconnect')); } catch (e) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
+  }
+  // Admin: log out this number and start a fresh pairing (new QR).
+  if (req.method === 'POST' && req.url === '/logout') {
+    (async () => {
+      suppressAutoRestart = true;
+      try { if (sock) await sock.logout(); } catch (e) {}
+      try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+      latestQR = null; connectedAt = null;
+      setTimeout(() => { suppressAutoRestart = false; start().catch(e => console.error('[wabot] relogin ' + e.message)); }, 800);
+    })();
+    res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}');
   }
   if (req.method === 'POST' && req.url === '/send') {
     let b = ''; req.on('data', d => b += d); req.on('end', async () => {
