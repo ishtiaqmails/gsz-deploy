@@ -44,4 +44,26 @@ const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_prod
   else { console.log('product.ejs C: anchor missing (skip)'); }
 })();
 
+/* ---- routes/products.js : thread `popular` into the plan objects the product page renders ---- */
+(function(){
+  const file = path.join(ROOT, 'routes/products.js');
+  let s = fs.readFileSync(file, 'utf8'); let ch = false;
+
+  // 1) planRows SELECT: add `popular`
+  const SEL = "nf_portal_product_id FROM product_plans WHERE product_id=$1 ORDER BY sort, id";
+  const SEL2 = "nf_portal_product_id, popular FROM product_plans WHERE product_id=$1 ORDER BY sort, id";
+  if (s.indexOf("nf_portal_product_id, popular FROM product_plans") < 0 && s.indexOf(SEL) >= 0) {
+    s = s.replace(SEL, SEL2); ch = true; console.log('products.js A: planRows SELECT +popular');
+  } else { console.log('products.js A: present or anchor missing (skip)'); }
+
+  // 2) map return: add popular
+  const MAP = "label: r.label, price: Number(r.price_pkr || 0),";
+  const MAP2 = "label: r.label, popular: !!r.popular, price: Number(r.price_pkr || 0),";
+  if (s.indexOf("popular: !!r.popular") < 0 && s.indexOf(MAP) >= 0) {
+    s = s.replace(MAP, MAP2); ch = true; console.log('products.js B: plan object +popular');
+  } else { console.log('products.js B: present or anchor missing (skip)'); }
+
+  if (ch) fs.writeFileSync(file, s);
+})();
+
 console.log('PRODPOPULAR OK');
