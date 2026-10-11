@@ -61,6 +61,35 @@ module.exports = function (pool) {
     } catch (e) { res.status(500).json({ error: 'server' }); }
   });
 
+  function idList(b) { let v = b.ids; if (!v) return []; if (!Array.isArray(v)) v = [v]; return v.map(x => parseInt(x, 10)).filter(Boolean); }
+
+  // Bulk: block / unblock / delete selected
+  router.post('/customers/bulk', auth, body, async (req, res) => {
+    const action = String(req.body.action || '');
+    const ids = idList(req.body);
+    if (!ids.length) return back(res, 'Nothing selected');
+    if (action === 'block') {
+      try { await pool.query('UPDATE customers SET blocked=true WHERE id=ANY($1)', [ids]); } catch (e) {}
+      return back(res, 'Blocked ' + ids.length + ' customer(s)');
+    }
+    if (action === 'unblock') {
+      try { await pool.query('UPDATE customers SET blocked=false WHERE id=ANY($1)', [ids]); } catch (e) {}
+      return back(res, 'Unblocked ' + ids.length + ' customer(s)');
+    }
+    if (action === 'delete') {
+      for (const q of [
+        'UPDATE orders SET customer_id=NULL WHERE customer_id=ANY($1)',
+        'DELETE FROM customer_tokens WHERE customer_id=ANY($1)',
+        'DELETE FROM customer_carts WHERE customer_id=ANY($1)',
+        'DELETE FROM customer_whatsapp_links WHERE customer_id=ANY($1)',
+        'DELETE FROM whatsapp_verification_sessions WHERE customer_id=ANY($1)'
+      ]) { try { await pool.query(q, [ids]); } catch (e) {} }
+      try { await pool.query('DELETE FROM customers WHERE id=ANY($1)', [ids]); } catch (e) {}
+      return back(res, 'Deleted ' + ids.length + ' customer(s)');
+    }
+    back(res, 'Unknown action');
+  });
+
   router.post('/customers/:id/block', auth, body, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     try {

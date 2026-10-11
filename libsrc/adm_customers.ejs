@@ -20,6 +20,13 @@
   .cu-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
   .cu-act .btn{padding:6px 10px}
   #cuTable td.num{color:var(--muted);width:42px}
+  #cuTable td.chk,#cuTable th.chk{width:34px;text-align:center}
+  #cuTable input[type=checkbox],.cu-all{width:17px;height:17px;accent-color:var(--brand,#2a7bff);cursor:pointer;vertical-align:middle}
+  .cu-bulk{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:11px 14px;border-radius:13px;background:#eef2fb;border:1px solid var(--hair)}
+  .cu-bulk.on{display:flex}
+  .cu-bulk b{font-size:14px}
+  .cu-bulk .sp{flex:1}
+  .cu-bulk .btn{padding:6px 12px}
   .cu-lbl{display:none}
   .ivm-scrim{position:fixed;inset:0;background:rgba(18,22,40,.5);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 14px}
   .ivm-scrim.on{display:flex}
@@ -39,9 +46,10 @@
   @media(max-width:760px){
     #cuTable thead{display:none}
     #cuTable tbody,#cuTable tr,#cuTable td{display:block;width:auto}
-    #cuTable tr{border:1px solid var(--hair);border-radius:13px;margin:12px 0;padding:12px 14px;background:#fff}
+    #cuTable tr{position:relative;border:1px solid var(--hair);border-radius:13px;margin:12px 0;padding:12px 36px 12px 14px;background:#fff}
     #cuTable td{border:0;padding:3px 0}
     #cuTable td.num{display:none}
+    #cuTable td.chk{position:absolute;top:13px;right:11px;width:auto;text-align:right}
     .cu-lbl{display:inline;color:var(--muted);font-weight:600;font-size:12px;margin-right:4px}
     .cu-act{justify-content:stretch;margin-top:10px}.cu-act .btn{flex:1;justify-content:center}
     .cu-kv{grid-template-columns:104px 1fr}
@@ -77,16 +85,26 @@
   <button type="button" class="cu-tab" data-flt="blocked" onclick="cuTab(this)">Blocked</button>
 </div>
 
+<div class="cu-bulk" id="cuBulk">
+  <b><span id="cuBulkN">0</span> selected</b>
+  <span class="sp"></span>
+  <button type="button" class="btn btn-g" onclick="cuBulkDo('block')" style="color:#b42318">Block</button>
+  <button type="button" class="btn btn-g" onclick="cuBulkDo('unblock')">Unblock</button>
+  <button type="button" class="btn btn-g" onclick="cuBulkDo('delete')" style="color:#b42318">Delete</button>
+  <button type="button" class="btn btn-g" onclick="cuClearSel()">Clear</button>
+</div>
+
 <div class="card" style="padding:0;overflow:hidden">
   <table id="cuTable">
-    <thead><tr><th style="width:42px">#</th><th>Customer</th><th>WhatsApp</th><th>Orders</th><th>Joined</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <thead><tr><th class="chk"><input type="checkbox" class="cu-all" id="cuAll" onclick="cuToggleAll(this)" title="Select all"></th><th style="width:42px">#</th><th>Customer</th><th>WhatsApp</th><th>Orders</th><th>Joined</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
     <tbody>
-    <% if (!d.rows.length) { %><tr><td colspan="7" style="padding:26px 16px;color:var(--muted)">No customers yet.</td></tr><% } %>
+    <% if (!d.rows.length) { %><tr><td colspan="8" style="padding:26px 16px;color:var(--muted)">No customers yet.</td></tr><% } %>
     <% d.rows.forEach(function(c, i){
          var flags = []; if(c.wa_verified) flags.push('wa'); if(c.email_verified) flags.push('em'); if(c.blocked) flags.push('blocked');
          var hay = ((c.name||'')+' '+(c.email||'')+' '+(c.wa_number||'')).toLowerCase();
     %>
       <tr data-id="<%= c.id %>" data-name="<%= c.name ? c.name.replace(/"/g,'&quot;') : '' %>" data-search="<%= hay.replace(/"/g,'&quot;') %>" data-flags="<%= flags.join(' ') %>">
+        <td class="chk"><input type="checkbox" class="cu-chk" value="<%= c.id %>" onclick="cuSelChanged()"></td>
         <td class="num"><%= i+1 %></td>
         <td>
           <div class="cu-who">
@@ -117,6 +135,12 @@
 </div>
 <p class="hint" id="cuNone" style="display:none;color:var(--muted);font-size:13px;margin:14px 2px">No customers match.</p>
 
+<!-- hidden bulk form -->
+<form id="cuBulkForm" method="post" action="/admin/customers/bulk" style="display:none">
+  <input type="hidden" name="action" id="cuBulkAction">
+  <span id="cuBulkIds"></span>
+</form>
+
 <!-- View modal -->
 <div class="ivm-scrim" id="cuScrim">
   <div class="ivm-card">
@@ -145,9 +169,30 @@
     [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')).forEach(function(r){
       var okQ=!q || (r.getAttribute('data-search')||'').indexOf(q)>=0;
       var okF=curFlt==='all' || (' '+(r.getAttribute('data-flags')||'')+' ').indexOf(' '+curFlt+' ')>=0;
-      var vis=okQ&&okF; r.style.display=vis?'':'none'; if(vis)shown++;
+      var vis=okQ&&okF; r.style.display=vis?'':'none'; if(vis){shown++;} else { var cb=r.querySelector('.cu-chk'); if(cb) cb.checked=false; }
     });
     document.getElementById('cuNone').style.display=shown?'none':'';
+    cuSelChanged();
+  };
+
+  function visBoxes(){ return [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')).filter(function(r){return r.style.display!=='none';}).map(function(r){return r.querySelector('.cu-chk');}).filter(Boolean); }
+  function checkedBoxes(){ return visBoxes().filter(function(b){return b.checked;}); }
+  window.cuSelChanged=function(){
+    var sel=checkedBoxes(), n=sel.length;
+    document.getElementById('cuBulk').classList.toggle('on', n>0);
+    document.getElementById('cuBulkN').textContent=n;
+    var all=document.getElementById('cuAll'), vis=visBoxes();
+    all.checked = vis.length>0 && n===vis.length; all.indeterminate = n>0 && n<vis.length;
+  };
+  window.cuToggleAll=function(cb){ visBoxes().forEach(function(b){b.checked=cb.checked;}); cuSelChanged(); };
+  window.cuClearSel=function(){ visBoxes().forEach(function(b){b.checked=false;}); cuSelChanged(); };
+  window.cuBulkDo=function(action){
+    var ids=checkedBoxes().map(function(b){return b.value;});
+    if(!ids.length) return;
+    if(action==='delete' && !confirm('Delete '+ids.length+' customer(s)? Their order history is kept but the accounts are removed.')) return;
+    document.getElementById('cuBulkAction').value=action;
+    document.getElementById('cuBulkIds').innerHTML=ids.map(function(id){return '<input type="hidden" name="ids" value="'+id+'">';}).join('');
+    document.getElementById('cuBulkForm').submit();
   };
 
   window.cuView=function(id){
