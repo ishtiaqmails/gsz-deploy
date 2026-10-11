@@ -14,7 +14,7 @@ module.exports = function (pool) {
   async function deliver(t) {
     try {
       const base = (await setting('site_base_url')) || '';
-      const link = base ? (base.replace(/\/+$/, '') + '/account/trials') : '/account/trials';
+      const link = base ? (base.replace(/\/+$/, '') + '/?tool=trials') : '/?tool=trials';
       // UNIQUE_TRIAL_IDEMPOTENCY_v1: key off the globally-unique bot_ref (TRIAL-<id>-<hex>),
       // not the claim id — so a reused id (after a reset/clear) can never collide with an
       // old outbox row and get silently suppressed as "already sent".

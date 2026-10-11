@@ -128,6 +128,10 @@
         <label class="sw purple"><input type="checkbox" id="pm_mostsell"><span class="track"></span>
           <span class="lbl">Most Selling<small>Feature this product in “Top selling”</small></span></label>
       </div>
+      <div class="toggle-row">
+        <label class="sw purple"><input type="checkbox" id="pm_renew"><span class="track"></span>
+          <span class="lbl">Renewable<small>Customers can renew / extend this before it expires</small></span></label>
+      </div>
 
       <label class="fld">Short description <span class="q">· shown on cards</span></label>
       <input class="inp" id="pm_short" placeholder="One line customers see on the product card">
@@ -338,7 +342,7 @@
     document.getElementById('pm_id').value='';document.getElementById('pm_name').value='';
     document.getElementById('pm_short').value='';document.getElementById('pm_long').value='';
     document.getElementById('pm_linkurl').value='';document.getElementById('pm_linkwrap').style.display='none';
-    ['pm_mostsell','pm_netflix','pm_code','pm_link'].forEach(function(i){document.getElementById(i).checked=false;});
+    ['pm_mostsell','pm_renew','pm_netflix','pm_code','pm_link'].forEach(function(i){document.getElementById(i).checked=false;});
     document.getElementById('pm_cat').innerHTML=catOptions();
     document.getElementById('pm_imgbox').innerHTML='No image';document.getElementById('pm_imgnote').style.display='none';
     document.getElementById('pmPlans').innerHTML='';document.getElementById('pmFaqs').innerHTML='';document.getElementById('pmDls').innerHTML='';
@@ -361,6 +365,7 @@
       document.getElementById('pm_short').value=p.short_desc||'';
       document.getElementById('pm_long').value=p.long_desc||'';
       document.getElementById('pm_mostsell').checked=!!p.most_selling;
+      document.getElementById('pm_renew').checked=!!p.renewable;
       document.getElementById('pm_netflix').checked=!!p.nf_enabled;
       document.getElementById('pm_code').checked=!!p.req_otp;
       document.getElementById('pm_link').checked=!!p.has_link;
@@ -411,6 +416,7 @@
       short_desc:document.getElementById('pm_short').value,
       long_desc:document.getElementById('pm_long').value,
       most_selling:document.getElementById('pm_mostsell').checked,
+      renewable:document.getElementById('pm_renew').checked,
       netflix:document.getElementById('pm_netflix').checked,
       req_otp:document.getElementById('pm_code').checked,
       has_link:document.getElementById('pm_link').checked,
