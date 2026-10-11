@@ -7,6 +7,10 @@
   .prow-top .pf-label{flex:2 1 150px;margin:0}
   .prow-top .pf-price,.prow-top .pf-old{flex:1 1 95px;margin:0}
   .prow-top .prow-del{flex:none;padding:7px 10px}
+  .prow-top .pf-pop{flex:none;padding:6px 11px;border:1px solid var(--hair);border-radius:9px;background:#fff;cursor:pointer;color:#c3bdd4;font-size:16px;line-height:1;transition:.14s}
+  .prow-top .pf-pop:hover{color:#9a6cff;border-color:#c9b8ff}
+  .prow.pop-on{border-color:#9a6cff;box-shadow:0 0 0 2px rgba(154,108,255,.16)}
+  .prow.pop-on .pf-pop{background:linear-gradient(135deg,#9a6cff,#5b8bff);color:#fff;border-color:transparent}
   .prow-opt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .prow-opt .full{grid-column:1/-1}
   .prow-opt label{font-size:12px;color:var(--muted)}
@@ -86,16 +90,19 @@
 
   <div class="card">
     <h2>Plans &amp; pricing</h2>
-    <p class="hint">Each plan has a label, price (PKR), and an optional “before” price to show a discount. <b>Drag ⠿ to reorder.</b></p>
+    <p class="hint">Each plan has a label, price (PKR), and an optional “before” price to show a discount. Click <b>★</b> to mark the <b>Most Popular</b> plan. <b>Drag ⠿ to reorder.</b></p>
+    <% var _popLabel=(plans.filter(function(p){return p.popular;})[0]||{}).label||''; %>
+    <input type="hidden" name="popular_label" id="popLabel" value="<%= _popLabel %>">
     <div id="plans">
       <% (plans.length?plans:[{label:'',price_pkr:'',old_pkr:''}]).forEach(function(pl){ %>
-        <div class="prow">
+        <div class="prow<%= pl.popular?' pop-on':'' %>">
           <input type="hidden" name="plan_id" value="<%= pl.id || '' %>">
           <div class="prow-top">
             <span class="pdrag" title="Drag to reorder">⠿</span>
             <input class="pf-label" type="text" name="plan_label" placeholder="e.g. 1 Month" value="<%= pl.label||'' %>">
             <input class="pf-price" type="number" step="0.01" name="plan_price" placeholder="Price" value="<%= pl.price_pkr||'' %>">
             <input class="pf-old" type="number" step="0.01" name="plan_old" placeholder="Was (opt)" value="<%= pl.old_pkr||'' %>">
+            <button type="button" class="pf-pop" title="Mark as Most Popular" onclick="setPop(this)">★</button>
             <button type="button" class="btn btn-g prow-del" onclick="this.closest('.prow').remove()">✕</button>
           </div>
           <div class="prow-opt">
@@ -146,7 +153,7 @@
 </div>
 <script>
 function addPlan(){var d=document.createElement('div');d.className='prow';
-  d.innerHTML='<input type="hidden" name="plan_id" value=""><div class="prow-top"><span class="pdrag" title="Drag to reorder">⠿</span><input class="pf-label" type="text" name="plan_label" placeholder="e.g. 1 Month"><input class="pf-price" type="number" step="0.01" name="plan_price" placeholder="Price"><input class="pf-old" type="number" step="0.01" name="plan_old" placeholder="Was (opt)"><button type="button" class="btn btn-g prow-del" onclick="this.closest(\'.prow\').remove()">✕</button></div><div class="prow-opt"><label>Available from (optional)<input type="datetime-local" name="plan_from"></label><label>Available until (optional)<input type="datetime-local" name="plan_until"></label><label class="full">Warranty for this plan (optional)<input type="text" name="plan_warranty" placeholder="overrides the product warranty, e.g. 30 days"></label></div>';
+  d.innerHTML='<input type="hidden" name="plan_id" value=""><div class="prow-top"><span class="pdrag" title="Drag to reorder">⠿</span><input class="pf-label" type="text" name="plan_label" placeholder="e.g. 1 Month"><input class="pf-price" type="number" step="0.01" name="plan_price" placeholder="Price"><input class="pf-old" type="number" step="0.01" name="plan_old" placeholder="Was (opt)"><button type="button" class="pf-pop" title="Mark as Most Popular" onclick="setPop(this)">★</button><button type="button" class="btn btn-g prow-del" onclick="this.closest(\'.prow\').remove()">✕</button></div><div class="prow-opt"><label>Available from (optional)<input type="datetime-local" name="plan_from"></label><label>Available until (optional)<input type="datetime-local" name="plan_until"></label><label class="full">Warranty for this plan (optional)<input type="text" name="plan_warranty" placeholder="overrides the product warranty, e.g. 30 days"></label></div>';
   document.getElementById('plans').appendChild(d);}
 function addFaq(){var d=document.createElement('div');d.className='frow';
   d.innerHTML='<div class="fcol"><input type="text" name="faq_q" placeholder="Question"><input type="text" name="faq_a" placeholder="Answer"></div><button type="button" class="btn btn-g frow-del" onclick="this.closest(\'.frow\').remove()">✕</button>';
@@ -154,6 +161,9 @@ function addFaq(){var d=document.createElement('div');d.className='frow';
 function addDl(){var d=document.createElement('div');d.className='dlrow';
   d.innerHTML='<input class="dl-label" type="text" name="dl_label" placeholder="Label (e.g. Download APK)"><input class="dl-url" type="text" name="dl_url" placeholder="https://..."><button type="button" class="btn btn-g dlrow-del" onclick="this.closest(\'.dlrow\').remove()">✕</button>';
   document.getElementById('dls').appendChild(d);}
+function setPop(btn){var row=btn.closest('.prow');var on=row.classList.contains('pop-on');document.querySelectorAll('#plans .prow').forEach(function(r){r.classList.remove('pop-on');});if(!on)row.classList.add('pop-on');syncPop();}
+function syncPop(){var el=document.getElementById('popLabel');if(!el)return;var row=document.querySelector('#plans .prow.pop-on');el.value=row?(((row.querySelector('.pf-label')||{}).value)||''):'';}
+(function(){var f=document.querySelector('form[action="/admin/products/save"]');if(f)f.addEventListener('submit',syncPop);})();
 /*plansDragReorder*/(function(){
   var box=document.getElementById('plans'); if(!box) return; var drag=null;
   box.addEventListener('mousedown',function(e){ var h=e.target.closest('.pdrag'); if(h){ var row=h.closest('.prow'); if(row) row.draggable=true; } });
