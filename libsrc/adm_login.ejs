@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin sign in · Galaxy Subz × Zayron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Schibsted+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0f1836;--muted:#737e9c;--hair:#e7ebf6;--brand:#2a7bff;--violet:#8a2bff;--grad:linear-gradient(118deg,#8a2bff,#2a7bff)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Hanken Grotesk',system-ui,'Segoe UI',sans-serif;color:var(--ink);min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;
+    background:#f4f6fc;
+    background-image:radial-gradient(1100px 520px at 12% -12%,rgba(138,43,255,.10),transparent 60%),radial-gradient(1000px 460px at 112% 120%,rgba(42,123,255,.13),transparent 55%)}
+  .wrap{width:100%;max-width:400px;animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .card{background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(15,24,54,.05),0 30px 60px -32px rgba(15,24,54,.35);padding:34px 30px 30px}
+  .brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:22px}
+  .brand .logo{width:46px;height:46px;border-radius:14px;background:var(--grad);display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 12px 24px -10px rgba(138,43,255,.6)}
+  .brand .logo svg{width:24px;height:24px}
+  .brand .wm{font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.08}
+  .brand .wm .dim{display:block;font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.01em;font-family:'Hanken Grotesk',sans-serif}
+  h1{font-family:'Schibsted Grotesk',sans-serif;font-size:25px;margin:0 0 5px;text-align:center;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;text-align:center}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
+  input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--hair);background:#f8fafc;font-size:14.5px;margin-bottom:16px;font-family:inherit;color:var(--ink);transition:.15s}
+  input::placeholder{color:#aab2c8}
+  input:focus{outline:none;border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px rgba(42,123,255,.14)}
+  button{width:100%;background:var(--grad);color:#fff;font-weight:700;font-size:15px;border:0;border-radius:12px;padding:13px;cursor:pointer;margin-top:2px;box-shadow:0 14px 26px -12px rgba(42,123,255,.6);transition:.15s}
+  button:hover{filter:brightness(1.05)}
+  button:active{transform:translateY(1px)}
+  .err{background:#fdecec;color:#b42318;border:1px solid #f6c9c4;border-radius:11px;padding:11px 13px;font-size:13.5px;font-weight:600;margin-bottom:18px}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:18px;letter-spacing:.01em}
+  @media(max-width:420px){ .card{padding:28px 22px 24px;border-radius:18px} h1{font-size:23px} }
+</style></head><body>
+<div class="wrap">
+  <div class="card">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.4 6.2L21 9l-5 4 1.6 7L12 16.6 6.4 20 8 13 3 9l6.6-.8L12 2z"/></svg></span>
+      <span class="wm">Galaxy Subz<span class="dim">× Zayron · Admin</span></span>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to your admin dashboard</p>
+    <% if (typeof error !== 'undefined' && error) { %><div class="err"><%= error %></div><% } %>
+    <form method="post" action="/admin/login">
+      <label>Username</label>
+      <input type="text" name="username" autocomplete="username" placeholder="Your username" autofocus required>
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="current-password" placeholder="••••••••" required>
+      <button type="submit">Sign In</button>
+    </form>
+  </div>
+  <div class="foot">Galaxy Subz × Zayron · Secure admin area</div>
+</div>
+</body></html>
