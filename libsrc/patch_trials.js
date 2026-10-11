@@ -34,7 +34,7 @@ const ROUTES =
 "      const msLeft=exp!=null?(exp-now):null;\n" +
 "      const st=String(t.status||'').toLowerCase();\n" +
 "      const done=['active','delivered','done','completed'].indexOf(st)>=0;\n" +
-"      const windowOpen = claimed ? (now < claimed + 2*86400000) : false;\n" +
+"      const windowOpen = true; // Convert-to-paid is always offered for any un-converted trial (active or expired), like a normal purchase\n" +
 "      return { id:t.id, server:t.server_name||t.trial_type||'IPTV trial', credentials: done?(t.credentials||''):'',\n" +
 "        status:t.status, pending: st==='pending', claimed:t.claimed_at, duration_hours: durH||null,\n" +
 "        expires: exp!=null?new Date(exp).toISOString():t.expires_at,\n" +
