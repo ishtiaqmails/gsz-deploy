@@ -67,7 +67,7 @@
 
 <div id="ivList">
 <% if (!d.prods.length) { %>
-  <div class="card iv-empty">No stocked plans yet. On the <b>product page</b>, set a plan’s type to <b>Inventory</b> and give it fields — it appears here automatically.</div>
+  <div class="card iv-empty">No stocked plans yet. Set a plan’s type to <b>Inventory</b> on its product page and it shows up here.</div>
 <% } %>
 <% d.prods.forEach(function(pr){ %>
   <div class="card iv-prod" data-name="<%= (pr.name||'').toLowerCase() %>">
@@ -99,12 +99,11 @@
 <div class="ivm-scrim" id="ivAddScrim">
   <form class="ivm-card" method="post" action="/admin/inventory/add" id="ivAddForm">
     <div class="ivm-h" id="ivAddTitle">Add Stock</div>
-    <div class="ivm-sub">Paste one entry per line in each box. All boxes must have the <b>same number of lines</b>.</div>
+    <div class="ivm-sub">One entry per line — every box needs the <b>same number of lines</b>.</div>
     <input type="hidden" name="plan_id" id="ivAddPlan">
     <div class="ivm-cols" id="ivAddCols"></div>
     <div class="ivm-ledger">
-      <h4>📒 Ledger tracking <span style="font-weight:500;color:var(--muted)">(optional but recommended)</span></h4>
-      <p class="hint">Leave blank if you’re not tracking — but you can’t fill these in later for existing stock.</p>
+      <h4>📒 Ledger <span style="font-weight:500;color:var(--muted)">(optional)</span></h4>
       <div class="ivm-lrow">
         <div><label>Vendor (who supplied?)</label><input type="text" name="vendor" placeholder="e.g. Vendor name — or leave blank"></div>
         <div><label>Cost per item (Rs.)</label><input type="number" name="cost" min="0" step="any" placeholder="0"></div>
