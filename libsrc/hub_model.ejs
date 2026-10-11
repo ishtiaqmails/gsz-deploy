@@ -12,8 +12,8 @@
   .cthm-head{padding:22px 22px 14px}
   .cthm-head h3{font-family:var(--display,inherit);font-weight:800;font-size:19px;margin:0 0 4px}
   .cthm-head p{color:#9aa6c0;font-size:13px;margin:0;max-width:92%}
-  .cthm-tabs{display:flex;gap:8px;padding:0 22px 14px}
-  .cthm-tab{flex:1;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0e1627;color:#9aa6c0;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .cthm-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 14px}
+  .cthm-tab{flex:1 1 auto;min-width:64px;padding:9px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0e1627;color:#9aa6c0;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
   .cthm-tab.on{background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;border-color:transparent}
   .cthm-body{padding:16px 22px 22px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-top:1px solid rgba(255,255,255,.08)}
   .cthm-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:10px}
@@ -102,10 +102,12 @@
     <button class="cthm-x" data-close aria-label="Close">✕</button>
     <div class="cthm-head"><h3>Galaxy Hub</h3><p>Your orders, access, renewals, trials &amp; support — all in one place.</p></div>
     <div class="cthm-tabs">
-      <button class="cthm-tab" data-tab="purchases">Purchases</button>
-      <button class="cthm-tab" data-tab="code">Get Access</button>
-      <button class="cthm-tab" data-tab="renew">Renew</button>
-      <button class="cthm-tab" data-tab="claim">Claim</button>
+      <button class="cthm-tab" data-tab="purchases" data-need="orders" style="display:none">Orders</button>
+      <button class="cthm-tab" data-tab="code" data-need="access" style="display:none">Access</button>
+      <button class="cthm-tab" data-tab="renew" data-need="renewable" style="display:none">Renew</button>
+      <button class="cthm-tab" data-tab="trials">Trials</button>
+      <button class="cthm-tab" data-tab="claim" data-need="orders" style="display:none">Claim</button>
+      <button class="cthm-tab" data-tab="account">Account</button>
     </div>
     <div class="cthm-body" id="cthmBody"><div class="cthm-load">Loading…</div></div>
     <div class="cthm-foot" id="cthmFoot"></div>
@@ -120,10 +122,23 @@
   var WANUM=<%- JSON.stringify(_wanum) %>;
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
   function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
+  /* ---------- Quick Access entitlements (which tools a customer sees) ---------- */
+  window.__gszEntitle = window.__gszEntitle || (function(){ var cache=null, waiting=[], fetching=false;
+    return function(cb){ if(cache){ cb(cache); return; } waiting.push(cb); if(fetching) return; fetching=true;
+      fetch('/account/tools/entitlements',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return {ok:false,loggedIn:false,orders:false,access:false,renewable:false};}).then(function(j){ cache=j||{}; var w=waiting; waiting=[]; w.forEach(function(f){try{f(cache);}catch(e){}}); }); };
+  })();
+  function gszApplyNeeds(root){ var els=(root||document).querySelectorAll('[data-need]'); if(!els.length) return;
+    window.__gszEntitle(function(f){ [].forEach.call(els,function(el){ var need=el.getAttribute('data-need'); var ok= need==='orders'?!!f.orders:(need==='access'?!!f.access:(need==='renewable'?!!f.renewable:true)); el.style.display= ok?'':'none'; }); }); }
+  window.__gszApplyNeeds=gszApplyNeeds;
   window.__gszScrollLock = window.__gszScrollLock || (function(){ var n=0,y=0; return {
     lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
     unlock:function(){ if(n>0)n--; if(n>0) return; var b=document.body; b.style.position=''; b.style.top=''; b.style.left=''; b.style.right=''; b.style.width=''; b.style.overflow=''; window.scrollTo(0,y); } }; })();
-  function open(tab){ modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(tab||'purchases'); }
+  function open(tab){ var want=tab||'purchases'; modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(want);
+    window.__gszEntitle(function(f){ gszApplyNeeds(modal);
+      var btn=modal.querySelector('.cthm-tab[data-tab="'+want+'"]');
+      if(!btn || btn.style.display==='none'){ var pick=null; tabs.forEach(function(t){ if(!pick && t.style.display!=='none') pick=t.getAttribute('data-tab'); }); if(pick) setTab(pick); }
+    });
+  }
   function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
   function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
   function loadOrders(){ if(cache) return Promise.resolve(cache);
@@ -497,6 +512,8 @@
   }
   document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
+  function gszNeedsInit(){ try{ gszApplyNeeds(document); }catch(e){} }  /* filter Quick Access tiles + Hub tabs to what the customer actually has */
+  if(document.readyState!=='loading'){ gszNeedsInit(); } else { document.addEventListener('DOMContentLoaded',gszNeedsInit); }
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
