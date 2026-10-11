@@ -412,6 +412,8 @@
       +'<div style="margin:2px 0 14px"><div style="font-weight:800;font-size:16px">'+esc(o.product_name||'Order')+'</div><div class="muted">'+esc(o.plan_label||'')+'</div></div>'
       +'<div class="cthm-meta"><div><span class="muted">Order</span><div>'+esc(o.order_no)+'</div></div><div><span class="muted">Purchased</span><div>'+fmtd(o.purchased)+'</div></div><div><span class="muted">Expiry</span><div>'+(o.expiry?fmtd(o.expiry):'No expiry')+dl+'</div></div><div><span class="muted">Status</span><div style="display:flex;gap:6px;flex-wrap:wrap">'+subPill(o)+warr+'</div></div></div>'
       +cred
+      +(o.delivery_instructions?('<div class="cthm-cred" style="margin-bottom:12px"><div class="muted" style="margin-bottom:6px">📋 Delivery instructions</div><pre style="margin:0;white-space:pre-wrap;word-break:break-word;background:#0e1627;border:1px solid rgba(41,211,255,.28);border-radius:10px;padding:10px;font-size:13px">'+esc(o.delivery_instructions)+'</pre></div>'):'')
+      +(o.product_note?('<div class="cthm-note" style="margin:0 0 12px">'+esc(o.product_note)+'</div>'):'')
       +'<div class="cthm-acts"><button class="cbtn cbtn-g" data-go="code">Get Code</button><button class="cbtn cbtn-g" data-go="renew">Renew</button><button class="cbtn cbtn-p" data-go="claim">Claim / Replace</button></div>';
     document.getElementById('dBack').addEventListener('click',function(){ setTab('purchases'); });
     var cp=document.getElementById('cpyCred'); if(cp) cp.addEventListener('click',function(){ try{ navigator.clipboard.writeText(o.credentials); cp.textContent='Copied ✓'; setTimeout(function(){cp.textContent='Copy';},1500); }catch(e){} });
