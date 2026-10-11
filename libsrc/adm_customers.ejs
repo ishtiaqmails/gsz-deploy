@@ -1,0 +1,187 @@
+<%- include('_shell_top', { active:'customers', title:'Customers' }) %>
+<style>
+  .cu-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .cu-search{position:relative;flex:1;min-width:220px}
+  .cu-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2}
+  .cu-search input{margin:0;padding-left:36px;width:100%}
+  .cu-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .cu-tab{font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;border:1px solid var(--hair);background:#fff;color:#49527a;cursor:pointer}
+  .cu-tab.on{background:var(--brand,#2a7bff);border-color:transparent;color:#fff}
+  .cu-who{display:flex;align-items:center;gap:11px;min-width:0}
+  .cu-av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:14px;color:#5b6bb5;background:#eef2fb}
+  .cu-nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cu-em{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cu-tick{display:inline-flex;align-items:center;gap:4px;font-size:12px}
+  .cu-tick svg{width:14px;height:14px;stroke-width:2.4;fill:none}
+  .cu-ok{color:#16935c}.cu-no{color:var(--muted)}
+  .cu-pill{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .cu-pill.live{background:#e7f6ee;color:#16935c}
+  .cu-pill.block{background:#fdeaea;color:#b42318}
+  .cu-act{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .cu-act .btn{padding:6px 10px}
+  #cuTable td.num{color:var(--muted);width:42px}
+  .cu-lbl{display:none}
+  .ivm-scrim{position:fixed;inset:0;background:rgba(18,22,40,.5);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:28px 14px}
+  .ivm-scrim.on{display:flex}
+  .ivm-card{background:#fff;border-radius:18px;width:100%;max-width:560px;box-shadow:0 24px 60px rgba(18,22,40,.25);padding:22px}
+  .ivm-h{font-weight:800;font-size:18px;margin:0 0 2px}
+  .ivm-sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .cu-kv{display:grid;grid-template-columns:120px 1fr;gap:8px 14px;font-size:14px;margin:0 0 6px}
+  .cu-kv .k{color:var(--muted)}
+  .cu-oh{font-weight:700;font-size:13px;margin:18px 0 8px;color:#49527a}
+  .cu-ord{border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+  .cu-ord table{width:100%;border-collapse:collapse}
+  .cu-ord td{padding:9px 12px;border-top:1px solid var(--hair);font-size:13px;vertical-align:top}
+  .cu-ord tr:first-child td{border-top:0}
+  .cu-ord .ono{font-weight:600}
+  .cu-empty{padding:16px;color:var(--muted);font-size:13px}
+  .ivm-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+  @media(max-width:760px){
+    #cuTable thead{display:none}
+    #cuTable tbody,#cuTable tr,#cuTable td{display:block;width:auto}
+    #cuTable tr{border:1px solid var(--hair);border-radius:13px;margin:12px 0;padding:12px 14px;background:#fff}
+    #cuTable td{border:0;padding:3px 0}
+    #cuTable td.num{display:none}
+    .cu-lbl{display:inline;color:var(--muted);font-weight:600;font-size:12px;margin-right:4px}
+    .cu-act{justify-content:stretch;margin-top:10px}.cu-act .btn{flex:1;justify-content:center}
+    .cu-kv{grid-template-columns:104px 1fr}
+  }
+</style>
+<%
+  function initials(n){ n=(n||'').trim(); if(!n) return '?'; var p=n.split(/\s+/); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+  function joined(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
+  var st=d.stats;
+%>
+
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+
+<div class="dcards c4">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Total customers</span><b class="dval"><%= st.total %></b><span class="dsub">all accounts</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-1.2 4.4L21 21l-5.3-1.4A8.5 8.5 0 1 1 21 11.5Z"/><path d="m8.5 12 2 2 4-4.2"/></svg></span>
+    <div class="dmeta"><span class="dlbl">WhatsApp verified</span><b class="dval"><%= st.wa %></b><span class="dsub">reachable on WhatsApp</span></div></div>
+  <div class="dcard" style="--t:#9a6cff"><span class="dic"><svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3 6 9 6 9-6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Email verified</span><b class="dval"><%= st.em %></b><span class="dsub">confirmed address</span></div></div>
+  <div class="dcard" style="--t:#e0453f"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Blocked</span><b class="dval"><%= st.blk %></b><span class="dsub">can't sign in</span></div></div>
+</div>
+
+<div class="cu-tools">
+  <div class="cu-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" id="cuSearch" placeholder="Search name, email or WhatsApp…" autocomplete="off" oninput="cuFilter()"></div>
+</div>
+<div class="cu-tabs">
+  <button type="button" class="cu-tab on" data-flt="all" onclick="cuTab(this)">All</button>
+  <button type="button" class="cu-tab" data-flt="wa" onclick="cuTab(this)">WhatsApp verified</button>
+  <button type="button" class="cu-tab" data-flt="em" onclick="cuTab(this)">Email verified</button>
+  <button type="button" class="cu-tab" data-flt="blocked" onclick="cuTab(this)">Blocked</button>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table id="cuTable">
+    <thead><tr><th style="width:42px">#</th><th>Customer</th><th>WhatsApp</th><th>Orders</th><th>Joined</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+    <% if (!d.rows.length) { %><tr><td colspan="7" style="padding:26px 16px;color:var(--muted)">No customers yet.</td></tr><% } %>
+    <% d.rows.forEach(function(c, i){
+         var flags = []; if(c.wa_verified) flags.push('wa'); if(c.email_verified) flags.push('em'); if(c.blocked) flags.push('blocked');
+         var hay = ((c.name||'')+' '+(c.email||'')+' '+(c.wa_number||'')).toLowerCase();
+    %>
+      <tr data-id="<%= c.id %>" data-name="<%= c.name ? c.name.replace(/"/g,'&quot;') : '' %>" data-search="<%= hay.replace(/"/g,'&quot;') %>" data-flags="<%= flags.join(' ') %>">
+        <td class="num"><%= i+1 %></td>
+        <td>
+          <div class="cu-who">
+            <span class="cu-av"><%= initials(c.name) %></span>
+            <div style="min-width:0"><div class="cu-nm"><%= c.name || '—' %></div><div class="cu-em"><%= c.email || '' %>
+              <% if (c.email_verified) { %><span class="cu-tick cu-ok" title="Email verified"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="m5 12 4 4 10-10"/></svg></span><% } %></div></div>
+          </div>
+        </td>
+        <td><span class="cu-lbl">WhatsApp</span>
+          <% if (c.wa_number) { %><%= c.wa_number %>
+            <% if (c.wa_verified) { %><span class="cu-tick cu-ok" title="WhatsApp verified"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="m5 12 4 4 10-10"/></svg></span><% } else { %><span class="cu-tick cu-no">· unverified</span><% } %>
+          <% } else { %><span style="color:var(--muted)">—</span><% } %>
+        </td>
+        <td><span class="cu-lbl">Orders</span><b><%= c.orders %></b></td>
+        <td><span class="cu-lbl">Joined</span><%= joined(c.created_at) %></td>
+        <td><span class="cu-lbl">Status</span><% if (c.blocked) { %><span class="cu-pill block">Blocked</span><% } else { %><span class="cu-pill live">Active</span><% } %></td>
+        <td>
+          <div class="cu-act">
+            <button class="btn btn-g" type="button" onclick="cuView('<%= c.id %>')">View</button>
+            <form method="post" action="/admin/customers/<%= c.id %>/block" style="display:inline"><button class="btn btn-g" type="submit"<% if(!c.blocked){ %> style="color:#b42318"<% } %>><%= c.blocked ? 'Unblock' : 'Block' %></button></form>
+            <form method="post" action="/admin/customers/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('Delete <%= (c.name||'this customer').replace(/'/g,"\\'") %>? Their order history is kept but the account is removed.')"><button class="btn btn-g" style="color:#b42318" type="submit">Delete</button></form>
+          </div>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table>
+</div>
+<p class="hint" id="cuNone" style="display:none;color:var(--muted);font-size:13px;margin:14px 2px">No customers match.</p>
+
+<!-- View modal -->
+<div class="ivm-scrim" id="cuScrim">
+  <div class="ivm-card">
+    <div class="ivm-h" id="cuvName">Customer</div>
+    <div class="ivm-sub" id="cuvId"></div>
+    <div id="cuvBody"></div>
+    <div class="ivm-foot">
+      <button class="btn btn-g" type="button" onclick="document.getElementById('cuScrim').classList.remove('on')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  function fmt(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
+  var curFlt='all';
+
+  window.cuTab=function(btn){
+    [].slice.call(document.querySelectorAll('.cu-tab')).forEach(function(b){b.classList.remove('on');});
+    btn.classList.add('on'); curFlt=btn.getAttribute('data-flt'); cuFilter();
+  };
+  window.cuFilter=function(){
+    var q=(document.getElementById('cuSearch').value||'').toLowerCase().trim();
+    var shown=0;
+    [].slice.call(document.querySelectorAll('#cuTable tbody tr[data-id]')).forEach(function(r){
+      var okQ=!q || (r.getAttribute('data-search')||'').indexOf(q)>=0;
+      var okF=curFlt==='all' || (' '+(r.getAttribute('data-flags')||'')+' ').indexOf(' '+curFlt+' ')>=0;
+      var vis=okQ&&okF; r.style.display=vis?'':'none'; if(vis)shown++;
+    });
+    document.getElementById('cuNone').style.display=shown?'none':'';
+  };
+
+  window.cuView=function(id){
+    var sc=document.getElementById('cuScrim'), body=document.getElementById('cuvBody');
+    document.getElementById('cuvName').textContent='Loading…'; document.getElementById('cuvId').textContent='';
+    body.innerHTML='<div class="cu-empty">Loading…</div>'; sc.classList.add('on');
+    fetch('/admin/customers/'+id+'.json').then(function(r){return r.json();}).then(function(d){
+      if(!d||d.error){ body.innerHTML='<div class="cu-empty">Could not load this customer.</div>'; return; }
+      var c=d.c;
+      document.getElementById('cuvName').textContent=c.name||'Customer';
+      document.getElementById('cuvId').textContent='Customer #'+c.id+(c.blocked?' · blocked':'');
+      var wa = c.wa_number ? (esc(c.wa_number)+(c.wa_verified?' <span class="cu-tick cu-ok">verified</span>':' <span class="cu-no">· unverified</span>')) : '—';
+      if(d.phone && d.phone!==c.wa_number) wa += '<div class="cu-no" style="font-size:12px">linked: '+esc(d.phone)+'</div>';
+      var kv='<div class="cu-kv">'
+        +'<span class="k">Email</span><span>'+esc(c.email||'—')+(c.email_verified?' <span class="cu-tick cu-ok">verified</span>':' <span class="cu-no">· unverified</span>')+'</span>'
+        +'<span class="k">WhatsApp</span><span>'+wa+'</span>'
+        +'<span class="k">Joined</span><span>'+fmt(c.created_at)+'</span>'
+        +'<span class="k">Last sign-in</span><span>'+fmt(c.last_login)+'</span>'
+        +(c.ref_code?('<span class="k">Referral</span><span>'+esc(c.ref_code)+'</span>'):'')
+        +'</div>';
+      var oh='<div class="cu-oh">Recent orders ('+(d.orders?d.orders.length:0)+')</div>';
+      var ob;
+      if(d.orders && d.orders.length){
+        ob='<div class="cu-ord"><table><tbody>'+d.orders.map(function(o){
+          var amt=(o.amount_display?esc(o.amount_display):'')+(o.currency?(' '+esc(o.currency)):'');
+          return '<tr><td><div class="ono">'+esc(o.product_name||o.plan_label||'Order')+'</div>'
+            +'<div class="cu-no" style="font-size:12px">'+esc(o.order_no||'')+' · '+fmt(o.created_at)+'</div></td>'
+            +'<td style="text-align:right;white-space:nowrap">'+esc(o.status||'')+'<div class="cu-no" style="font-size:12px">'+amt+'</div></td></tr>';
+        }).join('')+'</tbody></table></div>';
+      } else { ob='<div class="cu-empty">No orders yet.</div>'; }
+      body.innerHTML=kv+oh+ob;
+    }).catch(function(){ body.innerHTML='<div class="cu-empty">Could not load this customer.</div>'; });
+  };
+  document.getElementById('cuScrim').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+})();
+</script>
+<%- include('_shell_bottom') %>
