@@ -1,0 +1,397 @@
+<% /* Add/Edit Product model — desktop popup + mobile app sheet. Data loads via /admin/products/:id/model.json
+      and saves via POST /admin/products/model-save (JSON). cats + bots come from window.__PM_CATS / __PM_BOTS. */ %>
+<style>
+  #pmScrim{position:fixed;inset:0;background:rgba(16,24,54,.46);backdrop-filter:blur(3px);display:none;z-index:4000;padding:22px 16px;overflow:auto}
+  #pmScrim.open{display:flex;align-items:flex-start;justify-content:center}
+  .pm{width:100%;max-width:560px;margin:auto;background:#fff;border-radius:20px;box-shadow:0 30px 70px -24px rgba(16,28,70,.45);display:flex;flex-direction:column;max-height:calc(100vh - 44px);overflow:hidden;animation:pmpop .2s ease}
+  @keyframes pmpop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  .pm *{box-sizing:border-box}
+  .pm-head{display:flex;align-items:flex-start;gap:12px;padding:17px 20px 13px;border-bottom:1px solid #e7ebf6;position:relative}
+  .pm-head h3{margin:0;font-size:18px;letter-spacing:-.01em;color:#0f1836}
+  .pm-head .sub{color:#8a93ac;font-size:12px;margin-top:2px}
+  .pm-x{position:absolute;right:16px;top:14px;width:34px;height:34px;border-radius:10px;border:1px solid #e7ebf6;background:#f7f9fd;color:#5a6686;font-size:18px;cursor:pointer;line-height:1}
+  .pm-body{padding:16px 20px;overflow:auto;flex:1}
+  .pm-foot{display:flex;gap:10px;justify-content:flex-end;padding:13px 20px;border-top:1px solid #e7ebf6;background:#fff}
+  .pm-err{display:none;margin:0 0 10px;padding:9px 12px;border-radius:10px;background:#fdecec;color:#b42318;font-size:12.5px;font-weight:600}
+
+  .pm .fld{display:block;font-weight:700;font-size:12.5px;color:#0f1836;margin:14px 0 6px}
+  .pm .fld .q{color:#8a93ac;font-weight:500}
+  .pm .inp,.pm textarea,.pm select{width:100%;border:1px solid #dfe4f2;background:#f7f9fd;border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;color:#0f1836;outline:none;transition:.15s}
+  .pm .inp:focus,.pm textarea:focus,.pm select:focus{border-color:#2f6cff;background:#fff;box-shadow:0 0 0 3px rgba(47,108,255,.12)}
+  .pm textarea{resize:vertical;min-height:60px}
+  .pm .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pm .row3{display:grid;grid-template-columns:1.2fr .9fr .9fr;gap:10px}
+  @media(max-width:520px){.pm .row3{grid-template-columns:1fr 1fr}}
+  .pm .imgrow{display:flex;gap:12px;align-items:center;margin-top:6px}
+  .pm .imgbox{width:60px;height:60px;border-radius:12px;background:repeating-linear-gradient(45deg,#eef2fe,#eef2fe 7px,#e3e8f6 7px,#e3e8f6 14px);display:grid;place-items:center;color:#8a93ac;font-size:10px;flex:none;overflow:hidden}
+  .pm .imgbox img{width:100%;height:100%;object-fit:cover}
+
+  .pm .sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .pm .sw input{display:none}
+  .pm .sw .track{width:40px;height:23px;border-radius:999px;background:#dfe4f2;position:relative;transition:.18s;flex:none}
+  .pm .sw .track:after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.18s}
+  .pm .sw input:checked + .track{background:linear-gradient(135deg,#19b765,#12a85b)}
+  .pm .sw input:checked + .track:after{transform:translateX(17px)}
+  .pm .sw.purple input:checked + .track{background:linear-gradient(135deg,#9a6cff,#5b8bff)}
+  .pm .sw .lbl{font-weight:700;font-size:13px;color:#0f1836}
+  .pm .sw .lbl small{display:block;color:#8a93ac;font-weight:500;font-size:11px}
+  .pm .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px dashed #e7ebf6}
+  .pm .toggle-row:first-child{border-top:0}
+
+  .pm .sec{border:1px solid #e7ebf6;border-radius:14px;margin-top:12px;overflow:hidden;background:#fff}
+  .pm .sec-h{display:flex;align-items:center;gap:10px;width:100%;border:0;background:#fbfcff;padding:12px 14px;cursor:pointer;text-align:left;font:inherit}
+  .pm .sec-h .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:none}
+  .pm .sec-h .st{flex:1;min-width:0}
+  .pm .sec-h .st b{display:block;font-size:14px;font-weight:800;color:#0f1836}
+  .pm .sec-h .st small{color:#8a93ac;font-size:11.5px}
+  .pm .sec-h .chev{transition:.2s;color:#8a93ac;flex:none}
+  .pm .sec.open .sec-h .chev{transform:rotate(180deg)}
+  .pm .sec-c{display:none;padding:4px 14px 16px}
+  .pm .sec.open .sec-c{display:block}
+  .pm .cnt{font-size:11px;font-weight:800;color:#2f6cff;background:rgba(47,108,255,.1);padding:2px 8px;border-radius:999px}
+
+  .pm .plan{border:1px solid #dfe4f2;border-radius:12px;margin-top:10px;overflow:hidden;background:#fff}
+  .pm .plan.pop{border-color:#9a6cff;box-shadow:0 0 0 2px rgba(154,108,255,.14)}
+  .pm .plan-h{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:pointer}
+  .pm .plan-grip{color:#8a93ac;cursor:grab;font-size:15px}
+  .pm .plan-sum{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pm .plan-name{font-weight:800;font-size:13.5px;color:#0f1836}
+  .pm .plan-meta{color:#5a6686;font-size:12px}
+  .pm .star{flex:none;border:0;background:none;cursor:pointer;color:#d9d3e8;font-size:16px;padding:2px}
+  .pm .plan.pop .star{color:#9a6cff}
+  .pm .pill{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px}
+  .pm .pill.pop{background:linear-gradient(135deg,#9a6cff,#5b8bff);color:#fff}
+  .pm .plan-c{display:none;padding:4px 12px 14px;border-top:1px dashed #e7ebf6}
+  .pm .plan.open .plan-c{display:block}
+  .pm .x-btn{border:0;background:#f7f9fd;border:1px solid #e7ebf6;color:#f0554e;border-radius:8px;width:30px;height:30px;cursor:pointer;flex:none;font-size:14px}
+
+  .pm .segt{display:flex;gap:6px;margin-top:6px;background:#f7f9fd;border:1px solid #dfe4f2;border-radius:11px;padding:4px}
+  .pm .segt button{flex:1;border:0;background:none;padding:8px 6px;border-radius:8px;font-weight:700;font-size:12px;color:#5a6686;cursor:pointer;transition:.15s}
+  .pm .segt button.on{background:#fff;color:#0f1836;box-shadow:0 2px 8px -4px rgba(16,28,70,.25)}
+  .pm .typeblock{display:none;margin-top:10px;padding:12px;border:1px dashed #dfe4f2;border-radius:11px;background:#fbfcff}
+  .pm .typeblock.show{display:block}
+  .pm .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .pm .chip{font-size:11px;font-weight:700;background:#eaf0ff;color:#2f6cff;border:1px solid #d4e0ff;padding:4px 9px;border-radius:999px}
+  .pm .chip.gray{background:#f7f9fd;color:#5a6686;border-color:#dfe4f2}
+  .pm .mini{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .pm .mini .inp{flex:1}
+  .pm .addlink{margin-top:10px;border:1px dashed #dfe4f2;background:#fff;color:#2f6cff;font-weight:700;font-size:12.5px;border-radius:10px;padding:9px;width:100%;cursor:pointer}
+  .pm .note{font-size:11.5px;color:#8a93ac;margin:6px 0 0}
+  .pm .addplan{margin-top:12px;border:1px dashed #2f6cff;background:#f5f8ff;color:#2f6cff;font-weight:800;font-size:13px;border-radius:12px;padding:12px;width:100%;cursor:pointer}
+  .pm .cur{font-weight:700;color:#8a93ac;font-size:12px}
+
+  /* mobile app-sheet */
+  @media(max-width:860px),(max-width:1366px) and (pointer:coarse){
+    #pmScrim{padding:0;align-items:flex-end}
+    .pm{max-width:none;border-radius:22px 22px 0 0;max-height:94vh;animation:pmsheet .26s ease}
+    @keyframes pmsheet{from{transform:translateY(100%)}to{transform:none}}
+    .pm-head{padding-top:22px}
+    .pm-head:before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:999px;background:#dfe4f2}
+  }
+</style>
+
+<div id="pmScrim" onclick="if(event.target===this)pmClose()">
+  <div class="pm" role="dialog" aria-modal="true">
+    <div class="pm-head">
+      <div style="flex:1;min-width:0"><h3 id="pmTitle">Add product</h3><div class="sub">Shown to customers on the product page · changes go live on save</div></div>
+      <button class="pm-x" onclick="pmClose()" aria-label="Close">×</button>
+    </div>
+    <div class="pm-body" id="pmBody">
+      <div class="pm-err" id="pmErr"></div>
+      <input type="hidden" id="pm_id">
+
+      <label class="fld">Product name</label>
+      <input class="inp" id="pm_name" placeholder="e.g. Netflix Premium">
+
+      <div class="row2">
+        <div><label class="fld">Category</label><select class="inp" id="pm_cat"></select></div>
+        <div><label class="fld">Product image <span class="q">· 800×800</span></label>
+          <div class="imgrow"><div class="imgbox" id="pm_imgbox">No image</div>
+            <form id="pm_imgform" method="post" enctype="multipart/form-data" style="display:none"><input type="file" name="image" accept="image/*" id="pm_imgfile" style="font-size:12px"></form>
+            <button class="addlink" type="button" id="pm_imgbtn" style="margin:0;width:auto;padding:8px 12px" onclick="pmImg()">Upload</button>
+          </div>
+          <div class="note" id="pm_imgnote" style="display:none">Save the product first, then re-open to add an image.</div>
+        </div>
+      </div>
+
+      <div class="toggle-row" style="border-top:1px solid #e7ebf6;margin-top:14px">
+        <label class="sw purple"><input type="checkbox" id="pm_mostsell"><span class="track"></span>
+          <span class="lbl">Most Selling<small>Feature this product in “Top selling”</small></span></label>
+      </div>
+
+      <label class="fld">Short description <span class="q">· shown on cards</span></label>
+      <input class="inp" id="pm_short" placeholder="One line customers see on the product card">
+      <label class="fld">Long description <span class="q">· product page</span></label>
+      <textarea id="pm_long" placeholder="Full description shown on the product page"></textarea>
+      <label class="fld">Availability note <span class="q">· country restriction</span></label>
+      <input class="inp" id="pm_geo" placeholder="e.g. Not available in USA — leave blank if worldwide">
+
+      <div class="sec open" id="pmSecPlans">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecPlans')"><span class="ic" style="background:rgba(47,108,255,.12)">📦</span>
+          <span class="st"><b>Plans &amp; Pricing</b><small>Name, duration, Rs + $ price, mapping &amp; more</small></span>
+          <span class="cnt" id="pmPlanCount">0</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c"><div id="pmPlans"></div><button class="addplan" type="button" onclick="pmAddPlan()">+ Add plan</button></div>
+      </div>
+
+      <div class="sec" id="pmSecCap">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecCap')"><span class="ic" style="background:rgba(25,183,101,.14)">🔧</span>
+          <span class="st"><b>Capabilities</b><small>OTP · login link · household — shown on the product page</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c">
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_otp"><span class="track"></span><span class="lbl">Requires OTP<small>Customer can fetch sign-in codes</small></span></label></div>
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_link" onchange="document.getElementById('pm_linkwrap').style.display=this.checked?'block':'none'"><span class="track"></span><span class="lbl">Has login link<small>Show a “Login here” button</small></span></label></div>
+          <div id="pm_linkwrap" style="display:none"><input class="inp" id="pm_linkurl" placeholder="https://app.example.com/login"></div>
+          <div class="toggle-row"><label class="sw"><input type="checkbox" id="pm_house"><span class="track"></span><span class="lbl">Has household<small>Show the “Update household” action</small></span></label></div>
+        </div>
+      </div>
+
+      <div class="sec" id="pmSecFaq">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecFaq')"><span class="ic" style="background:rgba(243,167,18,.16)">❓</span>
+          <span class="st"><b>FAQs</b><small>Question &amp; answer — unlimited</small></span><span class="cnt" id="pmFaqCount">0</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c"><div id="pmFaqs"></div><button class="addlink" type="button" onclick="pmAddFaq()">+ Add FAQ</button></div>
+      </div>
+
+      <div class="sec" id="pmSecDl">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecDl')"><span class="ic" style="background:rgba(154,108,255,.14)">⬇️</span>
+          <span class="st"><b>Download buttons</b><small>Label + link — unlimited</small></span><span class="cnt" id="pmDlCount">0</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c"><div id="pmDls"></div><button class="addlink" type="button" onclick="pmAddDl()">+ Add download</button></div>
+      </div>
+    </div>
+    <div class="pm-foot">
+      <button class="btn btn-g" onclick="pmClose()">Cancel</button>
+      <button class="btn btn-p" id="pmSaveBtn" onclick="pmSave()">Save product</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CATS = window.__PM_CATS || [], BOTS = window.__PM_BOTS || [];
+  function esc(v){return (v==null?'':String(v)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function botBySku(sku){for(var i=0;i<BOTS.length;i++)if(BOTS[i].sku===sku)return BOTS[i];return null;}
+  function botVersions(b){var t=b&&b.types;if(!Array.isArray(t))return [];return t.map(function(x){return (typeof x==='object')?{key:x.key||x.value||'',label:x.label||x.key||''}:{key:String(x),label:String(x)};}).filter(function(x){return x.key;});}
+  function botNeeds(b){var n=b&&b.needs;if(!Array.isArray(n))return [];return n.map(function(x){return (typeof x==='object')?(x.label||x.key||x.name||''):String(x);}).filter(Boolean);}
+
+  window.pmSec=function(id){document.getElementById(id).classList.toggle('open');};
+  window.pmClose=function(){document.getElementById('pmScrim').classList.remove('open');document.body.style.overflow='';};
+
+  function catOptions(sel){return CATS.map(function(c){return '<option value="'+c.id+'"'+(c.id==sel?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');}
+
+  /* ---------- plans ---------- */
+  var seq=0;
+  function planHTML(id){
+    return ''
+    +'<div class="plan-h" onclick="if(!event.target.closest(\'.star\')&&!event.target.closest(\'.x-btn\'))this.parentElement.classList.toggle(\'open\')">'
+      +'<span class="plan-grip">⠿</span>'
+      +'<span class="plan-sum"><span class="plan-name">New plan</span><span class="plan-meta" data-meta></span></span>'
+      +'<button class="star" title="Mark Most Popular" onclick="pmPop(\''+id+'\')">★</button>'
+      +'<button class="x-btn" title="Remove" onclick="this.closest(\'.plan\').remove();pmCounts()">✕</button>'
+    +'</div>'
+    +'<div class="plan-c">'
+      +'<input type="hidden" class="p_id"><input type="hidden" class="p_bpk"><input type="hidden" class="p_bt">'
+      +'<div class="row3">'
+        +'<div><label class="fld">Name</label><input class="inp p_name" oninput="pmSync(\''+id+'\')" placeholder="1 Month"></div>'
+        +'<div><label class="fld">Duration</label><input class="inp p_dv" type="number" step="0.5" oninput="pmSync(\''+id+'\')" placeholder="1"></div>'
+        +'<div><label class="fld">&nbsp;</label><select class="inp p_du"><option value="">—</option><option>Day</option><option>Week</option><option>Month</option><option>Months</option><option>Year</option><option>Lifetime</option></select></div>'
+      +'</div>'
+      +'<div class="row2">'
+        +'<div><label class="fld">Price — Pakistan <span class="cur">Rs</span></label><input class="inp p_pkr" type="number" step="0.01" oninput="pmSync(\''+id+'\')" placeholder="300"></div>'
+        +'<div><label class="fld">Price — other countries <span class="cur">$</span></label><input class="inp p_usd" type="number" step="0.01" placeholder="auto from Rs"><div class="note" style="margin-top:4px">Leave blank → auto-converts from Rs.</div></div>'
+      +'</div>'
+      +'<label class="fld">Product type <span class="q">· how this plan is fulfilled</span></label>'
+      +'<div class="segt">'
+        +'<button type="button" data-t="inventory" onclick="pmType(\''+id+'\',\'inventory\')">📦 Inventory</button>'
+        +'<button type="button" data-t="bot" onclick="pmType(\''+id+'\',\'bot\')">🤖 Reseller Bot</button>'
+        +'<button type="button" data-t="manual" onclick="pmType(\''+id+'\',\'manual\')">✋ Manual</button>'
+      +'</div>'
+      +'<div class="typeblock t-bot">'
+        +'<label class="fld">Bot product mapping <span class="q">· this plan</span></label>'
+        +'<select class="inp p_bsku" onchange="pmBot(\''+id+'\')"><option value="">— select bot product —</option>'
+          +BOTS.map(function(b){return '<option value="'+esc(b.sku)+'">'+esc(b.name||b.sku)+(b.delivery_type?(' ('+esc(b.delivery_type)+')'):'')+'</option>';}).join('')
+        +'</select>'
+        +'<div class="p_versions"></div>'
+        +'<label class="fld" style="margin-top:12px">Required fields <span class="q">· auto-synced from bot</span></label>'
+        +'<div class="chips p_needs"><span class="chip gray">select a bot product</span></div>'
+      +'</div>'
+      +'<div class="typeblock t-inventory">'
+        +'<label class="fld">Custom fields <span class="q">· structure your stock entry</span></label>'
+        +'<div class="p_cf"></div><button class="addlink" type="button" onclick="pmAddCF(this)">+ Add field</button>'
+      +'</div>'
+      +'<div class="typeblock t-manual"><p class="note" style="margin:0">You’ll deliver this plan manually after each order.</p></div>'
+      +'<label class="fld">Product note <span class="q">· one note for this plan</span></label>'
+      +'<input class="inp p_note" placeholder="Short note shown with this plan">'
+      +'<label class="fld">Delivery instructions <span class="q">· shown on delivery</span></label>'
+      +'<textarea class="p_dinstr" placeholder="Sent to the customer after delivery"></textarea>'
+      +'<label class="fld">Limited-time availability <span class="q">· optional</span></label>'
+      +'<div class="row2"><input class="inp p_from" type="date"><input class="inp p_until" type="date"></div>'
+    +'</div>';
+  }
+  window.pmAddPlan=function(d){
+    d=d||{}; var id='pm'+(++seq);
+    var el=document.createElement('div'); el.className='plan open'; el.id=id; el.innerHTML=planHTML(id);
+    document.getElementById('pmPlans').appendChild(el);
+    // fill
+    el.querySelector('.p_id').value=d.id||'';
+    el.querySelector('.p_name').value=d.label||'';
+    el.querySelector('.p_dv').value=(d.duration_value!=null?d.duration_value:'');
+    if(d.duration_unit){el.querySelector('.p_du').value=d.duration_unit;}
+    el.querySelector('.p_pkr').value=(d.price_pkr!=null?parseFloat(d.price_pkr):'');
+    el.querySelector('.p_usd').value=(d.price_usd!=null?parseFloat(d.price_usd):'');
+    el.querySelector('.p_note').value=d.product_note||'';
+    el.querySelector('.p_dinstr').value=d.delivery_instructions||'';
+    el.querySelector('.p_from').value=d.avail_from?String(d.avail_from).slice(0,10):'';
+    el.querySelector('.p_until').value=d.avail_until?String(d.avail_until).slice(0,10):'';
+    el.querySelector('.p_bpk').value=d.bot_plan_key||'';
+    el.querySelector('.p_bt').value=d.bot_type||'';
+    if(d.popular){el.classList.add('pop');var s=el.querySelector('.plan-sum');var b=document.createElement('span');b.className='pill pop';b.textContent='★ Popular';s.appendChild(b);}
+    // custom fields
+    (Array.isArray(d.custom_fields)?d.custom_fields:[]).forEach(function(cf){pmAddCF(el.querySelector('.t-inventory .addlink'), (typeof cf==='object')?(cf.label||cf.key||''):cf);});
+    var type=d.source||'inventory';
+    pmType(id,type);
+    if(type==='bot'&&d.bot_sku){el.querySelector('.p_bsku').value=d.bot_sku;pmBot(id,d.version_labels);}
+    pmSync(id);
+    pmCounts();
+    return el;
+  };
+  window.pmSync=function(id){var p=document.getElementById(id);var n=p.querySelector('.p_name').value||'New plan';var dv=p.querySelector('.p_dv').value;var du=p.querySelector('.p_du').value;var pr=p.querySelector('.p_pkr').value;
+    p.querySelector('.plan-name').textContent=n;var m=[];if(dv)m.push(dv+' '+(du||''));if(pr)m.push('Rs '+pr);p.querySelector('[data-meta]').textContent=m.join(' · ');};
+  window.pmPop=function(id){var p=document.getElementById(id);var on=p.classList.contains('pop');
+    document.querySelectorAll('#pmPlans .plan').forEach(function(x){x.classList.remove('pop');var pill=x.querySelector('.plan-sum .pill');if(pill)pill.remove();});
+    if(!on){p.classList.add('pop');var s=p.querySelector('.plan-sum');var b=document.createElement('span');b.className='pill pop';b.textContent='★ Popular';s.appendChild(b);}};
+  window.pmType=function(id,t){var p=document.getElementById(id);
+    p.querySelectorAll('.segt button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});
+    p.querySelector('.t-bot').classList.toggle('show',t==='bot');
+    p.querySelector('.t-inventory').classList.toggle('show',t==='inventory');
+    p.querySelector('.t-manual').classList.toggle('show',t==='manual');
+    if(t==='inventory'&&!p.querySelector('.p_cf').children.length){pmAddCF(p.querySelector('.t-inventory .addlink'),'Email');pmAddCF(p.querySelector('.t-inventory .addlink'),'Password');}
+  };
+  window.pmBot=function(id,savedLabels){var p=document.getElementById(id);var sku=p.querySelector('.p_bsku').value;var b=botBySku(sku);
+    var vbox=p.querySelector('.p_versions');var needsBox=p.querySelector('.p_needs');
+    var versions=b?botVersions(b):[];var needs=b?botNeeds(b):[];
+    if(versions.length){
+      vbox.innerHTML='<label class="fld" style="margin-top:12px">Version labels <span class="q">· rename the customer “Choose version”</span></label>'+
+        versions.map(function(v){var lbl=v.label;if(Array.isArray(savedLabels)){var f=savedLabels.filter(function(s){return (s.key||'')===v.key;})[0];if(f)lbl=f.label;}
+          return '<div class="mini"><input class="inp vk" value="'+esc(v.key)+'" readonly style="max-width:140px;background:#eef2fb"><span class="note" style="margin:0">→</span><input class="inp vl" value="'+esc(lbl)+'" placeholder="shown to customer"></div>';}).join('');
+    } else { vbox.innerHTML=''; }
+    needsBox.innerHTML = needs.length ? needs.map(function(n){return '<span class="chip">'+esc(n)+'</span>';}).join('')+'<span class="chip gray">read-only</span>' : '<span class="chip gray">no extra fields</span>';
+  };
+  window.pmAddCF=function(btn,val){var wrap=btn.previousElementSibling;var r=document.createElement('div');r.className='mini';
+    r.innerHTML='<input class="inp cf" value="'+esc(val||'')+'" placeholder="Field label e.g. Email"><button class="x-btn" onclick="this.parentElement.remove()">✕</button>';wrap.appendChild(r);};
+
+  /* ---------- faqs / downloads ---------- */
+  window.pmAddFaq=function(q,a){var r=document.createElement('div');r.className='mini';r.style.alignItems='flex-start';
+    r.innerHTML='<div style="flex:1"><input class="inp fq" value="'+esc(q||'')+'" placeholder="Question" style="margin-bottom:6px"><input class="inp fa" value="'+esc(a||'')+'" placeholder="Answer"></div><button class="x-btn" onclick="this.closest(\'.mini\').remove();pmCounts()">✕</button>';
+    document.getElementById('pmFaqs').appendChild(r);pmCounts();};
+  window.pmAddDl=function(l,u){var r=document.createElement('div');r.className='mini';
+    r.innerHTML='<input class="inp dl" value="'+esc(l||'')+'" placeholder="Label e.g. Download APK"><input class="inp du" value="'+esc(u||'')+'" placeholder="https://..."><button class="x-btn" onclick="this.closest(\'.mini\').remove();pmCounts()">✕</button>';
+    document.getElementById('pmDls').appendChild(r);pmCounts();};
+  window.pmCounts=function(){document.getElementById('pmPlanCount').textContent=document.querySelectorAll('#pmPlans .plan').length;
+    document.getElementById('pmFaqCount').textContent=document.querySelectorAll('#pmFaqs .mini').length;
+    document.getElementById('pmDlCount').textContent=document.querySelectorAll('#pmDls .mini').length;};
+
+  /* ---------- image ---------- */
+  window.pmImg=function(){var id=document.getElementById('pm_id').value;if(!id){document.getElementById('pm_imgnote').style.display='block';return;}
+    var f=document.getElementById('pm_imgform');f.action='/admin/products/'+id+'/image';var fi=document.getElementById('pm_imgfile');
+    fi.onchange=function(){if(fi.files.length)f.submit();};fi.click();};
+
+  /* ---------- open / populate ---------- */
+  function reset(){
+    document.getElementById('pm_id').value='';document.getElementById('pm_name').value='';
+    document.getElementById('pm_short').value='';document.getElementById('pm_long').value='';document.getElementById('pm_geo').value='';
+    document.getElementById('pm_linkurl').value='';document.getElementById('pm_linkwrap').style.display='none';
+    ['pm_mostsell','pm_otp','pm_link','pm_house'].forEach(function(i){document.getElementById(i).checked=false;});
+    document.getElementById('pm_cat').innerHTML=catOptions();
+    document.getElementById('pm_imgbox').innerHTML='No image';document.getElementById('pm_imgnote').style.display='none';
+    document.getElementById('pmPlans').innerHTML='';document.getElementById('pmFaqs').innerHTML='';document.getElementById('pmDls').innerHTML='';
+    document.getElementById('pmErr').style.display='none';
+    ['pmSecCap','pmSecFaq','pmSecDl'].forEach(function(s){document.getElementById(s).classList.remove('open');});
+    document.getElementById('pmSecPlans').classList.add('open');
+    pmCounts();
+  }
+  window.pmOpen=function(id){
+    reset();
+    document.getElementById('pmTitle').textContent = id ? 'Edit product' : 'Add product';
+    document.getElementById('pmScrim').classList.add('open');document.body.style.overflow='hidden';
+    if(!id){pmAddPlan();return;}
+    fetch('/admin/products/'+id+'/model.json',{credentials:'include',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+      if(!j.ok||!j.product){return;}
+      var p=j.product;
+      document.getElementById('pm_id').value=p.id;
+      document.getElementById('pm_name').value=p.name||'';
+      document.getElementById('pm_cat').value=p.category_id||'';
+      document.getElementById('pm_short').value=p.short_desc||'';
+      document.getElementById('pm_long').value=p.long_desc||'';
+      document.getElementById('pm_geo').value=p.geo_note||'';
+      document.getElementById('pm_mostsell').checked=!!p.most_selling;
+      document.getElementById('pm_otp').checked=!!p.req_otp;
+      document.getElementById('pm_house').checked=!!p.has_household;
+      document.getElementById('pm_link').checked=!!p.has_link;
+      document.getElementById('pm_linkurl').value=p.link_url||'';
+      document.getElementById('pm_linkwrap').style.display=p.has_link?'block':'none';
+      if(p.image){document.getElementById('pm_imgbox').innerHTML='<img src="/static/img/'+esc(p.image)+'?v='+Date.now()+'">';}
+      (j.plans||[]).forEach(function(pl){pmAddPlan(pl);});
+      if(!(j.plans||[]).length)pmAddPlan();
+      (j.faqs||[]).forEach(function(f){pmAddFaq(f.q,f.a);});
+      (j.downloads||[]).forEach(function(d){pmAddDl(d.label,d.url);});
+      pmCounts();
+    }).catch(function(){});
+  };
+
+  /* ---------- collect + save ---------- */
+  function collect(){
+    var plans=[].slice.call(document.querySelectorAll('#pmPlans .plan')).map(function(p){
+      var typeBtn=p.querySelector('.segt button.on');var source=typeBtn?typeBtn.getAttribute('data-t'):'inventory';
+      var versions=[].slice.call(p.querySelectorAll('.p_versions .mini')).map(function(m){return {key:m.querySelector('.vk').value,label:m.querySelector('.vl').value};});
+      var cf=[].slice.call(p.querySelectorAll('.p_cf .cf')).map(function(i){return i.value.trim();}).filter(Boolean);
+      return {
+        id:p.querySelector('.p_id').value||'',
+        name:p.querySelector('.p_name').value.trim(),
+        duration_value:p.querySelector('.p_dv').value,
+        duration_unit:p.querySelector('.p_du').value,
+        price:p.querySelector('.p_pkr').value,
+        price_usd:p.querySelector('.p_usd').value,
+        source:source,
+        bot_sku:source==='bot'?p.querySelector('.p_bsku').value:'',
+        bot_plan_key:p.querySelector('.p_bpk').value,
+        bot_type:p.querySelector('.p_bt').value,
+        version_labels:source==='bot'?versions:[],
+        custom_fields:source==='inventory'?cf.map(function(x){return {label:x};}):[],
+        product_note:p.querySelector('.p_note').value,
+        delivery_instructions:p.querySelector('.p_dinstr').value,
+        avail_from:p.querySelector('.p_from').value||null,
+        avail_until:p.querySelector('.p_until').value||null,
+        popular:p.classList.contains('pop')
+      };
+    });
+    return {
+      id:document.getElementById('pm_id').value||'',
+      name:document.getElementById('pm_name').value.trim(),
+      category_id:document.getElementById('pm_cat').value,
+      short_desc:document.getElementById('pm_short').value,
+      long_desc:document.getElementById('pm_long').value,
+      geo_note:document.getElementById('pm_geo').value,
+      most_selling:document.getElementById('pm_mostsell').checked,
+      req_otp:document.getElementById('pm_otp').checked,
+      has_link:document.getElementById('pm_link').checked,
+      link_url:document.getElementById('pm_linkurl').value,
+      has_household:document.getElementById('pm_house').checked,
+      plans:plans,
+      faqs:[].slice.call(document.querySelectorAll('#pmFaqs .mini')).map(function(m){return {q:m.querySelector('.fq').value,a:m.querySelector('.fa').value};}),
+      downloads:[].slice.call(document.querySelectorAll('#pmDls .mini')).map(function(m){return {label:m.querySelector('.dl').value,url:m.querySelector('.du').value};})
+    };
+  }
+  window.pmSave=function(){
+    var payload=collect();var err=document.getElementById('pmErr');
+    if(!payload.name){err.textContent='Product name is required.';err.style.display='block';document.getElementById('pmBody').scrollTop=0;return;}
+    var btn=document.getElementById('pmSaveBtn');btn.disabled=true;btn.textContent='Saving…';
+    fetch('/admin/products/model-save',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){return r.json();}).then(function(j){
+        if(j.ok){location.href='/admin/products?ok='+encodeURIComponent(payload.name+' saved');}
+        else{err.textContent='Save failed: '+(j.error||'unknown');err.style.display='block';btn.disabled=false;btn.textContent='Save product';document.getElementById('pmBody').scrollTop=0;}
+      }).catch(function(e){err.textContent='Save failed: '+e.message;err.style.display='block';btn.disabled=false;btn.textContent='Save product';});
+  };
+})();
+</script>
