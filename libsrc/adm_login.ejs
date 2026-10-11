@@ -1,6 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin sign in · Galaxy Subz × Zayron</title>
+<link rel="icon" href="/static/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Schibsted+Grotesk:wght@700;800&display=swap" rel="stylesheet">
@@ -13,11 +14,13 @@
   .wrap{width:100%;max-width:400px;animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
   @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   .card{background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(15,24,54,.05),0 30px 60px -32px rgba(15,24,54,.35);padding:34px 30px 30px}
-  .brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:22px}
-  .brand .logo{width:46px;height:46px;border-radius:14px;background:var(--grad);display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 12px 24px -10px rgba(138,43,255,.6)}
-  .brand .logo svg{width:24px;height:24px}
-  .brand .wm{font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.08}
-  .brand .wm .dim{display:block;font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.01em;font-family:'Hanken Grotesk',sans-serif}
+  .brand{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+  .logo-img{height:56px;width:auto;max-width:260px;object-fit:contain;display:block}
+  .brand-fb{display:none;align-items:center;gap:12px}
+  .brand-fb .logo{width:46px;height:46px;border-radius:14px;background:var(--grad);display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 12px 24px -10px rgba(138,43,255,.6)}
+  .brand-fb .logo svg{width:24px;height:24px}
+  .brand-fb .wm{font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.08}
+  .brand-fb .wm .dim{display:block;font-size:11.5px;color:var(--muted);font-weight:600;font-family:'Hanken Grotesk',sans-serif}
   h1{font-family:'Schibsted Grotesk',sans-serif;font-size:25px;margin:0 0 5px;text-align:center;letter-spacing:-.02em}
   .sub{color:var(--muted);font-size:14px;margin:0 0 24px;text-align:center}
   label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
@@ -29,13 +32,17 @@
   button:active{transform:translateY(1px)}
   .err{background:#fdecec;color:#b42318;border:1px solid #f6c9c4;border-radius:11px;padding:11px 13px;font-size:13.5px;font-weight:600;margin-bottom:18px}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:18px;letter-spacing:.01em}
-  @media(max-width:420px){ .card{padding:28px 22px 24px;border-radius:18px} h1{font-size:23px} }
+  @media(max-width:420px){ .card{padding:28px 22px 24px;border-radius:18px} h1{font-size:23px} .logo-img{height:50px} }
 </style></head><body>
 <div class="wrap">
   <div class="card">
     <div class="brand">
-      <span class="logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.4 6.2L21 9l-5 4 1.6 7L12 16.6 6.4 20 8 13 3 9l6.6-.8L12 2z"/></svg></span>
-      <span class="wm">Galaxy Subz<span class="dim">× Zayron · Admin</span></span>
+      <img src="/static/img/logo.png" alt="Galaxy Subz × Zayron" class="logo-img"
+           onerror="this.style.display='none';document.getElementById('brandFb').style.display='inline-flex'">
+      <span id="brandFb" class="brand-fb">
+        <span class="logo"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.4 6.2L21 9l-5 4 1.6 7L12 16.6 6.4 20 8 13 3 9l6.6-.8L12 2z"/></svg></span>
+        <span class="wm">Galaxy Subz<span class="dim">× Zayron · Admin</span></span>
+      </span>
     </div>
     <h1>Welcome back</h1>
     <p class="sub">Sign in to your admin dashboard</p>
