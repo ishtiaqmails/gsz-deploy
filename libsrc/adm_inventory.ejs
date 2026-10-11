@@ -1,5 +1,9 @@
 <%- include('_shell_top', { active:'inventory', title:'Add Stock' }) %>
 <style>
+  .pl-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .pl-search{position:relative;flex:1;min-width:220px}
+  .pl-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;stroke:var(--muted);fill:none;stroke-width:2}
+  .pl-search input{margin:0;padding-left:36px;width:100%}
   .iv-fields{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .iv-chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef2fb;color:#49527a}
   .iv-chip.none{background:#fdeceb;color:#b42318}
