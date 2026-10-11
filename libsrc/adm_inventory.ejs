@@ -47,8 +47,7 @@
     .iv-act .btn{flex:1;justify-content:center}
   }
 </style>
-<% function fj(a){ return JSON.stringify(a||[]).replace(/"/g,'&quot;'); }
-   function money(n){ return 'Rs ' + Math.round(Number(n||0)).toLocaleString('en-US'); } %>
+<% function money(n){ return 'Rs ' + Math.round(Number(n||0)).toLocaleString('en-US'); } %>
 
 <% if (flash) { %><div class="flash"><%= flash %></div><% } %>
 
@@ -84,7 +83,7 @@
           <td><span class="iv-lbl">Sold</span><%= pl.sold %></td>
           <td>
             <div class="iv-act">
-              <% if (hasF) { %><button class="btn btn-p" type="button" onclick="ivAdd('<%= pl.id %>','<%= (pr.name||'').replace(/'/g,"\\'") %>','<%= (pl.label||'').replace(/'/g,"\\'") %>', <%= fj(pl.fields) %>)">➕ Add</button><% } %>
+              <% if (hasF) { %><button class="btn btn-p iv-addbtn" type="button" data-plan="<%= pl.id %>" data-prod="<%= pr.name %>" data-label="<%= pl.label %>" data-fields="<%= JSON.stringify(pl.fields) %>">➕ Add</button><% } %>
               <a class="btn btn-g" href="/admin/inventory/manage/<%= pl.id %>">⚙️ Manage</a>
             </div>
           </td>
@@ -132,6 +131,7 @@
   };
   window.ivCount=function(t){ var lines=t.value.split('\n').filter(function(x){return x.trim();}).length; var c=t.parentElement.querySelector('.ivm-cnt'); if(c) c.textContent=lines+' line'+(lines===1?'':'s'); };
   document.getElementById('ivAddScrim').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+  document.getElementById('ivList').addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('.iv-addbtn'):null; if(!b) return; var f=[]; try{ f=JSON.parse(b.getAttribute('data-fields')||'[]'); }catch(x){} ivAdd(b.getAttribute('data-plan'),b.getAttribute('data-prod'),b.getAttribute('data-label'),f); });
 
   window.ivFilter=function(){
     var q=(document.getElementById('ivSearch').value||'').toLowerCase().trim();
