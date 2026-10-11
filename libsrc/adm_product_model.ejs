@@ -221,6 +221,8 @@
         +'<select class="inp p_bsku" onchange="pmBot(\''+id+'\')"><option value="">— select bot product —</option>'
           +BOTS.map(function(b){return '<option value="'+esc(b.sku)+'">'+esc(b.name||b.sku)+(b.delivery_type?(' ('+esc(b.delivery_type)+')'):'')+'</option>';}).join('')
         +'</select>'
+        +'<label class="fld pbplan-l" style="margin-top:12px;display:none">Bot plan <span class="q">· which duration this maps to</span></label>'
+        +'<select class="inp p_bplan" style="display:none" onchange="this.closest(\'.plan\').querySelector(\'.p_bpk\').value=this.value"><option value="">— select bot plan —</option></select>'
         +'<div class="p_versions"></div>'
         +'<label class="fld" style="margin-top:12px">Required fields <span class="q">· auto-synced from bot</span></label>'
         +'<div class="chips p_needs"><span class="chip gray">select a bot product</span></div>'
@@ -297,6 +299,12 @@
     if(!noAuto&&t==='inventory'&&!p.querySelector('.p_cf').children.length){pmAddCF(p.querySelector('.t-inventory .addlink'),'Email');pmAddCF(p.querySelector('.t-inventory .addlink'),'Password');}
   };
   window.pmBot=function(id,savedLabels){var p=document.getElementById(id);var sku=p.querySelector('.p_bsku').value;var b=botBySku(sku);
+    var bplan=p.querySelector('.p_bplan'),bplanL=p.querySelector('.pbplan-l');
+    var plansArr=(b&&Array.isArray(b.plans))?b.plans:[];
+    if(bplan){if(plansArr.length){var cur=p.querySelector('.p_bpk').value||'';
+        bplan.innerHTML='<option value="">— select bot plan —</option>'+plansArr.map(function(pl){return '<option value="'+esc(pl.plan_key)+'">'+esc(pl.label)+(pl.price?(' · Rs '+pl.price):'')+'</option>';}).join('');
+        if(cur)bplan.value=cur; bplan.style.display='';if(bplanL)bplanL.style.display='';
+      } else { bplan.innerHTML='<option value="">— select bot plan —</option>';bplan.style.display='none';if(bplanL)bplanL.style.display='none'; }}
     var vbox=p.querySelector('.p_versions');var needsBox=p.querySelector('.p_needs');
     var versions=b?botVersions(b):[];var needs=b?botNeeds(b):[];
     if(versions.length){
