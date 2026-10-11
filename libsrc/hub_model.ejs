@@ -233,7 +233,35 @@
     var bk=document.getElementById('wvBack'); if(bk) bk.addEventListener('click',function(){ (back||account)(); });
   }
   var trialsCache=null;
-  function getFreeTrial(){ close(); var t=document.querySelector('.trial-open'); if(t){ t.click(); } else { location.href='/trials'; } }
+  function getFreeTrial(){ trialClaim(); }
+  function trialClaim(){
+    body.innerHTML='<button class="cthm-back" id="tcBack">← Back</button><div class="cthm-load">Loading services…</div>';
+    var b0=document.getElementById('tcBack'); if(b0) b0.addEventListener('click',trials);
+    fetch('/api/trials',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok){ trialClaimErr(); return; }
+      if(!j.loggedIn){ signinForm(); return; }
+      if(!j.waOk){ waVerify(trials); return; }
+      var servers=(j.servers||[]); var back='<button class="cthm-back" id="tcBack">← Back</button>';
+      if(!servers.length){ body.innerHTML=back+'<div class="cthm-empty"><div style="font-size:30px">🎁</div><div style="font-weight:700;margin-top:6px">No trials available right now</div><p class="muted">Check back soon.</p></div>'; document.getElementById('tcBack').addEventListener('click',trials); return; }
+      body.innerHTML=back+'<p class="muted" style="margin:0 0 12px">Pick a service — we’ll set it up and send the login to your WhatsApp.</p>'+servers.map(function(s){
+        var left=(s.max)?(Math.max(0,s.remaining)+' of '+s.max+' left'):''; var used=(s.max && s.remaining<=0);
+        var btn=used?'<span class="cthm-pill bad">Used up</span>':'<button class="cbtn cbtn-p" data-claim="'+esc(s.sku)+'">Claim</button>';
+        return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(s.name)+'</div><div class="osub">'+esc(s.duration||'Free trial')+(left?(' · '+esc(left)):'')+'</div></div>'+btn+'</div><div class="tc-out" data-for="'+esc(s.sku)+'"></div>';
+      }).join('');
+      document.getElementById('tcBack').addEventListener('click',trials);
+      body.querySelectorAll('button[data-claim]').forEach(function(b){ b.addEventListener('click',function(){
+        var sku=b.getAttribute('data-claim'); var out=body.querySelector('.tc-out[data-for="'+sku+'"]'); b.disabled=true; b.textContent='Claiming…';
+        var fd=new URLSearchParams(); fd.set('sku',sku);
+        fetch('/trials/claim',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'fetch'},credentials:'same-origin',body:fd.toString()}).then(function(r){return r.json();}).then(function(jj){
+          if(jj&&jj.reason==='wa'){ waVerify(trials); return; }
+          var err=/not available|already used|went wrong|try again/i.test((jj&&jj.msg)||'');
+          if(jj&&jj.ok&&!err){ if(out) out.innerHTML='<div class="cthm-note" style="margin:6px 0 10px">'+esc(jj.msg||'Your trial is being prepared — we’ll send it to your WhatsApp and show it under My Trials shortly.')+'</div>'; b.textContent='Requested ✓'; }
+          else { if(out) out.innerHTML='<div class="muted errmsg" style="margin:6px 0 10px">'+esc((jj&&jj.msg)||'Couldn’t claim right now.')+'</div>'; b.disabled=false; b.textContent='Claim'; }
+        }).catch(function(){ if(out) out.innerHTML='<div class="muted errmsg" style="margin:6px 0 10px">Couldn’t claim right now.</div>'; b.disabled=false; b.textContent='Claim'; });
+      }); });
+    }).catch(trialClaimErr);
+  }
+  function trialClaimErr(){ body.innerHTML='<button class="cthm-back" id="tcBack">← Back</button><div class="cthm-empty errmsg">Couldn’t load trials right now.</div>'; var b=document.getElementById('tcBack'); if(b) b.addEventListener('click',trials); }
   function trials(){
     body.innerHTML='<div class="cthm-load">Loading…</div>';
     fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
@@ -514,6 +542,8 @@
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
   function gszNeedsInit(){ try{ gszApplyNeeds(document); }catch(e){} }  /* filter Quick Access tiles + Hub tabs to what the customer actually has */
   if(document.readyState!=='loading'){ gszNeedsInit(); } else { document.addEventListener('DOMContentLoaded',gszNeedsInit); }
+  /* IPTV Free Trial (.trial-open) -> open the Hub Trials tab, not the old trial modal */
+  document.addEventListener('click',function(e){ var t=(e.target&&e.target.closest)?e.target.closest('.trial-open'):null; if(t){ e.preventDefault(); e.stopImmediatePropagation(); if(window.__gszTools) window.__gszTools('trials'); } }, true);
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
