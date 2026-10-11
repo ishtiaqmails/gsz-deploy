@@ -88,7 +88,9 @@
   .wv-card .wv-tx{flex:1;min-width:0}.wv-card .wv-tx b{font-size:14px;display:block}.wv-card .wv-tx small{font-size:11.5px;color:#9aa6c0;display:block;margin-top:2px}
   .wv-card .cbtn{flex:none}
   @media(max-width:460px){.wv-card{flex-wrap:wrap}.wv-card .cbtn{width:100%}}
-  .wv-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:23px;font-weight:800;letter-spacing:3px;color:#eef2fb;text-align:center;background:#0e1627;border:1px dashed rgba(37,211,102,.5);border-radius:12px;padding:14px;margin:4px 0 12px}
+  .wv-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:28px;font-weight:800;letter-spacing:6px;color:#eef2fb;text-align:center;background:#0e1627;border:1px dashed rgba(37,211,102,.5);border-radius:12px;padding:14px;margin:4px 0 12px;cursor:pointer}
+  .wv-num{text-align:center;margin:12px 0 0;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .wv-numbtn{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:15px;letter-spacing:1px;color:#25d366;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.32);border-radius:10px;padding:8px 14px;cursor:pointer}
   .wv-wait{display:flex;align-items:center;gap:9px;justify-content:center;color:#f4b64c;font-weight:700;font-size:13px;margin-top:12px}
   .wv-dot{width:9px;height:9px;border-radius:50%;background:#f4b64c;animation:wvp 1s infinite}
   @keyframes wvp{0%,100%{opacity:.3}50%{opacity:1}}
@@ -181,15 +183,19 @@
   }
   function wvRetryBox(back,msg){ var w=document.getElementById('wvWait'); if(!w) return; w.className='muted errmsg'; w.style.textAlign='center'; w.innerHTML=esc(msg)+' <button class="cthm-back" id="wvRetry" style="padding:0;font-size:13px">Try again</button>'; var rt=document.getElementById('wvRetry'); if(rt) rt.addEventListener('click',function(){ waVerify(back); }); }
   function wvRender(j,back){
-    var msgText=j.text||('VERIFY '+(j.code||''));
+    var code=j.code||'';
+    var msgText=j.text||('VERIFY '+code);
     var waLink=j.waLink||('https://wa.me/?text='+encodeURIComponent(msgText));
+    var num=(String(waLink).match(/wa\.me\/(\d+)/)||[])[1]||'';
     body.innerHTML='<button class="cthm-back" id="wvBack">← Back</button>'
-      +'<div style="text-align:center;margin:0 0 8px"><div style="font-weight:800;font-size:16px">Verify your WhatsApp</div><p class="muted" style="margin:4px 0 0">Send us this code from WhatsApp — you’ll be verified here automatically.</p></div>'
-      +'<div class="wv-code">'+esc(j.code||'')+'</div>'
+      +'<div style="text-align:center;margin:0 0 8px"><div style="font-weight:800;font-size:16px">Verify your WhatsApp</div><p class="muted" style="margin:4px 0 0">Send this code to us on WhatsApp — you’ll be verified here automatically.</p></div>'
+      +'<div class="wv-code" id="wvCode" title="Tap to copy">'+esc(code)+'</div>'
       +'<a class="cbtn cbtn-p" style="width:100%" id="wvOpen" target="_blank" rel="noopener" href="'+esc(waLink)+'"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg>Open WhatsApp &amp; send</a>'
-      +'<p class="muted" style="text-align:center;margin:11px 0 0;font-size:12px">The chat opens with <b>'+esc(msgText)+'</b> ready — just press send.</p>'
+      +(num?('<div class="wv-num"><span class="muted">or message the code to</span><button type="button" class="wv-numbtn" id="wvNum">+'+esc(num)+' <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>'):'')
       +'<div class="wv-wait" id="wvWait"><span class="wv-dot"></span>Waiting for your message…</div>';
     var bk=document.getElementById('wvBack'); if(bk) bk.addEventListener('click',function(){ wvStop(); back(); });
+    var cc=document.getElementById('wvCode'); if(cc) cc.addEventListener('click',function(){ try{ navigator.clipboard.writeText(code); var o=cc.textContent; cc.textContent='Copied ✓'; setTimeout(function(){ cc.textContent=o; },1100);}catch(e){} });
+    var nb=document.getElementById('wvNum'); if(nb) nb.addEventListener('click',function(){ try{ navigator.clipboard.writeText('+'+num); var o=nb.innerHTML; nb.textContent='Number copied ✓'; setTimeout(function(){ nb.innerHTML=o; },1200);}catch(e){} });
     var tries=0, maxTries=Math.max(45, Math.round(((j.expiresInMin||15)*60)/4));
     wvStop();
     wvTimer=setInterval(function(){ tries++;
