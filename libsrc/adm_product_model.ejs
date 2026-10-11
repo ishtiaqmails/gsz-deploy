@@ -173,7 +173,7 @@
   function esc(v){return (v==null?'':String(v)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function botBySku(sku){for(var i=0;i<BOTS.length;i++)if(BOTS[i].sku===sku)return BOTS[i];return null;}
   function botVersions(b){var t=b&&b.types;if(!Array.isArray(t))return [];return t.map(function(x){return (typeof x==='object')?{key:x.key||x.value||'',label:x.label||x.key||''}:{key:String(x),label:String(x)};}).filter(function(x){return x.key;});}
-  function botNeeds(b){var n=b&&b.needs;if(!Array.isArray(n))return [];return n.map(function(x){return (typeof x==='object')?(x.label||x.key||x.name||''):String(x);}).filter(Boolean);}
+  function botNeeds(b){var d=(b&&b.delivery_type||'').toLowerCase();var M={hotplayer:['MAC address'],ibosol:['MAC address'],zayron:['MAC address'],vendor_invite:['Activation email'],amember:['Activation email'],portal:['Activation email'],smm:['Link','Quantity']};return M[d]||[];}
 
   window.pmSec=function(id){document.getElementById(id).classList.toggle('open');};
   window.pmClose=function(){document.getElementById('pmScrim').classList.remove('open');document.body.style.overflow='';};
@@ -250,7 +250,7 @@
     // custom fields
     (Array.isArray(d.custom_fields)?d.custom_fields:[]).forEach(function(cf){pmAddCF(el.querySelector('.t-inventory .addlink'), (typeof cf==='object')?(cf.label||cf.key||''):cf);});
     var type=d.source||'inventory';
-    pmType(id,type);
+    pmType(id,type, !!d.id);
     if(type==='bot'&&d.bot_sku){el.querySelector('.p_bsku').value=d.bot_sku;pmBot(id,d.version_labels);}
     pmSync(id);
     pmCounts();
@@ -261,12 +261,12 @@
   window.pmPop=function(id){var p=document.getElementById(id);var on=p.classList.contains('pop');
     document.querySelectorAll('#pmPlans .plan').forEach(function(x){x.classList.remove('pop');var pill=x.querySelector('.plan-sum .pill');if(pill)pill.remove();});
     if(!on){p.classList.add('pop');var s=p.querySelector('.plan-sum');var b=document.createElement('span');b.className='pill pop';b.textContent='★ Popular';s.appendChild(b);}};
-  window.pmType=function(id,t){var p=document.getElementById(id);
+  window.pmType=function(id,t,noAuto){var p=document.getElementById(id);
     p.querySelectorAll('.segt button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});
     p.querySelector('.t-bot').classList.toggle('show',t==='bot');
     p.querySelector('.t-inventory').classList.toggle('show',t==='inventory');
     p.querySelector('.t-manual').classList.toggle('show',t==='manual');
-    if(t==='inventory'&&!p.querySelector('.p_cf').children.length){pmAddCF(p.querySelector('.t-inventory .addlink'),'Email');pmAddCF(p.querySelector('.t-inventory .addlink'),'Password');}
+    if(!noAuto&&t==='inventory'&&!p.querySelector('.p_cf').children.length){pmAddCF(p.querySelector('.t-inventory .addlink'),'Email');pmAddCF(p.querySelector('.t-inventory .addlink'),'Password');}
   };
   window.pmBot=function(id,savedLabels){var p=document.getElementById(id);var sku=p.querySelector('.p_bsku').value;var b=botBySku(sku);
     var vbox=p.querySelector('.p_versions');var needsBox=p.querySelector('.p_needs');

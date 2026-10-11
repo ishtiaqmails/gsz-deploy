@@ -83,8 +83,9 @@ if (s.indexOf("/products/model-save") < 0 && s.indexOf(ANCH) >= 0) {
         const vlabels = JSON.stringify(Array.isArray(pl.version_labels) ? pl.version_labels : []);
         let reqf = [];
         if (source === 'bot' && bot_sku) {
-          const bp = (await c.query('SELECT needs FROM bot_products WHERE sku=$1', [bot_sku])).rows[0];
-          if (bp && Array.isArray(bp.needs)) reqf = bp.needs;
+          const bp = (await c.query('SELECT delivery_type FROM bot_products WHERE sku=$1', [bot_sku])).rows[0];
+          const _RF = { hotplayer:[{key:'mac',label:'MAC address'}], ibosol:[{key:'mac',label:'MAC address'}], zayron:[{key:'mac',label:'MAC address'}], vendor_invite:[{key:'email',label:'Activation email'}], amember:[{key:'email',label:'Activation email'}], portal:[{key:'email',label:'Activation email'}], smm:[{key:'link',label:'Link'},{key:'qty',label:'Quantity'}] };
+          if (bp) reqf = _RF[(bp.delivery_type||'').toLowerCase()] || [];
         }
         const reqStr = JSON.stringify(reqf);
         const af = pl.avail_from ? new Date(pl.avail_from) : null;
