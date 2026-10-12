@@ -39,26 +39,39 @@ function money(pkr) {
   return 'Rs ' + pkr.toLocaleString('en-US');
 }
 
-/* ---------- product matching ---------- */
-function scoreProduct(mtoks, p) {
-  if (!mtoks.length) return 0;
-  const set = new Set(p.keywords);
-  const nameToks = toks(p.name);
-  let score = 0;
-  for (const t of mtoks) {
-    if (set.has(t)) score += 2;
-    else { for (const nt of nameToks) { const c = closeTok(t, nt); if (c) { score += 1.4 * c; break; } } }
+/* ---------- product matching ----------
+   A product is identified by its DISTINCTIVE name tokens (opplex, crave, nord), not by
+   generic/category words (tv, iptv, vpn, premium) which many products share. Distinctive
+   hits dominate; generic words are only a light tiebreak. No synonym expansion in matching
+   (that over-matched: a "TV" in any description pulled in every IPTV synonym). */
+const GENERIC = new Set(['tv', 'iptv', 'vpn', 'ott', 'premium', 'player', 'players', 'pro', 'plus',
+  'the', 'and', 'for', 'month', 'months', 'year', 'years', 'day', 'days', 'access', 'portal', 'device',
+  'activation', 'edu', 'invite', 'full', 'user', 'best', 'live', 'channels', 'channel', 'subscription',
+  'account', 'premium', 'app', 'service', 'services', 'tools', 'tool', 'ai', '1', '3', '6', '12']);
+function distinctive(p) { return uniq(toks(p.name)).filter(w => !GENERIC.has(w) && w.length >= 2); }
+
+function scoreProduct(mset, p) {
+  const dist = distinctive(p);
+  let score = 0, hitDistinct = false;
+  for (const dt of dist) {
+    if (mset.has(dt)) { score += 5; hitDistinct = true; continue; }
+    let bonus = 0;
+    for (const mt of mset) {
+      if (mt.length >= 3 && dt.length >= 3 && (dt.indexOf(mt) >= 0 || mt.indexOf(dt) >= 0)) bonus = Math.max(bonus, 4);
+      else { const c = closeTok(mt, dt); if (c) bonus = Math.max(bonus, 3 * c); }
+    }
+    if (bonus) { score += bonus; if (bonus >= 3) hitDistinct = true; }
   }
-  // strong boost when the full product name (minus generic words) appears
-  const joined = ' ' + mtoks.join(' ') + ' ';
-  const core = nameToks.filter(w => ['tv', 'iptv', 'vpn', 'the', 'premium', 'player'].indexOf(w) < 0);
-  if (core.length && core.every(w => joined.indexOf(' ' + w + ' ') >= 0)) score += 3;
-  return score / Math.sqrt(nameToks.length || 1);
+  // light generic/category nudge (capped) — only a tiebreak, never enough to identify alone
+  const kwset = new Set(p.keywords);
+  let gen = 0; for (const mt of mset) if (GENERIC.has(mt) && kwset.has(mt)) gen++;
+  score += Math.min(gen, 3) * 0.4;
+  return { score, hitDistinct };
 }
 function findProducts(bk, message, limit) {
-  const mtoks = uniq(kb.expand(toks(message)));
-  const ranked = bk.products.map(p => ({ p, s: scoreProduct(mtoks, p) }))
-    .filter(x => x.s >= 1.6).sort((a, b) => b.s - a.s);
+  const mset = new Set(toks(message));
+  const ranked = bk.products.map(p => { const r = scoreProduct(mset, p); return { p, s: r.score, d: r.hitDistinct }; })
+    .filter(x => x.d && x.s >= 4).sort((a, b) => b.s - a.s);
   return ranked.slice(0, limit || 4).map(x => x.p);
 }
 
@@ -97,7 +110,7 @@ const RULES = [
   ['payment', /\b(pay(ment)?|easy ?paisa|jazz ?cash|bank transfer|how (do i|to) pay|which method)\b/i, 1.9],
   ['stock', /\b(in ?stock|avail\w*|do you have|got any|got it)\b/i, 1.6],
   ['recommend', /\b(recommend|suggest|best|cheapest|affordable|which (one|should|is best)|good for|top pick)\b/i, 1.8],
-  ['offers', /\b(offer|discount|coupon|promo|deal|sale|voucher)\b/i, 1.8],
+  ['offers', /\b(offers?|discounts?|coupons?|promos?|deals?|sales?|vouchers?)\b/i, 1.8],
   ['greeting', /^\s*(hi|hello+|hey+|salam|assalam[ou]?[ -]?alaikum|aoa|yo|good (morning|evening|afternoon))\b/i, 1.2],
   ['thanks', /\b(thanks|thank you|shukria|thankyou|thx|appreciate it)\b/i, 1.2],
   ['bye', /\b(bye|good ?bye|khuda ?hafiz|see ya|that.?s all)\b/i, 1.1]
@@ -194,6 +207,11 @@ function answer(bk, message, ctx) {
       out.products = [pcard(p)];
       return out;
     }
+    if (det.intent === 'delivery') {
+      out.text = p.name + ' is delivered fast once your payment is confirmed — the exact delivery for this product is shown on its page.';
+      out.products = [pcard(p)];
+      return out;
+    }
     // product_info / fallback-with-product
     const bits = [p.name];
     if (p.short_desc) bits.push('— ' + p.short_desc);
@@ -206,7 +224,7 @@ function answer(bk, message, ctx) {
   if (det.intent === 'recommend' || det.intent === 'plans' || det.intent === 'price') {
     // match a category if named
     const mt = new Set(kb.expand(toks(msg)));
-    let cat = bk.categories.find(c => toks(c.name).some(w => mt.has(w)));
+    let cat = bk.categories.find(c => mt.has(c.slug) || toks(c.name).some(w => mt.has(w)));
     let pool = bk.products.slice();
     if (cat) pool = pool.filter(x => x.cat_slug === cat.slug);
     pool.sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));

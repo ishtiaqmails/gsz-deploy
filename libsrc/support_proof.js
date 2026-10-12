@@ -14,6 +14,7 @@ const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, da
   const k = await kb.get(pool, { force: true });
   console.log('KB indexed:', JSON.stringify(k.counts));
   console.log('site:', k.site.name, '| whatsapp:', k.site.wa_number || '(none)');
+  console.log('categories:', k.categories.map(c => c.name + '(' + c.slug + ')').join(', '));
   const sample = k.products.find(p => /opplex/i.test(p.name)) || k.products[0];
   if (sample) {
     console.log('\nSample product:', sample.name, '->', sample.url);
