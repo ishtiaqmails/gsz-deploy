@@ -133,6 +133,7 @@
     lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
     unlock:function(){ if(n>0)n--; if(n>0) return; var b=document.body; b.style.position=''; b.style.top=''; b.style.left=''; b.style.right=''; b.style.width=''; b.style.overflow=''; window.scrollTo(0,y); } }; })();
   function open(tab){ modal.classList.add('on'); window.__gszScrollLock.lock(); setTab(tab||'purchases'); }
+  function openIptvRenew(){ modal.classList.add('on'); window.__gszScrollLock.lock(); tabs.forEach(function(t){ t.classList.remove('on'); }); renderFoot(); iptvRenew(); }
   function close(){ modal.classList.remove('on'); window.__gszScrollLock.unlock(); }
   function setTab(tab){ tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===tab); }); render(tab); }
   function loadOrders(){ if(cache) return Promise.resolve(cache);
@@ -765,7 +766,7 @@
     }
     claimFeed();
   }
-  document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); open(el.getAttribute('data-tool')); }); });
+  document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); var _tl=el.getAttribute('data-tool'); if(_tl==='iptvrenew'){ openIptvRenew(); } else { open(_tl); } }); });
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
   /* IPTV Free Trial (.trial-open) -> open the Hub Trials tab, not the old trial modal */
   document.addEventListener('click',function(e){ var t=(e.target&&e.target.closest)?e.target.closest('.trial-open'):null; if(t){ e.preventDefault(); e.stopImmediatePropagation(); if(window.__gszTools) window.__gszTools('trials'); } }, true);
@@ -773,9 +774,9 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
   var _HUBTABS=['purchases','code','renew','claim','support','trials','account'];
-  window.__gszTools=function(tab){ open(_HUBTABS.indexOf(tab)>=0?tab:'purchases'); };
+  window.__gszTools=function(tab){ if(tab==='iptvrenew'){ openIptvRenew(); return; } open(_HUBTABS.indexOf(tab)>=0?tab:'purchases'); };
   window.__gszAuth=function(mode){ if(!modal.classList.contains('on')){ modal.classList.add('on'); window.__gszScrollLock.lock(); } renderFoot(); if(mode==='signup') signupForm(); else signinForm(); };
-  try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ open(_HUBTABS.indexOf(_t)>=0?_t:'purchases'); if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
+  try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ if(_t==='iptvrenew'){ openIptvRenew(); } else { open(_HUBTABS.indexOf(_t)>=0?_t:'purchases'); } if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
   // hijack the header's account / sign-in / create-account links -> open the Hub model (site-wide)
   function wireHeaderAuth(){ try{ [].slice.call(document.querySelectorAll('#hd a[href^="/login"],#hd a[href^="/signup"],#hd a[href="/account"]')).forEach(function(a){ if(a.getAttribute('data-gbwired')) return; a.setAttribute('data-gbwired','1'); var h=a.getAttribute('href')||'';
     a.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation();
