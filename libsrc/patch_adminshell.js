@@ -44,7 +44,10 @@ const NEW_RULE =
   '}';
 patch(TOP, '#70 responsive tables', '/*gsz_rsp_tables*/', OLD_RULE, NEW_RULE);
 
-/* ---- #70 : generic enhancer — class + data-label on every admin table ---- */
+/* ---- #70 : generic enhancer — class + data-label on every admin table ----
+   Copies each column's header text into the matching cell's data-label, but leaves
+   visual-only cells (checkbox, thumbnail, drag handle — no real text) label-free so
+   the stacked mobile view stays clean and uncluttered. */
 const RSP_JS =
   '<script>/*gsz_rsp_enh*/(function(){\n' +
   '  function enh(){\n' +
@@ -55,13 +58,31 @@ const RSP_JS =
   '      if(hr){ var hc=hr.children; for(var k=0;k<hc.length;k++) heads.push((hc[k].textContent||"").trim()); }\n' +
   '      var rows=tb.querySelectorAll("tbody tr"); if(!rows.length) rows=tb.querySelectorAll("tr");\n' +
   '      for(var r=0;r<rows.length;r++){ var cs=rows[r].children;\n' +
-  '        for(var c=0;c<cs.length;c++){ if(!cs[c].hasAttribute("data-label")) cs[c].setAttribute("data-label", heads[c]||""); } }\n' +
+  '        for(var c=0;c<cs.length;c++){ var td=cs[c]; if(td.hasAttribute("data-label")) continue;\n' +
+  '          var txt=(td.textContent||"").replace(/\\s+/g,"");\n' +
+  '          td.setAttribute("data-label", txt ? (heads[c]||"") : ""); } }\n' +
   '    }\n' +
   '  }\n' +
   '  try{ enh(); }catch(e){}\n' +
   '  var mo; try{ mo=new MutationObserver(function(){ try{ enh(); }catch(e){} }); mo.observe(document.querySelector(".content")||document.body,{childList:true,subtree:true}); }catch(e){}\n' +
   '})();</script>\n';
-patch(BOT, '#70 table enhancer', '/*gsz_rsp_enh*/', '</body></html>', RSP_JS + '</body></html>');
+/* update-in-place if an earlier enhancer is present (no layering) */
+(function(){
+  let b = fs.readFileSync(BOT, 'utf8');
+  const mk = '<script>/*gsz_rsp_enh*/';
+  const a = b.indexOf(mk);
+  if (a >= 0) {
+    const end = '</script>', e = b.indexOf(end, a);
+    const cur = b.slice(a, e + end.length);
+    if (cur === RSP_JS.trim()) { console.log('skip (already): #70 table enhancer'); return; }
+    b = b.slice(0, a) + RSP_JS.trim() + b.slice(e + end.length);
+    fs.writeFileSync(BOT, b); console.log('updated: #70 table enhancer'); return;
+  }
+  const i = b.indexOf('</body></html>');
+  if (i < 0) throw new Error('ANCHOR MISS: #70 table enhancer');
+  b = b.slice(0, i) + RSP_JS + b.slice(i);
+  fs.writeFileSync(BOT, b); console.log('patched: #70 table enhancer');
+})();
 
 /* ---- #72 : robust scroll restore (survives AJAX saves) ---- */
 const OLD_SCROLL_START = '<script>/*gsz_adm_scroll*/(function(){';
