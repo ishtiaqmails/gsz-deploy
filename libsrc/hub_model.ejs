@@ -594,11 +594,14 @@
   }
   function iptvRenew(){
     body.innerHTML='<div class="cthm-load">Loading…</div>';
-    fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
-      var ver=!!(j&&j.ok&&j.profile&&j.profile.wa_verified);
-      if(!ver){ waVerify(iptvRenew); return; }
+    fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){
+      if(r.status>=400 || (r.redirected && /\/login/.test(r.url))) return null;
+      return r.json().catch(function(){ return null; });
+    }).then(function(j){
+      if(!j || !j.ok){ authed=false; signin(); return; }   /* not signed in -> show sign-in, not an error */
+      if(!(j.profile && j.profile.wa_verified)){ waVerify(iptvRenew); return; }
       iptvServices();
-    }).catch(function(){ iptvServices(); });
+    }).catch(function(){ authed=false; signin(); });
   }
   function iptvBack(){ setTab('renew'); }
   function iptvServices(){
