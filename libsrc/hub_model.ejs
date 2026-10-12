@@ -62,6 +62,18 @@
   .cthm-cred2{margin-top:10px}
   .cthm-cred2 pre{margin:0;white-space:pre-wrap;word-break:break-word;background:#111a2e;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;font-size:13px}
   .cthm-shot{display:inline-block;margin-top:9px;color:#29d3ff;font-weight:700;font-size:12.5px;text-decoration:none}
+  .cthm-thread{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+  .cthm-th{max-width:85%;padding:9px 12px;border-radius:13px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .cthm-th.me{align-self:flex-end;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;border-bottom-right-radius:5px}
+  .cthm-th.them{align-self:flex-start;background:#16203a;color:#eef2fb;border-bottom-left-radius:5px}
+  .cthm-th .tt{font-size:10.5px;opacity:.72;margin-top:4px}
+  .cthm-th a{color:inherit;text-decoration:underline;font-weight:700}
+  .cthm-th-cmp{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+  .cthm-th-in{width:100%;background:#0e1627;border:1px solid rgba(255,255,255,.14);border-radius:10px;color:#eef2fb;padding:9px 11px;font:inherit;font-size:13px;resize:vertical;min-height:42px;box-sizing:border-box}
+  .cthm-th-row{display:flex;align-items:center;gap:9px}
+  .cthm-th-file{color:#29d3ff;cursor:pointer;font-size:18px;line-height:1}
+  .cthm-th-send{margin-left:auto;padding:7px 15px}
+  .cthm-th-fn{font-size:11px;color:#9aa6c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
   .acc-fld{border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:9px 11px;margin-bottom:7px;background:#0e1627}
   .acc-line{display:flex;align-items:center;gap:9px}
   .acc-lbl{font-size:11.5px;color:#9aa6c0;font-weight:600;flex:none;min-width:88px}
@@ -764,15 +776,36 @@
   function claimFeed(){
     var feed=document.getElementById('clFeed'); if(!feed) return;
     fetch('/account/tools/claims',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
-      var cl=(j&&j.claims)||[]; if(!cl.length) return;
-      feed.innerHTML='<div class="cthm-sep">Your replacement requests</div>'+cl.map(function(i){
-        var resp=i.admin_response?('<div class="cthm-resp"><span class="muted" style="font-size:11.5px">Our response</span><div>'+esc(i.admin_response)+'</div></div>'):'';
+      var cl=(j&&j.claims)||[]; if(!cl.length){ feed.innerHTML=''; return; }
+      feed.innerHTML='<div class="cthm-sep">Your requests</div>'+cl.map(function(i){
+        var msgs=i.messages||[];
+        var thread=msgs.length?('<div class="cthm-thread">'+msgs.map(function(m){
+          var me=(m.sender==='customer');
+          var bod=m.body?esc(m.body):'';
+          var shot=m.has_shot?('<div><a href="/account/tools/issue-msg-file/'+m.id+'" target="_blank" rel="noopener">📎 Attachment</a></div>'):'';
+          return '<div class="cthm-th '+(me?'me':'them')+'">'+bod+shot+'<div class="tt">'+(me?'You':'Support')+' · '+fmtd(m.created_at)+'</div></div>';
+        }).join('')+'</div>'):'';
         var cred=i.credentials?('<div class="cthm-cred2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="muted">New access</span><button class="cbtn cbtn-g" style="padding:4px 11px;font-size:11.5px" data-cpy="'+esc(i.credentials)+'">Copy</button></div><pre>'+esc(i.credentials)+'</pre></div>'):'';
-        var shot=i.has_shot?('<a class="cthm-shot" href="/account/tools/issue-file/'+i.id+'" target="_blank" rel="noopener">View attached proof →</a>'):'';
-        return '<div class="cthm-claim"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="onm" style="font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(i.product_name||i.order_no)+'</div>'+clBadge(i.status)+'</div><div class="osub" style="margin:2px 0 7px">'+esc(i.order_no)+' · '+fmtd(i.created_at)+'</div><div class="muted" style="white-space:pre-wrap">'+esc(i.message)+'</div>'+resp+cred+shot+'</div>';
+        var composer='<form class="cthm-th-cmp" data-iid="'+i.id+'" onsubmit="return false"><textarea class="cthm-th-in" placeholder="Write a reply…"></textarea><div class="cthm-th-row"><label class="cthm-th-file" title="Attach a screenshot">📎<input type="file" accept="image/*" style="display:none"></label><span class="cthm-th-fn"></span><button class="cbtn cbtn-p cthm-th-send" type="button">Send</button></div></form>';
+        return '<div class="cthm-claim"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="onm" style="font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(i.product_name||i.order_no)+'</div>'+clBadge(i.status)+'</div><div class="osub" style="margin:2px 0 4px">'+esc(i.order_no)+'</div>'+thread+cred+composer+'</div>';
       }).join('');
       feed.querySelectorAll('[data-cpy]').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-cpy')); b.textContent='Copied ✓'; setTimeout(function(){b.textContent='Copy';},1400);}catch(e){} }); });
+      feed.querySelectorAll('.cthm-th-cmp').forEach(wireClReply);
     }).catch(function(){});
+  }
+  function wireClReply(form){
+    var iid=form.getAttribute('data-iid');
+    var ta=form.querySelector('.cthm-th-in'), file=form.querySelector('input[type=file]'), fn=form.querySelector('.cthm-th-fn'), send=form.querySelector('.cthm-th-send');
+    if(file&&fn) file.addEventListener('change',function(){ fn.textContent=(file.files&&file.files[0])?file.files[0].name:''; });
+    if(send) send.addEventListener('click',function(){
+      var txt=(ta&&ta.value||'').trim(); var f=(file&&file.files)?file.files[0]:null;
+      if(!txt && !f){ if(ta) ta.focus(); return; }
+      send.disabled=true; send.textContent='Sending…';
+      var fd=new FormData(); fd.append('body',txt); if(f) fd.append('shot',f);
+      fetch('/account/tools/issue/'+encodeURIComponent(iid)+'/message',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok){ claimFeed(); } else { send.disabled=false; send.textContent='Send'; if(ta) ta.focus(); }
+      }).catch(function(){ send.disabled=false; send.textContent='Send'; });
+    });
   }
   function claim(orders){
     var elig=orders.filter(clElig);

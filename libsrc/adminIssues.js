@@ -55,8 +55,19 @@ module.exports = function (pool) {
         [issueId, sender, (text || null), (shot || null), sender === 'admin', sender === 'customer']);
     } catch (e) {}
   }
+  // Customer-facing WhatsApp goes through the Verification Bot (wa_notifications
+  // outbox -> wa_bot_send_url), NEVER the reseller bot.
   async function pingCustomer(issue, text) {
-    try { const botapi = require('../lib/botapi'); if (botapi.configured && botapi.configured()) await botapi.notify({ event: 'issue_message', type: 'issue_message', order_no: issue.order_no, issue_id: issue.id, message: String(text || '(update)').slice(0, 600) }); } catch (e) {}
+    try {
+      if (!issue || !issue.customer_id) return;
+      require('../lib/wanotify')(pool).enqueue({
+        customer_id: issue.customer_id,
+        order_id: issue.order_id || null,
+        template_key: 'whatsapp.issue_update',
+        vars: { order_no: issue.order_no || '', message: String(text || '').slice(0, 900), account_url: 'https://galaxyzayron.store/account' },
+        idempotency_key: 'issmsg-' + issue.id + '-' + Math.random().toString(36).slice(2, 10)
+      });
+    } catch (e) {}
   }
 
   // ---- list ----
