@@ -159,7 +159,7 @@
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
     function line(a){ var t=esc(a.title||'').trim(), b=esc(a.body||'').trim(), code=String(a.coupon||'').trim();
       var h=''; if(t) h+='<b>'+t+'</b>'; if(t&&b) h+=' — '; if(b) h+=b; if(!h) h='New update available';
-      if(code) h+='<span class="gna-tcode" data-code="'+esc(code)+'">🎟 '+esc(code)+'</span>'; return h; }
+      if(code){ var lab=String(a.coupon_label||'').trim(); var txt=lab?(lab+' · '+code):('Coupon · '+code); h+='<span class="gna-tcode" data-code="'+esc(code)+'">🎟 '+esc(txt)+'</span>'; } return h; }
     fetch('/api/announcements',{credentials:'same-origin'}).then(function(r){ return r.ok?r.json():null; }).then(function(d){
       var items=((d&&d.items)||[]).filter(function(a){return a.product;}); if(!items.length) return;
       document.body.classList.add('gna-has-ticker');
@@ -180,7 +180,7 @@
       if(items.length>1){ setInterval(function(){ msg.classList.add('fade'); setTimeout(function(){ i=(i+1)%items.length; msg.innerHTML=line(items[i]); msg.dataset.code=items[i].coupon||''; msg.classList.remove('fade'); },260); }, 5000); }
       tick.addEventListener('click',function(e){
         var cc=(e.target&&e.target.closest)?e.target.closest('.gna-tcode'):null;
-        if(cc){ e.preventDefault(); e.stopPropagation(); var code=cc.getAttribute('data-code')||''; if(code){ try{navigator.clipboard.writeText(code);}catch(err){} cc.textContent='Copied ✓'; setTimeout(function(){ cc.textContent='🎟 '+code; },1300); } return; }
+        if(cc){ e.preventDefault(); e.stopPropagation(); var code=cc.getAttribute('data-code')||''; if(code){ try{navigator.clipboard.writeText(code);}catch(err){} var orig=cc.textContent; cc.textContent='Copied ✓'; setTimeout(function(){ cc.textContent=orig; },1300); } return; }
         if(typeof window.__gszTools==='function'){ window.__gszTools('updates'); }
       });
     }).catch(function(){});
