@@ -96,7 +96,7 @@
      +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"><div id="gbCoupOut"></div></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order</button>'
-     +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
+     +'<p class="muted" id="gbFoot" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
     body.innerHTML=h;
     var tp=document.getElementById('gbTypes'); if(tp) tp.querySelectorAll('[data-type]').forEach(function(b){ b.addEventListener('click',function(){ tp.querySelectorAll('[data-type]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); CHOSEN.type=b.getAttribute('data-type'); }); });
     loadPayAmt(INFO.price_pkr);
@@ -108,7 +108,8 @@
   function _wrapOf(id){ var e=document.getElementById(id); return e?e.closest('.gbuy-f'):null; }
   function setFree(on){ FREE=!!on; var pw=_wrapOf('gbMethods'), pf=_wrapOf('gbProof'), ac=document.getElementById('gbAcct'), go=document.getElementById('gbGo');
     [pw,ac,pf].forEach(function(el){ if(el) el.style.display=on?'none':''; });
-    if(go) go.textContent=on?'Place free order':'Place Order'; }
+    if(go) go.textContent=on?'Place free order':'Place Order';
+    var ft=document.getElementById('gbFoot'); if(ft){ ft.innerHTML = on ? '🎁 No payment needed — we’ll deliver your free order right away.' : ('You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.'); } }
   function chkCoupon(){ var code=val('gbCoupon'); var out=document.getElementById('gbCoupOut'); if(!out) return;
     if(!code){ out.innerHTML=''; setFree(false); return; }
     out.innerHTML='<div class="muted" style="font-size:12px;margin-top:6px">Checking…</div>';
