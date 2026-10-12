@@ -164,7 +164,7 @@
       var items=((d&&d.items)||[]).filter(function(a){return a.product;}); if(!items.length) return;
       document.body.classList.add('gna-has-ticker');
       // sit the ticker ABOVE the actual bottom nav (its height can vary), never under it
-      function placeTick(){ try{ var _nav=document.querySelector('.gna'); var _nh=_nav?Math.round(_nav.getBoundingClientRect().height):68; if(_nh>10){ tick.style.bottom=(_nh+6)+'px'; tick.style.zIndex='101'; document.body.style.paddingBottom=(_nh+46)+'px'; } }catch(e){} }
+      function placeTick(){ try{ var _nav=document.querySelector('.gna'); var _nh=_nav?Math.round(_nav.getBoundingClientRect().height):68; if(_nh>10){ tick.style.bottom=_nh+'px'; tick.style.zIndex='101'; var _th=Math.round(tick.getBoundingClientRect().height)||34; document.body.style.paddingBottom=(_nh+_th+8)+'px'; } }catch(e){} }
       placeTick(); window.addEventListener('resize', placeTick);
       var i=0; msg.innerHTML=line(items[0]); msg.dataset.code=items[0].coupon||'';
       requestAnimationFrame(function(){ tick.classList.add('on'); placeTick(); });
