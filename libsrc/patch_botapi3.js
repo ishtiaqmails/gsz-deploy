@@ -1,19 +1,21 @@
 'use strict';
-/* Adds iptvLookup() to lib/botapi.js so the Hub's "Renew IPTV Subscription" flow can check a
-   line's current expiry before paying. Bot side: POST /api/iptv-lookup { sku|panel_id, raw,
-   username?, password? } -> { ok, found, username, expiry, ... }. Read-only, no credits.
-   Idempotent: skips if iptvLookup already present. */
+/* Adds/updates iptvLookup() in lib/botapi.js so the Hub's "Renew IPTV Subscription" flow can
+   check a line's current expiry before paying. Bot side: POST /api/iptv-lookup -> { ok, found,
+   username, expiry, ... }. Read-only, no credits. Some panel searches (login + lookup) are slow,
+   so the client timeout is generous (40s). Re-appliable: replaces any prior iptvLookup line. */
 const fs = require('fs');
 const file = process.argv[2];
 if (!file) { console.error('usage: node patch_botapi3.js <botapi.js path>'); process.exit(1); }
 let s = fs.readFileSync(file, 'utf8');
 
-if (s.indexOf('iptvLookup') >= 0) { console.log('skip (already): iptvLookup present'); console.log('BOTAPI3 PATCH OK'); process.exit(0); }
+const NEWFN = "function iptvLookup(body) { return req('POST', '/api/iptv-lookup', body || {}, 40000); }";
+
+// remove any prior iptvLookup function line so the timeout stays current on re-run
+s = s.replace(/\n?function iptvLookup\(body\) \{ return req\('POST', '\/api\/iptv-lookup', body \|\| \{\}, \d+\); \}/g, '');
 
 const anchor = "function renewStatus(rid) { return req('GET', '/api/renew-status/' + encodeURIComponent(rid), null, 8000); }";
 if (s.indexOf(anchor) < 0) throw new Error('ANCHOR MISS: renewStatus line not found in botapi.js');
-const fn = "\nfunction iptvLookup(body) { return req('POST', '/api/iptv-lookup', body || {}, 15000); }";
-s = s.replace(anchor, anchor + fn);
+s = s.replace(anchor, anchor + "\n" + NEWFN);
 
 const expRe = /module\.exports\s*=\s*\{([\s\S]*?)\};/;
 const m = s.match(expRe);
@@ -25,5 +27,5 @@ if (m[1].indexOf('iptvLookup') < 0) {
 }
 
 fs.writeFileSync(file, s);
-console.log('patched: added iptvLookup to botapi');
+console.log('patched: iptvLookup present (40s timeout)');
 console.log('BOTAPI3 PATCH OK');
