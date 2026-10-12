@@ -48,6 +48,11 @@
   .pm .sec.open .sec-h .chev{transform:rotate(180deg)}
   .pm .sec-c{display:none;padding:4px 14px 16px}
   .pm .sec.open .sec-c{display:block}
+  .pm .afbtn{display:block;width:100%;margin:0 0 12px;border:0;border-radius:12px;padding:12px;font:inherit;font-size:13px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(100deg,#8b45ff,#3b82ff 55%,#28d6ff);box-shadow:0 10px 24px -12px rgba(59,130,255,.8)}
+  .pm .afbtn:active{transform:translateY(1px)}
+  .pm .pm-autofill{border:1.5px solid #cdd9ff;border-radius:12px;padding:14px;margin:0 0 14px;background:#f5f8ff}
+  .pm .pm-autofill .afh{font-weight:800;font-size:13.5px;margin-bottom:8px;color:#0f1836}
+  .pm .pm-autofill .afprev{display:flex;flex-wrap:wrap;gap:6px}
   .pm .cnt{font-size:11px;font-weight:800;color:#2f6cff;background:rgba(47,108,255,.1);padding:2px 8px;border-radius:999px}
 
   .pm .plan{border:1px solid #dfe4f2;border-radius:12px;margin-top:10px;overflow:hidden;background:#fff}
@@ -110,40 +115,52 @@
       <div class="pm-err" id="pmErr"></div>
       <input type="hidden" id="pm_id">
 
-      <label class="fld">Product name</label>
-      <input class="inp" id="pm_name" placeholder="e.g. Netflix Premium">
-
-      <div class="row2">
-        <div><label class="fld">Category</label><select class="inp" id="pm_cat"></select></div>
-        <div><label class="fld">Product image <span class="q">· 800×800</span></label>
-          <div class="imgrow"><div class="imgbox" id="pm_imgbox">No image</div>
-            <form id="pm_imgform" method="post" enctype="multipart/form-data" style="display:none"><input type="file" name="image" accept="image/*" id="pm_imgfile" style="font-size:12px"></form>
-            <button class="addlink" type="button" id="pm_imgbtn" style="margin:0;width:auto;padding:8px 12px" onclick="pmImg()">Upload</button>
+      <div class="sec open" id="pmSecBasic">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecBasic')"><span class="ic" style="background:rgba(47,108,255,.12)">🧩</span>
+          <span class="st"><b>Basics</b><small>Name, category, image &amp; flags</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c">
+          <label class="fld">Product name</label>
+          <input class="inp" id="pm_name" placeholder="e.g. Netflix Premium">
+          <div class="row2">
+            <div><label class="fld">Category</label><select class="inp" id="pm_cat"></select></div>
+            <div><label class="fld">Product image <span class="q">· 800×800</span></label>
+              <div class="imgrow"><div class="imgbox" id="pm_imgbox">No image</div>
+                <form id="pm_imgform" method="post" enctype="multipart/form-data" style="display:none"><input type="file" name="image" accept="image/*" id="pm_imgfile" style="font-size:12px"></form>
+                <button class="addlink" type="button" id="pm_imgbtn" style="margin:0;width:auto;padding:8px 12px" onclick="pmImg()">Upload</button>
+              </div>
+              <div class="note" id="pm_imgnote" style="display:none">Save the product first, then re-open to add an image.</div>
+            </div>
           </div>
-          <div class="note" id="pm_imgnote" style="display:none">Save the product first, then re-open to add an image.</div>
+          <div class="toggle-row" style="border-top:1px solid #e7ebf6;margin-top:14px">
+            <label class="sw purple"><input type="checkbox" id="pm_mostsell"><span class="track"></span>
+              <span class="lbl">Most Selling<small>Feature this product in “Top selling”</small></span></label>
+          </div>
+          <div class="toggle-row">
+            <label class="sw purple"><input type="checkbox" id="pm_renew"><span class="track"></span>
+              <span class="lbl">Renewable<small>Customers can renew / extend this before it expires</small></span></label>
+          </div>
         </div>
       </div>
 
-      <div class="toggle-row" style="border-top:1px solid #e7ebf6;margin-top:14px">
-        <label class="sw purple"><input type="checkbox" id="pm_mostsell"><span class="track"></span>
-          <span class="lbl">Most Selling<small>Feature this product in “Top selling”</small></span></label>
-      </div>
-      <div class="toggle-row">
-        <label class="sw purple"><input type="checkbox" id="pm_renew"><span class="track"></span>
-          <span class="lbl">Renewable<small>Customers can renew / extend this before it expires</small></span></label>
+      <div class="sec" id="pmSecDesc">
+        <button class="sec-h" type="button" onclick="pmSec('pmSecDesc')"><span class="ic" style="background:rgba(243,167,18,.16)">📝</span>
+          <span class="st"><b>Description</b><small>Short &amp; long text</small></span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="sec-c">
+          <label class="fld">Short description <span class="q">· shown on cards</span></label>
+          <input class="inp" id="pm_short" placeholder="One line customers see on the product card">
+          <label class="fld">Long description <span class="q">· product page</span></label>
+          <textarea id="pm_long" placeholder="Full description shown on the product page"></textarea>
+        </div>
       </div>
 
-      <label class="fld">Short description <span class="q">· shown on cards</span></label>
-      <input class="inp" id="pm_short" placeholder="One line customers see on the product card">
-      <label class="fld">Long description <span class="q">· product page</span></label>
-      <textarea id="pm_long" placeholder="Full description shown on the product page"></textarea>
-
-      <div class="sec open" id="pmSecPlans">
+      <div class="sec" id="pmSecPlans">
         <button class="sec-h" type="button" onclick="pmSec('pmSecPlans')"><span class="ic" style="background:rgba(47,108,255,.12)">📦</span>
           <span class="st"><b>Plans &amp; Pricing</b><small>Name, duration, Rs + $ price, mapping &amp; more</small></span>
           <span class="cnt" id="pmPlanCount">0</span>
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button>
-        <div class="sec-c"><div id="pmPlans"></div><button class="addplan" type="button" onclick="pmAddPlan()">+ Add plan</button></div>
+        <div class="sec-c"><button class="afbtn" type="button" onclick="pmAutoFill()">✨ Auto-fill plans from bot product</button><div id="pmPlans"></div><button class="addplan" type="button" onclick="pmAddPlan()">+ Add plan</button></div>
       </div>
 
       <div class="sec" id="pmSecCap">
@@ -317,6 +334,51 @@
           return '<div class="mini"><input class="inp vk" value="'+esc(v.key)+'" readonly style="max-width:140px;background:#eef2fb"><span class="note" style="margin:0">→</span><input class="inp vl" value="'+esc(lbl)+'" placeholder="shown to customer"></div>';}).join('');
     } else { vbox.innerHTML=''; }
     needsBox.innerHTML = needs.length ? needs.map(function(n){return '<span class="chip">'+esc(n)+'</span>';}).join('')+'<span class="chip gray">read-only</span>' : '<span class="chip gray">no extra fields</span>';
+  };
+  /* ---------- auto-fill IPTV plans from a bot product (with your own version labels) ---------- */
+  function _afParseDur(lab){ lab=String(lab||''); var m=lab.match(/(\d+(?:\.\d+)?)/); var n=m?parseFloat(m[1]):null; var l=lab.toLowerCase(); var u='';
+    if(/life/.test(l)){u='Lifetime';n=null;}
+    else if(/year|yr/.test(l)){u=(n&&n>1)?'Years':'Year';}
+    else if(/month|mo\b|mth/.test(l)){u=(n&&n>1)?'Months':'Month';}
+    else if(/week|wk/.test(l)){u=(n&&n>1)?'Weeks':'Week';}
+    else if(/day/.test(l)){u=(n&&n>1)?'Days':'Day';}
+    return {value:n,unit:u}; }
+  function _afIsTrial(pl){ var l=String(pl.label||'').toLowerCase(); return /trial|hour|\bhr\b|\btest\b/.test(l) || !(Number(pl.price)>0); }
+  function _afBotList(){ return (BOTS||[]).filter(function(b){ return b && Array.isArray(b.plans) && b.plans.some(function(pl){ return !_afIsTrial(pl); }); }); }
+  window.pmAutoFill=function(){
+    var ex=document.getElementById('pmAutoBox'); if(ex){ ex.remove(); return; }
+    var list=_afBotList();
+    var box=document.createElement('div'); box.id='pmAutoBox'; box.className='pm-autofill';
+    box.innerHTML='<div class="afh">✨ Auto-fill plans from a bot product</div>'
+      +'<label class="fld">Bot product</label><select class="inp" id="afSku" onchange="pmAfPick()"><option value="">— select bot product —</option>'
+      + list.map(function(b){ return '<option value="'+esc(b.sku)+'">'+esc(b.name||b.sku)+' · '+esc(b.sku)+'</option>'; }).join('')
+      +'</select><div id="afBody"></div>';
+    var anchor=document.getElementById('pmPlans'); anchor.parentNode.insertBefore(box, anchor);
+  };
+  window.pmAfPick=function(){
+    var sku=document.getElementById('afSku').value; var b=botBySku(sku); var body=document.getElementById('afBody'); if(!body) return;
+    if(!b){ body.innerHTML=''; return; }
+    var paid=(b.plans||[]).filter(function(pl){ return !_afIsTrial(pl); });
+    var vers=botVersions(b); var h='';
+    if(vers.length){ h+='<label class="fld" style="margin-top:12px">Version labels <span class="q">· your names, shown to customers</span></label>'
+        + vers.map(function(v){ return '<div class="mini"><input class="inp afvk" value="'+esc(v.key)+'" readonly style="max-width:140px;background:#eef2fb"><span class="note" style="margin:0">→</span><input class="inp afvl" data-key="'+esc(v.key)+'" value="'+esc(v.label||v.key)+'" placeholder="shown to customer"></div>'; }).join(''); }
+    h+='<label class="fld" style="margin-top:12px">Plans to create <span class="q">· from the bot · trials skipped</span></label><div class="afprev">'
+      + (paid.length? paid.map(function(pl){ return '<span class="chip">'+esc(pl.label)+(pl.price?(' · Rs '+pl.price):'')+'</span>'; }).join('') : '<span class="chip" style="background:#f0f1f5;color:#8a93ac;border-color:#e4e7ef">no paid plans found</span>')
+      +'</div>'
+      +'<div class="mini" style="margin-top:12px;gap:8px"><button class="btn btn-p" type="button" onclick="pmAfGenerate()"'+(paid.length?'':' disabled')+'>Generate '+paid.length+' plan'+(paid.length===1?'':'s')+'</button><button class="btn btn-g" type="button" onclick="pmAutoFill()">Cancel</button></div>';
+    body.innerHTML=h;
+  };
+  window.pmAfGenerate=function(){
+    var sku=document.getElementById('afSku').value; var b=botBySku(sku); if(!b) return;
+    var paid=(b.plans||[]).filter(function(pl){ return !_afIsTrial(pl); }); if(!paid.length) return;
+    var labels=[].slice.call(document.querySelectorAll('#afBody .afvl')).map(function(i){ return {key:i.getAttribute('data-key'), label:(i.value||'').trim()||i.getAttribute('data-key')}; });
+    var existing=document.querySelectorAll('#pmPlans .plan').length;
+    if(existing>0 && !confirm('Replace the '+existing+' existing plan'+(existing===1?'':'s')+' with '+paid.length+' auto-filled plan'+(paid.length===1?'':'s')+'?')) return;
+    if(existing>0){ document.getElementById('pmPlans').innerHTML=''; }
+    paid.forEach(function(pl){ var d=_afParseDur(pl.label);
+      pmAddPlan({ label:pl.label, duration_value:d.value, duration_unit:d.unit, price_pkr:pl.price, source:'bot', bot_sku:sku, bot_plan_key:pl.plan_key, version_labels:labels });
+    });
+    pmAutoFill(); pmCounts();
   };
   window.pmAddCF=function(btn,val){var wrap=btn.previousElementSibling;var r=document.createElement('div');r.className='mini';
     r.innerHTML='<input class="inp cf" value="'+esc(val||'')+'" placeholder="Field label e.g. Email"><button class="x-btn" onclick="this.parentElement.remove()">✕</button>';wrap.appendChild(r);};
