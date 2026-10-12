@@ -544,7 +544,7 @@
     send.addEventListener('click',function(){ ask(inp.value); });
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ask(inp.value); } });
     bubble('sb-bot','Hi! 👋 I’m your support assistant. Ask me about any product — prices, plans, delivery, offers — or your order.');
-    chips(['Best IPTV','Netflix price','Delivery time','Talk to a human']);
+    chips(['What do you sell?','Best IPTV','Track my order','Talk to a human']);
     setTimeout(function(){ try{ inp.focus(); }catch(e){} },60);
   }
   function fmtd(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return '—'; } }

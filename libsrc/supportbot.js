@@ -110,6 +110,7 @@ const RULES = [
   ['payment', /\b(pay(ment)?|easy ?paisa|jazz ?cash|bank transfer|how (do i|to) pay|which method)\b/i, 1.9],
   ['stock', /\b(in ?stock|avail\w*|do you have|got any|got it)\b/i, 1.6],
   ['recommend', /\b(recommend|suggest|best|cheapest|affordable|which (one|should|is best)|good for|top pick)\b/i, 1.8],
+  ['catalog', /\b(categor\w*|what (do|does|can|r|are) (you|u|yall|your store)('?re)? ?(sell|have|got|offer|carry)|what('?s| is| are)? (available|on offer|in your (store|catalog))|your (products|services|catalog|store|range)|what kind of|what type)\b/i, 1.9],
   ['offers', /\b(offers?|discounts?|coupons?|promos?|deals?|sales?|vouchers?)\b/i, 1.8],
   ['greeting', /^\s*(hi|hello+|hey+|salam|assalam[ou]?[ -]?alaikum|aoa|yo|good (morning|evening|afternoon))\b/i, 1.2],
   ['thanks', /\b(thanks|thank you|shukria|thankyou|thx|appreciate it)\b/i, 1.2],
@@ -166,11 +167,18 @@ function answer(bk, message, ctx) {
   if (det.intent === 'thanks') { out.text = 'You\'re welcome! Anything else I can help with?'; return out; }
   if (det.intent === 'bye') { out.text = 'Take care! We\'re here 24/7 whenever you need us. 💙'; return out; }
 
-  // human handoff
+  // human handoff — friendly line, the WhatsApp button does the work (no raw URL in text)
   if (det.intent === 'human') {
     out.handoff = true;
-    const wl = waLink(bk.site, 'Hi, I need help on ' + bk.site.name);
-    out.text = wl ? 'Sure — you can reach a human on WhatsApp here: ' + wl : 'Sure — our team is here to help. Please use the WhatsApp button on the site.';
+    out.wa = waLink(bk.site, 'Hi, I need help on ' + bk.site.name);
+    out.text = 'Of course! 💬 Tap below to chat with our team on WhatsApp — we usually reply quickly.';
+    return out;
+  }
+
+  // "what do you sell / what categories" — list the real categories to browse
+  if (det.intent === 'catalog') {
+    out.text = 'Here\'s what we offer: ' + bk.categories.map(c => c.name).join(', ') + '. 🛍️ Tap a category to browse, or just tell me what you\'re after.';
+    out.suggestions = bk.categories.map(c => c.name);
     return out;
   }
 
@@ -252,23 +260,32 @@ function answer(bk, message, ctx) {
     return out;
   }
 
-  // recommend / category browse (no single product)
-  if (det.intent === 'recommend' || det.intent === 'plans' || det.intent === 'price') {
-    // match a category if named (singular/plural tolerant, raw tokens)
+  // category browse — a named category ("Entertainment", "show me vpns", "iptv") lists its
+  // products even without a "recommend" verb, singular/plural tolerant.
+  {
     const stem = w => w.replace(/s$/, '');
     const rawm = uniq(toks(msg)).map(stem);
-    let cat = bk.categories.find(c => {
+    const cat = bk.categories.find(c => {
       const ctoks = uniq([...toks(c.name), ...toks(c.slug)]).map(stem).filter(w => w.length >= 3);
       return ctoks.some(ct => rawm.indexOf(ct) >= 0);
     });
-    let pool = bk.products.slice();
-    if (cat) pool = pool.filter(x => x.cat_slug === cat.slug);
-    pool.sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));
-    const picks = pool.slice(0, 4);
-    if (picks.length) {
-      out.intent = 'recommend';
-      out.text = cat ? ('Top picks in ' + cat.name + ':') : 'Here are some popular picks:';
-      out.products = picks.map(pcard);
+    if (cat && ['recommend', 'catalog', 'fallback', 'price', 'plans', 'stock', 'delivery'].indexOf(det.intent) >= 0) {
+      const pool = bk.products.filter(x => x.cat_slug === cat.slug)
+        .sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));
+      if (pool.length) {
+        out.intent = 'recommend';
+        out.text = 'Top picks in ' + cat.name + ':';
+        out.products = pool.slice(0, 4).map(pcard);
+        out.suggestions = bk.categories.filter(c => c.slug !== cat.slug).map(c => c.name).slice(0, 4);
+        return out;
+      }
+    }
+    // generic recommend with no category named
+    if (det.intent === 'recommend') {
+      const pool = bk.products.slice().sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));
+      out.text = 'Here are some popular picks:';
+      out.products = pool.slice(0, 4).map(pcard);
+      out.suggestions = bk.categories.map(c => c.name).slice(0, 4);
       return out;
     }
   }
