@@ -1,0 +1,109 @@
+<%- include('_shell_top', { active:'trials', title:'Trials' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  function dt(d){ if(!d) return '—'; try{ return new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } }
+  var liveN = rows.filter(function(r){ return r.enabled; }).length;
+%>
+
+<style>
+  .ts-sub{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+  .ts-sub a{font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px var(--hair)}
+  .ts-sub a.on{color:#fff;background:var(--grad,linear-gradient(90deg,#2a7bff,#29d3ff));box-shadow:none}
+  .tsrv-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:900px){.tsrv-list{grid-template-columns:1fr}}
+  .tsrv{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:15px 16px;display:flex;flex-direction:column;gap:12px}
+  .tsrv-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .tsrv-name b{display:block;font-size:14.5px;font-weight:800}
+  .tsrv-name span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .tsrv-fields{display:grid;grid-template-columns:1fr 78px 92px;gap:10px;align-items:end}
+  @media(max-width:460px){.tsrv-fields{grid-template-columns:1fr 1fr}}
+  .tsrv-fields label{font-size:11px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+  .tsrv-fields input{font:inherit;font-size:13.5px;padding:8px 10px;border-radius:9px;border:1px solid var(--hair);background:#fbfcfe;width:100%}
+  .tsrv .btn{width:100%;justify-content:center}
+  .sw{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;flex:0 0 auto}
+  .sw input{position:absolute;opacity:0;width:0;height:0}
+  .sw .tr{width:42px;height:24px;border-radius:999px;background:#d3dae6;transition:.18s;position:relative;flex:0 0 auto}
+  .sw .tr:after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.18s}
+  .sw input:checked + .tr{background:#16b765}
+  .sw input:checked + .tr:after{transform:translateX(18px)}
+  .sw .lbl{font-size:12px;font-weight:800;color:var(--muted)}
+  .sw input:checked ~ .lbl{color:#0b7a42}
+  .u-pill{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap;background:#e7f8ee;color:#0b7a42}
+  .u-pill.over{background:#fdecec;color:#b42318}
+  .sub{font-size:12px;color:var(--muted)}
+</style>
+
+<div class="dcards">
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Active trials</span><b class="dval"><%= stats.active.toLocaleString('en-US') %></b><span class="dsub">running now</span></div></div>
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Claimed all-time</span><b class="dval"><%= stats.total.toLocaleString('en-US') %></b><span class="dsub"><%= liveN %> servers live</span></div></div>
+  <div class="dcard" style="--t:#f5a623"><span class="dic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
+    <div class="dmeta"><span class="dlbl">At limit</span><b class="dval"><%= stats.atlimit.toLocaleString('en-US') %></b><span class="dsub <%= stats.atlimit>0?'alert':'' %>"><%= stats.atlimit>0?'can be reset below':'none capped' %></span></div></div>
+</div>
+
+<div class="ts-sub">
+  <a href="#servers" class="on">Trial servers</a>
+  <a href="#activity">Customer activity</a>
+</div>
+
+<div class="card" id="servers">
+  <h2 style="margin:0 0 4px;font-size:16px">Trial servers</h2>
+  <p class="hint">Turn trials on per IPTV server, set each one's length, and cap how many a single customer can take. Availability still follows the reseller bot automatically — a server only shows to customers while the bot allows its trial.</p>
+  <div class="tsrv-list">
+    <% rows.forEach(function(r){ %>
+    <form class="tsrv" method="post" action="/admin/trials/save">
+      <input type="hidden" name="sku" value="<%= r.sku %>">
+      <div class="tsrv-top">
+        <div class="tsrv-name"><b><%= r.name %></b><span><%= r.store_products || r.sku %></span></div>
+        <label class="sw"><input type="checkbox" name="enabled" <%= r.enabled?'checked':'' %>><span class="tr"></span><span class="lbl">On</span></label>
+      </div>
+      <div class="tsrv-fields">
+        <label>Duration label<input name="duration_label" value="<%= r.duration_label||'' %>" placeholder="e.g. 12 Hour Trial"></label>
+        <label>Hours<input name="duration_hours" type="number" min="1" value="<%= r.duration_hours||24 %>"></label>
+        <label>Max / customer<input name="max_per_customer" type="number" min="1" value="<%= r.max_per_customer||1 %>"></label>
+      </div>
+      <button class="btn btn-p" type="submit">Save</button>
+    </form>
+    <% }); %>
+    <% if (!rows.length) { %><p class="sub">No IPTV servers found from the bot mapping.</p><% } %>
+  </div>
+</div>
+
+<div class="card" id="activity" style="padding:22px">
+  <h2 style="margin:0 0 4px;font-size:16px">Customer activity</h2>
+  <p class="hint">Every trial a customer has taken, per IPTV. When someone is at their limit, reset frees their quota so they can claim that server again.</p>
+  <form class="srch" method="get" action="/admin/trials" style="margin-bottom:16px">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search customer name, email or IPTV…">
+    <button class="btn btn-p" type="submit">Search</button>
+    <% if (q) { %><a class="btn btn-g" href="/admin/trials#activity">Clear</a><% } %>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Customer</th><th>IPTV</th><th>Used</th><th>Last claim</th><th style="text-align:right">Action</th></tr></thead>
+    <tbody>
+      <% if (!activity.length) { %><tr><td colspan="5" style="color:var(--muted);padding:24px 16px"><%= q?'No customers match.':'No trials claimed yet.' %></td></tr><% } %>
+      <% activity.forEach(function(a){ var over = a.used_active >= a.max_allowed && a.used_active>0; %>
+      <tr>
+        <td style="font-weight:700"><%= a.name %><div class="sub" style="font-weight:500"><%= a.email %></div></td>
+        <td><%= a.server %></td>
+        <td><span class="u-pill <%= over?'over':'' %>"><%= a.used_active %> / <%= a.max_allowed %></span></td>
+        <td class="sub" style="white-space:nowrap"><%= dt(a.last_claimed) %></td>
+        <td style="text-align:right">
+          <% if (a.used_active>0) { %>
+          <form method="post" action="/admin/trials/reset" style="display:inline" onsubmit="return confirm('Reset this customer’s trial limit for this IPTV? They will be able to claim it again.');">
+            <input type="hidden" name="customer_id" value="<%= a.customer_id %>">
+            <input type="hidden" name="sku" value="<%= a.sku %>">
+            <button class="btn btn-g" style="padding:6px 12px" type="submit">Reset</button>
+          </form>
+          <% } else { %><span class="sub">—</span><% } %>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('_shell_bottom') %>
