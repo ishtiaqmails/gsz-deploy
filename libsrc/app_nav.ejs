@@ -63,6 +63,8 @@
   .gna-tmsg.fade{opacity:0}
   .gna-tmsg b{font-weight:800}
   .gna-tmsg .gna-tcode{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.22);font-weight:800;letter-spacing:.4px}
+  .gna-tview{flex:none;display:inline-flex;align-items:center;gap:1px;font-size:10.5px;font-weight:800;padding:3px 7px 3px 10px;border-radius:999px;background:rgba(255,255,255,.24);white-space:nowrap;letter-spacing:.02em}
+  .gna-tview svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 </style>
 
 <nav class="gna" aria-label="Quick navigation">
@@ -75,7 +77,7 @@
   <button class="gna-i" data-nav="cart" type="button"><span class="gna-badge" id="gnaCartN">0</span><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Cart</span></button>
   <button class="gna-i" data-nav="support" type="button"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg><span>Support</span></button>
 </nav>
-<div class="gna-ticker" id="gnaTicker" role="status"><span class="gna-tpin"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z"/></svg></span><span class="gna-tmsg" id="gnaTmsg"></span></div>
+<div class="gna-ticker" id="gnaTicker" role="status"><span class="gna-tpin"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z"/></svg></span><span class="gna-tmsg" id="gnaTmsg"></span><span class="gna-tview">View<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
 
 <div class="gna-scrim" id="gnaScrim"></div>
 
@@ -167,7 +169,7 @@
       var i=0; msg.innerHTML=line(items[0]); msg.dataset.code=items[0].coupon||'';
       requestAnimationFrame(function(){ tick.classList.add('on'); placeTick(); });
       if(items.length>1){ setInterval(function(){ msg.classList.add('fade'); setTimeout(function(){ i=(i+1)%items.length; msg.innerHTML=line(items[i]); msg.dataset.code=items[i].coupon||''; msg.classList.remove('fade'); },260); }, 5000); }
-      tick.addEventListener('click',function(){ var code=msg.dataset.code||''; if(code){ try{ navigator.clipboard.writeText(code); }catch(e){} var prev=msg.innerHTML; msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML='<b>Copied '+esc(code)+'</b> — paste it at checkout'; msg.classList.remove('fade'); },260); setTimeout(function(){ msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML=prev; msg.classList.remove('fade'); },260); },2200); } else if(typeof window.__gszTools==='function'){ window.__gszTools('updates'); } });
+      tick.addEventListener('click',function(){ if(typeof window.__gszTools==='function'){ window.__gszTools('updates'); } });
     }).catch(function(){});
   })();
 })();
