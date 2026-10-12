@@ -334,7 +334,7 @@
       +cred+cv;
     document.getElementById('tdBack').addEventListener('click',myTrials);
     var cp=document.getElementById('tCpy'); if(cp) cp.addEventListener('click',function(){ try{ navigator.clipboard.writeText(t.credentials); cp.textContent='Copied ✓'; setTimeout(function(){cp.textContent='Copy';},1400);}catch(e){} });
-    var cb=body.querySelector('[data-convert]'); if(cb) cb.addEventListener('click',function(){ cb.disabled=true; cb.textContent='Opening…'; fetch('/account/tools/trials/'+t.id+'/buy',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){ if(j&&j.slug){ location.href='/checkout?p='+encodeURIComponent(j.slug); } else { location.href=(j&&j.category)||'/category/iptv'; } }).catch(function(){ location.href='/category/iptv'; }); });
+    var cb=body.querySelector('[data-convert]'); if(cb) cb.addEventListener('click',function(){ convertTrialToPaid(t); });
   }
   function isLoggedIn(){ return (typeof window.__GSZAUTH!=='undefined') ? !!window.__GSZAUTH : authed; }
   function renderFoot(){ var f=document.getElementById('cthmFoot'); if(!f) return;
@@ -487,7 +487,7 @@
       +'<div class="cthm-acts"><button class="cbtn cbtn-g" data-go="code">Get Code</button><button class="cbtn cbtn-g" data-go="renew">Renew</button><button class="cbtn cbtn-p" data-go="claim">Claim / Replace</button></div>';
     document.getElementById('dBack').addEventListener('click',function(){ setTab('purchases'); });
     var cp=document.getElementById('cpyCred'); if(cp) cp.addEventListener('click',function(){ try{ navigator.clipboard.writeText(o.credentials); cp.textContent='Copied ✓'; setTimeout(function(){cp.textContent='Copy';},1500); }catch(e){} });
-    body.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){ setTab(b.getAttribute('data-go')); }); });
+    body.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){ var g=b.getAttribute('data-go'); if(g==='renew'){ renewOrderNow(o); } else { setTab(g); } }); });
   }
   function reasonMsg(j,act){ var r=(j&&j.reason)||'error'; if(r==='waiting') return 'No '+(act==='link'?'link':'code')+' yet — tap again in a moment.'; if(r==='limit') return 'You’ve reached the limit'+((j&&j.used&&j.limit)?(' ('+j.used+'/'+j.limit+')'):'')+'. Contact support.'; if(r==='not_supported') return 'Not available for this product yet.'; if(r==='not_owner') return 'We couldn’t match this to your account.'; if(r==='expired') return 'The window has closed — contact support.'; return 'Couldn’t complete right now.'; }
   function doAct(no,act,tries){
@@ -546,6 +546,28 @@
   }
   /* ---- Renew IPTV Subscription (any line, paste-and-detect) ---- */
   var iptvSvcCache=null;
+  function _matchSvc(list, server){
+    if(!server) return null; var s=String(server).toLowerCase().trim();
+    var ex=list.filter(function(x){ return String(x.name).toLowerCase().trim()===s; })[0]; if(ex) return ex;
+    var c=list.filter(function(x){ var n=String(x.name).toLowerCase().trim(); return n && (s.indexOf(n)>=0 || n.indexOf(s)>=0); })[0]; if(c) return c;
+    var t2=list.filter(function(x){ var w=(String(x.name).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)[0])||''; return w.length>=3 && s.indexOf(w)>=0; })[0];
+    return t2||null;
+  }
+  function convertTrialToPaid(t){
+    body.innerHTML='<button class="cthm-back" id="cvBack">← Back</button><div class="cthm-load">Finding your line…</div>';
+    document.getElementById('cvBack').addEventListener('click',myTrials);
+    fetch('/account/tools/iptv/options',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var list=(j&&j.services)||[]; iptvSvcCache=list;
+      var srv=_matchSvc(list, t.server);
+      if(!srv){ iptvServices(); return; }
+      var raw=t.credentials||t.server||'';
+      function handleC(res){ if(res&&res.ok&&res.found){ iptvFound(srv, res, raw); return; } iptvEnter(srv); }
+      function pollC(id, tries){ if(tries>48){ iptvEnter(srv); return; }
+        fetch('/account/tools/iptv/lookup-status/'+encodeURIComponent(id),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(st){ if(st&&st.status==='done'){ handleC(st.result||{}); return; } if(st&&st.status==='failed'){ iptvEnter(srv); return; } setTimeout(function(){ pollC(id,tries+1); },2500); }).catch(function(){ setTimeout(function(){ pollC(id,tries+1); },2500); });
+      }
+      fetch('/account/tools/iptv/lookup',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify({sku:srv.sku, raw:raw})}).then(function(r){return r.json();}).then(function(res){ if(res&&res.pending&&res.lookup_id){ pollC(res.lookup_id,0); return; } handleC(res); }).catch(function(){ iptvEnter(srv); });
+    }).catch(function(){ iptvServices(); });
+  }
   function iptvRenew(){
     body.innerHTML='<div class="cthm-load">Loading…</div>';
     fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
@@ -673,6 +695,20 @@
       if(tries<80){ setTimeout(function(){ pollIptvRenew(newNo, tries+1); }, 3000); }
       else { body.innerHTML='<div class="cthm-empty"><div class="muted">Still processing — check My Orders shortly.</div><button class="cbtn cbtn-p" id="ipDone" style="margin-top:8px">Done</button></div>'; var d3=document.getElementById('ipDone'); if(d3) d3.addEventListener('click',function(){ setTab('renew'); }); }
     }).catch(function(){ if(tries<80) setTimeout(function(){ pollIptvRenew(newNo, tries+1); }, 3000); });
+  }
+  function renewOrderNow(o){
+    var no=o.order_no, name=o.product_name||'Order';
+    body.innerHTML='<button class="cthm-back" id="roBack">← Back</button><div style="font-weight:800;font-size:16px;margin:2px 0 10px">Renew — '+esc(name)+'</div><div class="cthm-load">Checking your subscription…</div>';
+    document.getElementById('roBack').addEventListener('click',function(){ detail(o); });
+    fetch('/account/order/'+encodeURIComponent(no)+'/subscription',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var load=body.querySelector('.cthm-load'); var h='';
+      if(!j||!j.ok||(!j.active&&!j.renewable)){ if(load) load.outerHTML='<div class="cthm-empty"><p class="muted">This subscription can’t be renewed here right now.</p><a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a></div>'; return; }
+      if(j.expires_at){ var dl=(j.days_left!=null)?(' ('+(j.days_left>=0?(j.days_left+'d left'):(Math.abs(j.days_left)+'d ago'))+')'):''; h+='<div class="cthm-meta"><div><div class="muted">Current expiry</div><div>'+esc(String(j.expires_at).slice(0,10))+dl+'</div></div></div>'; }
+      if(j.renewable && j.slug && j.options && j.options.length){ h+='<div class="cthm-sep">Choose a plan</div>'+j.options.map(function(op){ var price=(op.price_pkr!=null)?money(op.price_pkr):''; var dis=(op.idx==null||op.idx<0||op.price_pkr==null); return '<button class="cthm-ord"'+(dis?' disabled':(' data-ren-idx="'+op.idx+'" data-price="'+op.price_pkr+'" data-label="'+esc(op.label)+'"'))+'><span style="flex:1;min-width:0"><span class="onm">'+esc(op.label)+'</span></span><span class="cthm-pill ok">'+price+'</span></button>'; }).join(''); }
+      else { h+='<a class="cbtn cbtn-p" style="width:100%;margin-top:10px" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent('Renew '+no)+'">Renew on WhatsApp</a>'; }
+      if(load) load.outerHTML=h;
+      body.querySelectorAll('button[data-ren-idx]').forEach(function(bb){ bb.addEventListener('click',function(){ coStep({ no:no, slug:j.slug, idx:bb.getAttribute('data-ren-idx'), price:Number(bb.getAttribute('data-price'))||0, label:bb.getAttribute('data-label') }); }); });
+    }).catch(function(){ var l=body.querySelector('.cthm-load'); if(l) l.outerHTML='<div class="cthm-empty errmsg">Couldn’t check right now.</div>'; });
   }
   function coStep(p){
     body.innerHTML='<button class="cthm-back" id="coBack">← Back</button><div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(p.label)+'</div><div class="muted">Order '+esc(p.no)+' · '+money(p.price)+'</div></div><div class="cthm-load">Loading payment options…</div>';
