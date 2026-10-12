@@ -520,10 +520,11 @@
     function reply(j){
       var html=esc(j.reply||'').replace(/\n/g,'<br>');
       if(j.products&&j.products.length) html+=cards(j.products);
-      if(j.needsAction && !j.signedIn){ html+='<div class="sb-act"><button class="cthm-chip on" id="sbSignin">Sign in</button></div>'; }
-      else if(j.handoff || j.wa){ var wl=j.wa||('https://wa.me/'+WANUM); html+='<div class="sb-act"><a class="cthm-chip on" href="'+esc(wl)+'" target="_blank" rel="noopener">Open WhatsApp</a></div>'; }
+      var acts=(j.actions||[]).map(function(a){ return '<button class="cthm-chip on" data-tool="'+esc(a.tool)+'">'+esc(a.label)+'</button>'; });
+      if(j.handoff || j.wa){ var wl=j.wa||('https://wa.me/'+WANUM); acts.push('<a class="cthm-chip on" href="'+esc(wl)+'" target="_blank" rel="noopener">Open WhatsApp</a>'); }
+      if(acts.length) html+='<div class="sb-act">'+acts.join('')+'</div>';
       var b=bubble('sb-bot',html);
-      var si=b.querySelector('#sbSignin'); if(si) si.addEventListener('click',function(){ signin(); });
+      b.querySelectorAll('[data-tool]').forEach(function(btn){ btn.addEventListener('click',function(){ var tl=btn.getAttribute('data-tool'); if(tl==='iptvrenew'){ openIptvRenew(); } else { setTab(tl); } }); });
       chips(j.suggestions||[]);
     }
     function ask(text){

@@ -139,7 +139,7 @@ function waLink(site, text) {
 function answer(bk, message, ctx) {
   ctx = ctx || {};
   const msg = String(message || '').trim();
-  const out = { intent: 'fallback', text: '', products: [], suggestions: [], handoff: false, needsAction: null };
+  const out = { intent: 'fallback', text: '', products: [], suggestions: [], actions: [], handoff: false, needsAction: null };
   if (!msg) { out.text = 'Hi! Ask me about any product, price, plan, delivery, or your order.'; out.intent = 'greeting'; return out; }
 
   const det = detectIntent(msg);
@@ -164,21 +164,43 @@ function answer(bk, message, ctx) {
     return out;
   }
 
-  // agentic intents (fulfilled in Stage 5 against the logged-in customer)
+  // agentic intents — helpful for EVERYONE (new customers included). No sign-in walls:
+  // guest-safe order tracking by number, plus action buttons that drive the existing Hub
+  // flows (which handle verification only where it's genuinely needed).
   if (['order_status', 'resend', 'renew', 'trial', 'complaint'].indexOf(det.intent) >= 0) {
-    out.needsAction = det.intent;
     const m = (msg.match(/GSZ-?\d+/i) || [])[0];
-    if (m) out.orderNo = m.toUpperCase().replace('GSZ', 'GSZ-').replace('--', '-');
-    // graceful grounded text; Stage 5 replaces with the real action result
-    const map = {
-      order_status: 'I can check your order status. ',
-      resend: 'I can resend your code or link. ',
-      renew: 'I can help you renew. ',
-      trial: 'I can start a free trial for you. ',
-      complaint: 'Sorry to hear that — I can open a claim and get it sorted. '
-    };
-    out.text = map[det.intent] + (ctx.customer ? 'One moment…' : 'Please sign in to your account first, then ask me again — or tap “My Hub”.');
-    return out;
+    const orderNo = m ? ('GSZ-' + m.replace(/[^0-9]/g, '')) : null;
+    if (orderNo) out.orderNo = orderNo;
+    const first = (ctx.customer && ctx.customer.name) ? (' ' + String(ctx.customer.name).split(/\s+/)[0]) : '';
+
+    if (det.intent === 'order_status') {
+      if (orderNo) { out.needsAction = 'order_status'; out.text = 'Let me check ' + orderNo + ' for you…'; }
+      else if (ctx.customer) { out.text = 'Sure' + first + '! Here are all your orders with live status.'; out.actions = [{ label: 'My Orders', tool: 'purchases' }]; }
+      else { out.text = 'Happy to track your order — what\'s your order number? It looks like GSZ-1234.'; }
+      return out;
+    }
+    if (det.intent === 'renew') {
+      out.text = 'You can renew any IPTV line in seconds — no login needed, just paste your line details. For other subscriptions, open My Subscriptions to renew before they expire.';
+      out.actions = [{ label: 'Renew IPTV', tool: 'iptvrenew' }, { label: 'My Subscriptions', tool: 'purchases' }];
+      return out;
+    }
+    if (det.intent === 'trial') {
+      out.text = 'Yes — we offer free trials! 🎁 Pick a service and we\'ll set you up. A quick WhatsApp verification keeps trials fair.';
+      out.actions = [{ label: 'Get a Free Trial', tool: 'trials' }];
+      return out;
+    }
+    if (det.intent === 'resend') {
+      out.text = 'Happy to resend your code or link. Tap Get Access to send it to yourself instantly' + (orderNo ? (' (for ' + orderNo + ')') : '') + '.';
+      out.actions = [{ label: 'Get Access', tool: 'code' }];
+      return out;
+    }
+    if (det.intent === 'complaint') {
+      out.handoff = true;
+      out.text = 'Sorry about that' + first + ' — let\'s get it sorted. You can open a claim/replacement in a tap, or message us on WhatsApp and we\'ll jump on it.';
+      out.actions = [{ label: 'Open a Claim', tool: 'claim' }];
+      const wl = waLink(bk.site, 'Hi, I have an issue with my order'); if (wl) out.wa = wl;
+      return out;
+    }
   }
 
   // a strongly-matching real FAQ beats a generic templated answer

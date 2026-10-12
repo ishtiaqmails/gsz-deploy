@@ -8,6 +8,21 @@ const express = require('express');
 const kb = require('../lib/supportkb');
 const bot = require('../lib/supportbot');
 
+function fmtDate(d) {
+  try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return ''; }
+}
+function friendlyStatus(s) {
+  switch (String(s || '').toLowerCase()) {
+    case 'delivered': return 'Delivered ✅';
+    case 'paid': case 'approved': case 'delivering': return 'Paid — delivering your order now ⏳';
+    case 'verifying': return 'Verifying your payment ⏳';
+    case 'pending': return 'Waiting for payment';
+    case 'cancelled': return 'Cancelled';
+    case 'failed': return 'Failed — please contact support';
+    default: return (s ? (String(s).charAt(0).toUpperCase() + String(s).slice(1)) : 'Processing');
+  }
+}
+
 module.exports = function (pool) {
   const router = express.Router();
 
@@ -33,12 +48,32 @@ module.exports = function (pool) {
       const customer = (req.session && req.session.customer) || null;
       const a = bot.answer(k, message, { customer });
 
+      // guest-safe order tracking: look up status by order number (no credentials, no contact).
+      if (a.needsAction === 'order_status' && a.orderNo) {
+        try {
+          const o = (await pool.query(
+            "SELECT order_no, product_name, plan_label, status, created_at, delivered_at FROM orders WHERE upper(order_no)=upper($1) LIMIT 1",
+            [a.orderNo])).rows[0];
+          if (!o) {
+            a.text = 'I couldn\'t find an order ' + a.orderNo + '. Please double-check the number (it looks like GSZ-1234), or tap WhatsApp and we\'ll help.';
+            a.handoff = true;
+          } else {
+            a.text = a.orderNo + ' — ' + (o.product_name || 'Your order') + (o.plan_label ? (' (' + o.plan_label + ')') : '') +
+              '\nStatus: ' + friendlyStatus(o.status) +
+              (o.created_at ? ('\nPlaced: ' + fmtDate(o.created_at)) : '') +
+              (o.delivered_at ? ('\nDelivered: ' + fmtDate(o.delivered_at)) : '');
+            if (customer) a.actions = [{ label: 'View in My Orders', tool: 'purchases' }];
+          }
+        } catch (e) { a.text = 'I couldn\'t check that right now — please try again, or tap WhatsApp.'; a.handoff = true; }
+      }
+
       res.json({
         ok: true,
         intent: a.intent,
         reply: a.text,
         products: a.products || [],
         suggestions: a.suggestions || [],
+        actions: a.actions || [],
         handoff: !!a.handoff,
         needsAction: a.needsAction || null,
         orderNo: a.orderNo || null,
