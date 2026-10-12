@@ -30,7 +30,7 @@ const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_marq
 "  var offer=document.querySelector('.offer');\n" +
 "  var mqIcons=['<path d=\"M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-3Z\"/>','<path d=\"M13 2 4 14h6l-1 8 9-12h-6l1-8Z\"/>','<path d=\"m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 18l-5.2 2.9 1-5.8L3.5 9l5.9-.9Z\"/>','<rect x=\"3\" y=\"5\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 21h8M12 17v4\"/>','<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/>','<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8 12 3 3 5-6\"/>'];\n" +
 "  function esc(x){var d=document.createElement('div');d.textContent=(x==null?'':String(x));return d.innerHTML;}\n" +
-"  function settle(hasAnn){ if(!offer)return; offer.style.display=(hasAnn||document.getElementById('codeChip'))?'':'none'; }\n" +
+"  function settle(hasAnn){ if(!offer)return; if(hasAnn||document.getElementById('codeChip')){offer.classList.add('mq-ready');offer.style.removeProperty('display');}else{offer.classList.remove('mq-ready');} }\n" +
 "  fetch('/api/announcements',{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).then(function(d){\n" +
 "    var ann=((d&&d.items)||[]).filter(function(a){return !a.product;});\n" +
 "    if(!ann.length){ el.innerHTML=''; settle(false); return; }\n" +
@@ -75,6 +75,23 @@ const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_marq
   DROP.forEach(function (d) { if (s.indexOf(d) >= 0) { s = s.replace(d, ''); changed = true; } });
   if (changed) { fs.writeFileSync(file, s); console.log('STRIPPED unused coupon-chip sub-CSS'); }
   else { console.log('skip (clean): no unused chip sub-CSS'); }
+})();
+
+/* ---- app.css: kill the empty-bar layout-shift flash ----
+   The top .offer bar was server-rendered visible, then collapsed by JS after the async
+   announcements fetch when there was no coupon + no announcements — a blank strip that
+   appeared for a moment then vanished on every page load. This hides the bar at PARSE time
+   when it is empty (no #codeChip, not yet marked ready), so no blank space is ever reserved;
+   a server coupon (#codeChip) shows instantly with zero flash via :has(), and JS adds
+   .mq-ready to reveal the bar only once real announcements have loaded. Never overrides the
+   bar's natural display value — only suppresses it in the empty state. */
+(function () {
+  const file = path.join(ROOT, 'public/css/app.css');
+  let s = fs.readFileSync(file, 'utf8');
+  if (s.indexOf('/*mqNoFlash*/') >= 0) { console.log('skip (already): mq no-flash css'); return; }
+  s += '\n/*mqNoFlash*/\n.offer:not(.mq-ready):not(:has(#codeChip)){display:none}\n';
+  fs.writeFileSync(file, s);
+  console.log('MQ NO-FLASH CSS OK');
 })();
 
 console.log('MARQUEE PATCH OK');
