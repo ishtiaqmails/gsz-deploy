@@ -1,0 +1,102 @@
+<%- include('_shell_top', { active:'announcements', title:'Announcements' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  var st = (typeof stats!=='undefined'&&stats)?stats:{total:0,promos:0,wa:0,month:0};
+  function dt(d){ if(!d) return ''; try{ return new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+%>
+<style>
+  .an-form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.an-form{grid-template-columns:1fr}}
+  .an-form .full{grid-column:1/-1}
+  .an-form label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px}
+  .an-form input[type=text],.an-form textarea,.an-form select{width:100%;border:1px solid var(--hair);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;background:#fbfcfe;box-sizing:border-box}
+  .an-form textarea{min-height:90px;resize:vertical}
+  .an-kind{display:flex;gap:8px}
+  .an-kind label{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13px;color:var(--ink);border:1px solid var(--hair);border-radius:10px;padding:9px 12px;cursor:pointer;flex:1;margin:0}
+  .an-kind input{accent-color:var(--brand)}
+  .an-send{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;background:#f3eefe;border:1px solid #e2d8fb;border-radius:10px;padding:10px 12px}
+  .an-list{display:flex;flex-direction:column;gap:12px}
+  .an-card{border:1px solid var(--hair);border-radius:14px;padding:15px 16px;background:#fff;box-shadow:0 1px 2px rgba(15,24,54,.04)}
+  .an-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+  .an-k{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .an-k.promo{background:#fff2db;color:#b26a00} .an-k.news{background:#e8f0ff;color:#1f5fd0}
+  .an-tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef1f6;color:#556}
+  .an-tag.prod{background:#e7f8ee;color:#0b7a42}
+  .an-sent{font-size:11px;font-weight:800;color:#12883f;margin-left:auto}
+  .an-ttl{font-size:15px;font-weight:800;margin-bottom:3px}
+  .an-body{font-size:13px;color:#4a4f5c;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+  .an-cup{display:inline-block;margin-top:9px;font-size:12px;font-weight:800;color:#b26a00;background:#fff2db;border-radius:8px;padding:5px 10px}
+  .an-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .an-acts form{margin:0}
+</style>
+
+<div class="dcards">
+  <div class="dcard" style="--t:#2a7bff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.6"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Announcements</span><b class="dval"><%= (st.total||0).toLocaleString('en-US') %></b><span class="dsub">posted all-time</span></div></div>
+  <div class="dcard" style="--t:#16b765"><span class="dic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg></span>
+    <div class="dmeta"><span class="dlbl">This month</span><b class="dval"><%= (st.month||0).toLocaleString('en-US') %></b><span class="dsub">last 30 days</span></div></div>
+  <div class="dcard" style="--t:#9a6cff"><span class="dic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-1.2 4.4L21 21l-5.3-1.4A8.5 8.5 0 1 1 21 11.5Z"/><path d="m8.5 12 2 2 4-4.2"/></svg></span>
+    <div class="dmeta"><span class="dlbl">Sent to WhatsApp</span><b class="dval"><%= (st.wa||0).toLocaleString('en-US') %></b><span class="dsub">broadcast</span></div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 4px;font-size:16px">New announcement</h2>
+  <p class="hint">Post news or an offer. Target everyone or buyers of one product. Optionally broadcast it on WhatsApp (sent from your Verification Bot).</p>
+  <form class="an-form" method="post" action="/admin/announcements/save">
+    <div class="full"><label>Title</label><input type="text" name="title" placeholder="e.g. Eid Sale — 20% off all IPTV" required></div>
+    <div class="full"><label>Message</label><textarea name="body" placeholder="Write the announcement customers will see…" required></textarea></div>
+    <div><label>Type</label>
+      <div class="an-kind">
+        <label><input type="radio" name="kind" value="news" checked> News</label>
+        <label><input type="radio" name="kind" value="promo"> Offer / Promo</label>
+      </div>
+    </div>
+    <div><label>Audience</label>
+      <select name="target_product_id">
+        <option value="">All customers</option>
+        <% (products||[]).forEach(function(p){ %><option value="<%= p.id %>">Buyers of: <%= p.name %></option><% }); %>
+      </select>
+    </div>
+    <div><label>Attach coupon <span style="color:var(--muted);font-weight:500">(optional)</span></label>
+      <select name="coupon_code">
+        <option value="">None</option>
+        <% (coupons||[]).forEach(function(c){ %><option value="<%= c.code %>"><%= c.code %></option><% }); %>
+      </select>
+    </div>
+    <div><label>Broadcast</label>
+      <label class="an-send"><input type="checkbox" name="send_wa" value="1"> Send on WhatsApp now</label>
+    </div>
+    <div class="full"><button class="btn btn-p" type="submit">Post announcement</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 12px;font-size:16px">Posted</h2>
+  <% if (!rows.length) { %><p class="hint" style="margin:0">No announcements yet.</p><% } else { %>
+  <div class="an-list">
+    <% rows.forEach(function(a){ var k=String(a.kind||'news').toLowerCase(); %>
+      <div class="an-card">
+        <div class="an-top">
+          <span class="an-k <%= k==='promo'?'promo':'news' %>"><%= k==='promo'?'Offer':'News' %></span>
+          <% if (a.target_product_id && a.product_name) { %><span class="an-tag prod">Buyers of <%= a.product_name %></span><% } else { %><span class="an-tag">All customers</span><% } %>
+          <span class="an-tag"><%= dt(a.created_at) %></span>
+          <% if (a.wa_sent) { %><span class="an-sent">✓ WhatsApp sent</span><% } %>
+        </div>
+        <div class="an-ttl"><%= a.title %></div>
+        <div class="an-body"><%= a.body %></div>
+        <% if (a.coupon_code) { %><div class="an-cup">🎟️ <%= a.coupon_code %></div><% } %>
+        <div class="an-acts">
+          <form method="post" action="/admin/announcements/<%= a.id %>/wa" onsubmit="return confirm('<%= a.wa_sent?'Resend':'Send' %> this on WhatsApp to the matching customers?');">
+            <button class="btn btn-g" type="submit" style="padding:7px 12px"><%= a.wa_sent?'Resend on WhatsApp':'Send on WhatsApp' %></button>
+          </form>
+          <form method="post" action="/admin/announcements/<%= a.id %>/delete" onsubmit="return confirm('Delete this announcement?');">
+            <button class="btn" type="submit" style="padding:7px 12px;background:#fdecec;color:#b42318">Delete</button>
+          </form>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+  <% } %>
+</div>
+
+<%- include('_shell_bottom') %>
