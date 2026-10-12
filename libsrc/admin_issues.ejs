@@ -45,52 +45,26 @@
 <% if (!rows.length) { %><div class="card dempty" style="padding:22px">No requests in this view.</div><% } else { %>
 <div class="card" style="padding:0;overflow:hidden">
   <table>
-    <thead><tr><th style="width:120px">Reported</th><th>Order</th><th>Customer</th><th>Request &amp; decision</th><th style="width:330px">Action</th></tr></thead>
+    <thead><tr><th style="width:120px">Reported</th><th>Order</th><th>Customer</th><th>Request</th><th>Status</th><th style="text-align:right">Chat</th></tr></thead>
     <tbody>
-    <% rows.forEach(function(r){ var isOpen=(r.status==='open'); %>
+    <% rows.forEach(function(r){ %>
       <tr>
-        <td style="white-space:nowrap;font-size:12.5px;color:var(--muted)"><% try { %><%= new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %><% } catch(e) {} %></td>
+        <td style="white-space:nowrap;font-size:12.5px;color:var(--muted)">
+          <% try { %><%= new Date(r.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %><% } catch(e) {} %>
+          <% if (r.last_msg && String(r.last_msg)!==String(r.created_at)) { %><div style="font-size:11px">last: <%= new Date(r.last_msg).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></div><% } %>
+        </td>
         <td>
           <b><%= r.o_product || r.order_no || '—' %></b>
           <div style="color:var(--muted);font-size:12px"><%= r.order_no || (r.order_id?('#'+r.order_id):'') %><%= r.o_plan?(' · '+r.o_plan):'' %></div>
         </td>
         <td style="font-size:13px"><%= r.c_name || '' %><div style="color:var(--muted);font-size:12px"><%= r.c_email || r.customer_email || '' %><%= r.c_wa?(' · +'+r.c_wa):'' %></div></td>
-        <td style="font-size:13px;max-width:340px">
-          <div style="white-space:pre-line;color:#333"><%= r.message %></div>
-          <% if (r.screenshot) { %><a class="iss-thumb" href="/admin/issue-file/<%= encodeURIComponent(r.screenshot) %>" target="_blank">📎 Customer screenshot →</a><% } %>
-          <% if (!isOpen && (r.decision || r.admin_response || r.replacement_credentials)) { %>
-            <div class="iss-done">
-              <% if (r.decision && D[r.decision]) { %><span class="dlab"><%= D[r.decision] %></span><% } %>
-              <% if (r.admin_response) { %><div style="margin-top:3px">“<%= r.admin_response %>”</div><% } %>
-              <% if (r.admin_screenshot) { %><a class="iss-thumb" href="/admin/issue-file/<%= encodeURIComponent(r.admin_screenshot) %>" target="_blank">📎 Your screenshot →</a><% } %>
-              <% if (r.replacement_credentials) { %><pre><%= r.replacement_credentials %></pre><% } %>
-            </div>
-          <% } %>
+        <td style="font-size:13px;max-width:320px">
+          <span style="font-weight:600"><%= K[r.kind]||r.kind||'Issue' %></span>
+          <div style="white-space:pre-line;color:var(--muted);margin-top:2px;max-height:40px;overflow:hidden"><%= r.message %></div>
         </td>
-        <td>
-          <% if (isOpen) { %>
-            <details class="iss-resp">
-              <summary>Respond &amp; decide</summary>
-              <form method="post" action="/admin/issues/<%= r.id %>/decide" enctype="multipart/form-data">
-                <input type="hidden" name="back" value="<%= filter %>">
-                <textarea name="response" placeholder="Message to the customer (shown in their account)…"></textarea>
-                <input type="text" name="credentials" placeholder="New credentials — only for Manual replacement">
-                <input type="file" name="shot" accept="image/*,application/pdf">
-                <div class="iss-acts">
-                  <button class="b-stock" type="submit" name="action" value="stock" <%= r._stock>0?'':'disabled' %>>Approve from stock<span class="iss-stockn"><%= r._stock>0?('('+r._stock+' avail)'):'(none)' %></span></button>
-                  <button class="b-manual" type="submit" name="action" value="manual">Manual replace</button>
-                  <button class="b-fix" type="submit" name="action" value="fix">Fix &amp; respond</button>
-                  <button class="b-reject" type="submit" name="action" value="reject">Reject</button>
-                </div>
-              </form>
-            </details>
-          <% } else { %>
-            <div style="margin-bottom:6px">now: <%- spill(r.status) %></div>
-            <form method="post" action="/admin/issues/<%= r.id %>/status" style="margin:0">
-              <input type="hidden" name="status" value="open"><input type="hidden" name="back" value="<%= filter %>">
-              <button class="btn btn-p" type="submit" style="padding:6px 11px;font-size:12.5px;background:#6b7280">Reopen</button>
-            </form>
-          <% } %>
+        <td><%- spill(r.status) %></td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn btn-p" style="padding:6px 12px" href="/admin/issues/<%= r.id %>">Open chat<% if (r.unread>0) { %> <span style="background:#fff;color:#2a7bff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800"><%= r.unread %></span><% } %></a>
         </td>
       </tr>
     <% }); %>

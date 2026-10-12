@@ -1,0 +1,146 @@
+<%- include('_shell_top', { active:'issues', title:'Issue' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  var K = (typeof kinds!=='undefined'&&kinds)?kinds:{};
+  function dt(d){ if(!d) return ''; try{ return new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+  function spill(s){ s=String(s||'').toLowerCase(); var c=(s==='resolved'||s==='replaced')?['#e7f6ec','#12883f']:(s==='rejected'?['#fdeceb','#b42318']:['#fcf5df','#8a6d00']); return '<span class="spill" style="background:'+c[0]+';color:'+c[1]+'">'+s+'</span>'; }
+  var gcol = { iptv:['#e8f0ff','#1f5fd0'], netflix:['#fdeaea','#b42318'], netflix2:['#fff','#b42318'], bot:['#eef5ff','#1f5fd0'], manual:['#f3eefe','#6b3df5'] };
+  var gc = gcol[guide.type] || gcol.manual;
+%>
+<style>
+  .iv-top{display:flex;align-items:center;gap:12px;margin:0 0 16px;flex-wrap:wrap}
+  .iv-back{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:9px;background:#fff;box-shadow:inset 0 0 0 1px var(--hair)}
+  .iv-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.iv-grid{grid-template-columns:1fr}}
+  .iv-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 4px}
+  .iv-head .t{font-size:16px;font-weight:800}
+  .iv-head .s{font-size:12.5px;color:var(--muted)}
+  .thread{display:flex;flex-direction:column;gap:12px;margin:16px 0;max-height:60vh;overflow-y:auto;padding:2px}
+  .msg{display:flex;flex-direction:column;max-width:82%}
+  .msg.c{align-self:flex-start;align-items:flex-start}
+  .msg.a{align-self:flex-end;align-items:flex-end}
+  .bub{border-radius:14px;padding:10px 13px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .msg.c .bub{background:#f1f3f8;color:#1a2235;border-bottom-left-radius:5px}
+  .msg.a .bub{background:linear-gradient(90deg,#2a7bff,#29d3ff);color:#fff;border-bottom-right-radius:5px}
+  .msg .meta{font-size:11px;color:var(--muted);margin-top:4px}
+  .msg .shot{display:inline-block;margin-top:6px}
+  .msg .shot img{max-width:190px;max-height:150px;border-radius:10px;border:1px solid var(--hair);display:block}
+  .cmp{display:flex;flex-direction:column;gap:10px}
+  .cmp textarea{width:100%;border:1px solid var(--hair);border-radius:11px;padding:11px 12px;font:inherit;font-size:13.5px;min-height:70px;resize:vertical;box-sizing:border-box;background:#fbfcfe}
+  .tpl{display:flex;gap:7px;flex-wrap:wrap}
+  .tpl button{font-size:12px;font-weight:600;color:#2a4a8f;background:#eef3ff;border:1px solid #d9e4ff;border-radius:999px;padding:6px 11px;cursor:pointer}
+  .tpl button:hover{background:#e2ecff}
+  .cmp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .cmp-row input[type=file]{font-size:12px}
+  .guide{border-radius:14px;padding:14px 15px;font-size:13px;line-height:1.5}
+  .guide .gt{font-weight:800;font-size:13px;display:inline-flex;align-items:center;gap:7px;margin-bottom:4px}
+  .guide .gtag{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px}
+  .acts{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+  .acts form{margin:0}
+  .acts textarea,.acts input[type=text]{width:100%;border:1px solid var(--hair);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px;box-sizing:border-box;margin-bottom:7px;background:#fbfcfe}
+  .acts .b{width:100%;justify-content:center;padding:9px}
+  .b-stock{background:#12883f;color:#fff} .b-stock[disabled]{background:#9fb6a8;cursor:not-allowed}
+  .b-manual{background:#2a7bff;color:#fff} .b-fix{background:#7a5cff;color:#fff} .b-reject{background:#b42318;color:#fff}
+  .meta-k{font-size:12px;color:var(--muted)} .meta-v{font-size:13px;font-weight:600}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--hair)}
+  .kv:last-child{border-bottom:0}
+</style>
+
+<div class="iv-top">
+  <a class="iv-back" href="/admin/issues?status=<%= i.status %>"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> Back to issues</a>
+  <div style="font-size:17px;font-weight:800"><%= i.o_product || i.order_no || ('Issue #'+i.id) %></div>
+  <%- spill(i.status) %>
+</div>
+
+<div class="iv-grid">
+  <!-- LEFT: conversation -->
+  <div class="card" style="display:flex;flex-direction:column">
+    <div class="iv-head">
+      <div><div class="t"><%= K[i.kind]||i.kind||'Issue' %></div><div class="s"><%= i.order_no||('#'+(i.order_id||i.id)) %><%= i.o_plan?(' · '+i.o_plan):'' %></div></div>
+      <div style="text-align:right"><div class="meta-v"><%= i.c_name||'' %></div><div class="s"><%= i.c_email||i.customer_email||'' %><%= i.c_wa?(' · +'+i.c_wa):'' %></div></div>
+    </div>
+
+    <div class="thread" id="thread">
+      <% (msgs||[]).forEach(function(m){ var a=(m.sender==='admin'); %>
+        <div class="msg <%= a?'a':'c' %>">
+          <% if (m.body) { %><div class="bub"><%= m.body %></div><% } %>
+          <% if (m.screenshot) { %><a class="shot" href="/admin/issue-file/<%= m.screenshot %>" target="_blank" rel="noopener"><img src="/admin/issue-file/<%= m.screenshot %>" alt="attachment" onerror="this.outerHTML='📎 View attachment'"></a><% } %>
+          <div class="meta"><%= a?'You':(i.c_name||'Customer') %> · <%= dt(m.created_at) %></div>
+        </div>
+      <% }); %>
+      <% if (!(msgs&&msgs.length)) { %><div class="s" style="color:var(--muted)">No messages yet.</div><% } %>
+      <span id="end"></span>
+    </div>
+
+    <!-- composer -->
+    <form class="cmp" method="post" action="/admin/issues/<%= i.id %>/message" enctype="multipart/form-data">
+      <div class="tpl">
+        <% (templates||[]).forEach(function(t){ %><button type="button" class="tpl-b" data-t="<%= t.replace(/"/g,'&quot;') %>">+ <%= t.length>34?(t.slice(0,34)+'…'):t %></button><% }); %>
+      </div>
+      <textarea name="body" id="rbody" placeholder="Write a reply to the customer…"></textarea>
+      <div class="cmp-row">
+        <input type="file" name="shot" accept="image/*,.pdf">
+        <button class="btn btn-p" type="submit" style="margin-left:auto">Send reply</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- RIGHT: guidance + actions + order facts -->
+  <div>
+    <div class="card">
+      <div class="guide" style="background:<%= gc[0] %>;color:<%= gc[1] %>;padding:0">
+        <div class="gt"><span class="gtag" style="background:<%= gc[1] %>;color:#fff"><%= guide.title %></span></div>
+        <div style="color:var(--ink);margin-top:8px"><%= guide.hint %></div>
+        <div class="s" style="margin-top:8px;color:var(--muted)">In stock for this plan: <b style="color:<%= guide.stockReady?'#12883f':'#b42318' %>"><%= guide.stock %></b></div>
+      </div>
+
+      <div class="acts">
+        <!-- Replace from stock -->
+        <form method="post" action="/admin/issues/<%= i.id %>/decide" enctype="multipart/form-data" onsubmit="return confirm('Pull the next in-stock item and send it to the customer?');">
+          <input type="hidden" name="action" value="stock">
+          <button class="btn b b-stock" type="submit" <%= guide.stockReady?'':'disabled' %>>Replace from stock<%= guide.stockReady?(' ('+guide.stock+')'):' — none' %></button>
+        </form>
+        <!-- Manual replacement -->
+        <form method="post" action="/admin/issues/<%= i.id %>/decide" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="manual">
+          <textarea name="credentials" placeholder="Paste the new access / credentials to send…"></textarea>
+          <button class="btn b b-manual" type="submit">Send manual replacement</button>
+        </form>
+        <!-- Fix & resolve -->
+        <form method="post" action="/admin/issues/<%= i.id %>/decide" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="fix">
+          <button class="btn b b-fix" type="submit">Mark fixed &amp; resolved</button>
+        </form>
+        <!-- Reject -->
+        <form method="post" action="/admin/issues/<%= i.id %>/decide" enctype="multipart/form-data" onsubmit="return confirm('Decline this request?');">
+          <input type="hidden" name="action" value="reject">
+          <button class="btn b b-reject" type="submit">Decline</button>
+        </form>
+        <% if (i.status!=='open') { %>
+        <form method="post" action="/admin/issues/<%= i.id %>/status">
+          <input type="hidden" name="status" value="open">
+          <button class="btn btn-g b" type="submit">Reopen</button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="kv"><span class="meta-k">Order</span><span class="meta-v"><%= i.order_no||('#'+(i.order_id||'')) %></span></div>
+      <div class="kv"><span class="meta-k">Product</span><span class="meta-v" style="text-align:right"><%= i.o_product||'—' %></span></div>
+      <% if (i.o_plan) { %><div class="kv"><span class="meta-k">Plan</span><span class="meta-v" style="text-align:right"><%= i.o_plan %></span></div><% } %>
+      <div class="kv"><span class="meta-k">Reported</span><span class="meta-v"><%= dt(i.created_at) %></span></div>
+      <% if (i.o_id) { %><div class="kv"><span class="meta-k">Open order</span><a class="meta-v" href="/admin/orders/<%= i.o_id %>" style="color:#2a7bff">View →</a></div><% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var ta=document.getElementById('rbody');
+  document.querySelectorAll('.tpl-b').forEach(function(b){ b.addEventListener('click',function(){ var t=b.getAttribute('data-t')||''; if(!ta) return; ta.value = ta.value ? (ta.value.replace(/\s*$/,'') + '\n' + t) : t; ta.focus(); }); });
+  var th=document.getElementById('thread'); if(th) th.scrollTop=th.scrollHeight;
+  if(location.hash==='#end'){ var e=document.getElementById('end'); if(e) e.scrollIntoView(); }
+})();
+</script>
+<%- include('_shell_bottom') %>

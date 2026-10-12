@@ -1,14 +1,36 @@
 'use strict';
-/* Admin: view & decide customer replacement requests (order_issues).
-   Mounted at '/admin'. Owner-facing surface, works with no bot.
-   Decisions: approve-from-stock (pulls inventory_items), manual replacement,
-   fix & respond (with screenshot), reject. Each writes a response the customer sees. */
+/* Admin: customer issue / replacement threads (order_issues + issue_messages).
+   Mounted at '/admin'. Owner-facing; works with no bot.
+   - /issues            : list (3+ stat cards, filters, unread markers)
+   - /issues/:id        : full chat thread — reply (text + screenshot), quick
+                          templates, product-type guidance, and the replacement
+                          actions (from-stock / manual / fix / reject / reopen),
+                          each mirrored into the thread and pinged to the customer.
+   Every admin message best-effort pings the customer's WhatsApp via botapi.notify. */
 const express = require('express');
 const path = require('path');
 
 const KINDS = { not_working: 'Not working', wrong_details: 'Wrong login details', expired_early: 'Expired too early', replacement: 'Replacement request', other: 'Something else' };
 const STATUSES = ['open', 'resolved', 'replaced', 'rejected'];
 const DECISIONS = { stock: 'Replaced from stock', manual: 'Manual replacement', fix: 'Fixed & responded', reject: 'Declined' };
+const TEMPLATES = [
+  "Thanks for reaching out — I'm looking into this now and will update you shortly.",
+  "Could you send a screenshot of exactly what you're seeing? It helps me fix it faster.",
+  "This is fixed on our end — please fully close and reopen the app, then try again.",
+  "I've sent you a replacement — the new access is below. Please confirm it works.",
+  "I've renewed your line — give it a few minutes, then check again and let me know."
+];
+
+function guidance(plan, stock) {
+  const g = { type: 'manual', title: 'Manual replacement', hint: 'Send fresh credentials to the customer.', stock: stock || 0, stockReady: (stock || 0) > 0 };
+  if (!plan) return g;
+  const dt = String(plan.delivery_type || '').toLowerCase();
+  if (plan.nf_portal_product_id) { g.type = 'netflix'; g.title = 'Netflix account'; g.hint = 'Swap the household/profile or issue a fresh invite, then paste the new access below.'; }
+  else if (dt === 'iptv' || String(plan.bot_type || '').toLowerCase().indexOf('iptv') >= 0) { g.type = 'iptv'; g.title = 'IPTV line'; g.hint = 'Best fix is to renew/replace the line on the panel. Activation panels (Trex / Strong 8K) need the line password. Paste the renewed line as the new access.'; }
+  else if (String(plan.source || '') === 'bot') { g.type = 'bot'; g.title = 'Bot-fulfilled'; g.hint = 'Re-deliver through the bot, or paste fresh credentials as a manual replacement.'; }
+  else if (g.stockReady) { g.hint = 'Stock is available — one-click “Replace from stock” will pull the next item and send it.'; }
+  return g;
+}
 
 module.exports = function (pool) {
   const router = express.Router();
@@ -26,68 +48,114 @@ module.exports = function (pool) {
     fileFilter: function (q, f, cb) { cb(null, /\.(png|jpe?g|webp|gif|heic|heif|pdf)$/i.test(f.originalname || '')); }
   });
 
+  async function addMsg(issueId, sender, text, shot) {
+    try {
+      await pool.query(
+        "INSERT INTO issue_messages(issue_id,sender,body,screenshot,seen_by_admin,seen_by_customer) VALUES($1,$2,$3,$4,$5,$6)",
+        [issueId, sender, (text || null), (shot || null), sender === 'admin', sender === 'customer']);
+    } catch (e) {}
+  }
+  async function pingCustomer(issue, text) {
+    try { const botapi = require('../lib/botapi'); if (botapi.configured && botapi.configured()) await botapi.notify({ event: 'issue_message', type: 'issue_message', order_no: issue.order_no, issue_id: issue.id, message: String(text || '(update)').slice(0, 600) }); } catch (e) {}
+  }
+
+  // ---- list ----
   router.get('/issues', auth, async (req, res) => {
     const filter = (STATUSES.includes(req.query.status) || req.query.status === 'all') ? req.query.status : 'open';
     let rows = [];
     try {
       rows = (await pool.query(
         `SELECT i.*, o.product_name AS o_product, o.plan_label AS o_plan, o.status AS o_status, o.id AS o_id,
-                c.name AS c_name, c.email AS c_email, c.wa_number AS c_wa
+                c.name AS c_name, c.email AS c_email, c.wa_number AS c_wa,
+                (SELECT count(*) FROM issue_messages m WHERE m.issue_id=i.id AND m.sender='customer' AND m.seen_by_admin=false)::int AS unread,
+                (SELECT max(created_at) FROM issue_messages m WHERE m.issue_id=i.id) AS last_msg
          FROM order_issues i
          LEFT JOIN orders o ON o.id = i.order_id
          LEFT JOIN customers c ON c.id = i.customer_id
          WHERE ($1 = 'all' OR i.status = $1)
          ORDER BY (i.status = 'open') DESC, i.id DESC LIMIT 200`, [filter])).rows;
     } catch (e) { rows = []; }
-    // resolve available stock for open rows (so admin knows if "from stock" will work)
-    for (const r of rows) {
-      r._stock = 0; r._plan_id = null;
-      if (r.status === 'open' && r.o_id) {
-        try {
-          const pr = await pool.query("SELECT pp.id FROM product_plans pp JOIN orders o ON o.product_id=pp.product_id AND o.plan_label=pp.label WHERE o.id=$1 LIMIT 1", [r.o_id]);
-          if (pr.rows[0]) { r._plan_id = pr.rows[0].id; const sc = await pool.query("SELECT count(*)::int n FROM inventory_items WHERE plan_id=$1 AND status='available'", [r._plan_id]); r._stock = sc.rows[0].n; }
-        } catch (e) {}
-      }
-    }
     let counts = {};
     try { (await pool.query("SELECT status, count(*)::int n FROM order_issues GROUP BY status")).rows.forEach(r => counts[r.status] = r.n); } catch (e) {}
     res.render('admin/issues', { rows, filter, counts, kinds: KINDS, decisions: DECISIONS, flash: req.query.ok || null });
   });
 
-  // stream a screenshot (customer's or admin's) — admin only, must exist on a real issue
+  // ---- single thread ----
+  router.get('/issues/:id', auth, async (req, res) => {
+    const id = parseInt(req.params.id, 10) || 0;
+    let i = null;
+    try {
+      i = (await pool.query(
+        `SELECT i.*, o.product_name AS o_product, o.plan_label AS o_plan, o.status AS o_status, o.id AS o_id, o.delivered_credentials,
+                c.name AS c_name, c.email AS c_email, c.wa_number AS c_wa
+         FROM order_issues i LEFT JOIN orders o ON o.id = i.order_id LEFT JOIN customers c ON c.id = i.customer_id
+         WHERE i.id=$1`, [id])).rows[0] || null;
+    } catch (e) {}
+    if (!i) return res.redirect('/admin/issues');
+    let plan = null, stock = 0;
+    if (i.o_id) {
+      try {
+        plan = (await pool.query(
+          `SELECT pp.id, pp.label, pp.source, pp.bot_sku, pp.bot_type, pp.nf_portal_product_id, bp.delivery_type
+           FROM product_plans pp JOIN orders o ON o.product_id=pp.product_id AND o.plan_label=pp.label
+           LEFT JOIN bot_products bp ON bp.sku = pp.bot_sku WHERE o.id=$1 LIMIT 1`, [i.o_id])).rows[0] || null;
+        if (plan) { const sc = await pool.query("SELECT count(*)::int n FROM inventory_items WHERE plan_id=$1 AND status='available'", [plan.id]); stock = sc.rows[0].n; }
+      } catch (e) {}
+    }
+    let msgs = [];
+    try { msgs = (await pool.query("SELECT * FROM issue_messages WHERE issue_id=$1 ORDER BY id ASC", [id])).rows; } catch (e) {}
+    try { await pool.query("UPDATE issue_messages SET seen_by_admin=true WHERE issue_id=$1 AND sender='customer' AND seen_by_admin=false", [id]); } catch (e) {}
+    res.render('admin/issue', { i, plan, stock, msgs, guide: guidance(plan, stock), templates: TEMPLATES, kinds: KINDS, decisions: DECISIONS, flash: req.query.ok || null });
+  });
+
+  // stream a screenshot (customer's, admin's, or any thread message) — admin only
   router.get('/issue-file/:name', auth, async (req, res) => {
     const name = path.basename(String(req.params.name || ''));
     try {
-      const ok = (await pool.query("SELECT 1 FROM order_issues WHERE screenshot=$1 OR admin_screenshot=$1 LIMIT 1", [name])).rows[0];
+      const ok = (await pool.query(
+        "SELECT 1 FROM order_issues WHERE screenshot=$1 OR admin_screenshot=$1 UNION SELECT 1 FROM issue_messages WHERE screenshot=$1 LIMIT 1", [name])).rows[0];
       if (!ok) return res.status(404).end();
       return res.sendFile(path.join(UPDIR, name));
     } catch (e) { res.status(404).end(); }
   });
 
+  // ---- free-form admin reply into the thread ----
+  router.post('/issues/:id/message', auth, function (req, res) { upShot.single('shot')(req, res, function () { postMsg(req, res); }); });
+  async function postMsg(req, res) {
+    const id = parseInt(req.params.id, 10) || 0;
+    const text = String(req.body.body || '').trim().slice(0, 4000);
+    const shot = (req.file && req.file.filename) ? req.file.filename : null;
+    if (!id || (!text && !shot)) return res.redirect('/admin/issues/' + id + '#end');
+    let issue = null;
+    try { issue = (await pool.query("SELECT * FROM order_issues WHERE id=$1", [id])).rows[0]; } catch (e) {}
+    if (!issue) return res.redirect('/admin/issues');
+    await addMsg(id, 'admin', text, shot);
+    await pingCustomer(issue, text || '(screenshot)');
+    res.redirect('/admin/issues/' + id + '#end');
+  }
+
   // legacy simple status flip (kept for Reopen)
   router.post('/issues/:id/status', auth, body, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const st = STATUSES.includes(req.body.status) ? req.body.status : null;
-    const back = STATUSES.includes(req.body.back) || req.body.back === 'all' ? req.body.back : 'open';
-    if (!id || !st) return res.redirect('/admin/issues?status=' + encodeURIComponent(back) + '&ok=' + encodeURIComponent('No change'));
+    if (!id || !st) return res.redirect('/admin/issues/' + id + '#end');
     try {
       if (st === 'open') await pool.query("UPDATE order_issues SET status=$1, decision=NULL, resolved_at=NULL WHERE id=$2", [st, id]);
       else await pool.query("UPDATE order_issues SET status=$1, resolved_at=now() WHERE id=$2", [st, id]);
     } catch (e) {}
-    res.redirect('/admin/issues?status=' + encodeURIComponent(back) + '&ok=' + encodeURIComponent('Updated'));
+    res.redirect('/admin/issues/' + id + '#end');
   });
 
-  // the decision console
+  // the decision console (also mirrors into the thread + pings the customer)
   router.post('/issues/:id/decide', auth, function (req, res) { upShot.single('shot')(req, res, function () { decide(req, res); }); });
   async function decide(req, res) {
     const id = parseInt(req.params.id, 10) || 0;
     const action = String(req.body.action || '');
-    const back = (STATUSES.includes(req.body.back) || req.body.back === 'all') ? req.body.back : 'open';
     const response = String(req.body.response || '').trim().slice(0, 2000);
     const creds = String(req.body.credentials || '').trim();
     const shot = (req.file && req.file.filename) ? req.file.filename : null;
-    let flash = 'Updated';
-    const go = () => res.redirect('/admin/issues?status=' + encodeURIComponent(back) + '&ok=' + encodeURIComponent(flash));
+    let flash = 'Updated', threadBody = response || '';
+    const go = () => res.redirect('/admin/issues/' + id + '?ok=' + encodeURIComponent(flash) + '#end');
     if (!id || !action) { flash = 'No change'; return go(); }
     try {
       const i = (await pool.query("SELECT i.*, o.id AS oid FROM order_issues i LEFT JOIN orders o ON o.id=i.order_id WHERE i.id=$1", [id])).rows[0];
@@ -95,21 +163,21 @@ module.exports = function (pool) {
 
       if (action === 'open') {
         await pool.query("UPDATE order_issues SET status='open', decision=NULL, resolved_at=NULL WHERE id=$1", [id]);
-        flash = 'Reopened';
+        flash = 'Reopened'; threadBody = '';
 
       } else if (action === 'reject') {
         await pool.query("UPDATE order_issues SET status='rejected', decision='reject', admin_response=$2, admin_screenshot=COALESCE($3,admin_screenshot), resolved_at=now() WHERE id=$1", [id, response || null, shot]);
-        flash = 'Declined';
+        flash = 'Declined'; threadBody = response || 'This request was declined.';
 
       } else if (action === 'fix') {
         await pool.query("UPDATE order_issues SET status='resolved', decision='fix', admin_response=$2, admin_screenshot=COALESCE($3,admin_screenshot), resolved_at=now() WHERE id=$1", [id, response || null, shot]);
-        flash = 'Fixed & responded';
+        flash = 'Fixed & responded'; threadBody = response || 'Marked as fixed.';
 
       } else if (action === 'manual') {
         if (!creds) { flash = 'Enter the new credentials for a manual replacement'; return go(); }
         await pool.query("UPDATE order_issues SET status='replaced', decision='manual', replacement_credentials=$2, admin_response=$3, admin_screenshot=COALESCE($4,admin_screenshot), resolved_at=now() WHERE id=$1", [id, creds, response || null, shot]);
         if (i.oid) await pool.query("UPDATE orders SET delivered_credentials=$2 WHERE id=$1", [i.oid, creds]);
-        flash = 'Replaced (manual)';
+        flash = 'Replaced (manual)'; threadBody = (response ? response + '\n\n' : '') + 'Replacement sent — your new access:\n' + creds;
 
       } else if (action === 'stock') {
         let pid = null, pick = null;
@@ -119,17 +187,12 @@ module.exports = function (pool) {
         await pool.query("UPDATE inventory_items SET status='used', order_no=$2, delivered_at=now() WHERE id=$1", [pick.id, i.order_no || null]);
         await pool.query("UPDATE order_issues SET status='replaced', decision='stock', replacement_credentials=$2, admin_response=$3, admin_screenshot=COALESCE($4,admin_screenshot), resolved_at=now() WHERE id=$1", [id, pick.payload, response || null, shot]);
         if (i.oid) await pool.query("UPDATE orders SET delivered_credentials=$2 WHERE id=$1", [i.oid, pick.payload]);
-        flash = 'Replaced from stock';
+        flash = 'Replaced from stock'; threadBody = (response ? response + '\n\n' : '') + 'Replacement sent — your new access:\n' + pick.payload;
 
       } else { flash = 'No change'; return go(); }
 
-      // best-effort customer ping on a completed replacement/fix
-      try {
-        const botapi = require('../lib/botapi');
-        if ((action === 'stock' || action === 'manual' || action === 'fix') && botapi.configured && botapi.configured()) {
-          await botapi.notify({ event: 'issue_update', type: 'issue_update', order_no: i.order_no, issue_id: id, status: flash, message: (response || flash).slice(0, 400) });
-        }
-      } catch (e) {}
+      if (threadBody || shot) { await addMsg(id, 'admin', threadBody, shot); }
+      if (action === 'stock' || action === 'manual' || action === 'fix' || action === 'reject') { await pingCustomer(i, threadBody || flash); }
     } catch (e) { flash = 'Error — not saved'; }
     go();
   }
