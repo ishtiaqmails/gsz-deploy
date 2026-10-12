@@ -3,20 +3,22 @@
    - GET  /account/tools/iptv/options  -> IPTV services (category 'iptv') with their bot sku + renewal plans
    - POST /account/tools/iptv/lookup   -> verified-WhatsApp gated; bridges to gsz-api POST /api/iptv-lookup
                                           (read-only line lookup: current expiry; no credits)
-   Inserts before the FORGOT/RESET anchor in routes/account.js. Idempotent; aborts if anchor moved. */
+   The POST route carries its own JSON + urlencoded body parsers (routes here aren't globally parsed).
+   Re-appliable: removes its own prior block then reinserts before the FORGOT/RESET anchor. */
 const fs = require('fs'), path = require('path');
 const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_iptvhub.js <ROOT>'); process.exit(1); }
 const file = path.join(ROOT, 'routes/account.js');
 let s = fs.readFileSync(file, 'utf8');
 
-if (s.indexOf("/account/tools/iptv/lookup") >= 0) { console.log('skip (already): iptv hub routes present'); console.log('IPTVHUB PATCH OK'); process.exit(0); }
-
+const START = "  // ---- IPTV RENEW (Hub): service options + read-only line lookup (no credits) ----\n";
+const END   = "  // ---- END IPTV RENEW (Hub) ----\n\n";
 const ANCHOR = "  // ---- FORGOT / RESET PASSWORD ----";
-if (s.indexOf(ANCHOR) < 0) throw new Error('ANCHOR MISS: FORGOT/RESET comment not found in account.js');
 
 const ROUTES =
-"  // ---- IPTV RENEW (Hub): service options + read-only line lookup (no credits) ----\n" +
+START +
 "  const _ivBot = () => { try { return require('../lib/botapi'); } catch(e){ return null; } };\n" +
+"  const _ivJson = require('express').json();\n" +
+"  const _ivForm = require('express').urlencoded({ extended:true });\n" +
 "  async function _ivWaVerified(c){ try{ const r=await pool.query(\"SELECT 1 FROM customer_whatsapp_links l WHERE l.customer_id=$1 AND l.status='ACTIVE' AND l.is_primary=true LIMIT 1\",[c.id]); return r.rows.length>0; }catch(e){ return false; } }\n" +
 "  router.get('/account/tools/iptv/options', requireLogin, async (req, res) => {\n" +
 "    try{\n" +
@@ -30,22 +32,28 @@ const ROUTES =
 "      res.json({ ok:true, services: out });\n" +
 "    }catch(e){ res.json({ ok:false, services:[] }); }\n" +
 "  });\n" +
-"  router.post('/account/tools/iptv/lookup', requireLogin, async (req, res) => {\n" +
+"  router.post('/account/tools/iptv/lookup', requireLogin, _ivJson, _ivForm, async (req, res) => {\n" +
 "    const c=req.session.customer;\n" +
 "    if(!(await _ivWaVerified(c))) return res.json({ ok:false, reason:'wa_unverified' });\n" +
-"    const sku=String((req.body&&req.body.sku)||'').trim();\n" +
-"    const raw=String((req.body&&req.body.raw)||'');\n" +
-"    const username=String((req.body&&req.body.username)||'').trim();\n" +
-"    const password=String((req.body&&req.body.password)||'');\n" +
+"    const b=req.body||{};\n" +
+"    const sku=String(b.sku||'').trim();\n" +
+"    const raw=String(b.raw||'');\n" +
+"    const username=String(b.username||'').trim();\n" +
+"    const password=String(b.password||'');\n" +
 "    if(!sku) return res.json({ ok:false, reason:'no_service' });\n" +
 "    const bot=_ivBot(); if(!bot || typeof bot.iptvLookup!=='function') return res.json({ ok:false, reason:'unavailable' });\n" +
 "    try{ const r=await bot.iptvLookup({ sku:sku, raw:raw, username:username, password:password }); return res.json(r||{ ok:false, reason:'unavailable' }); }\n" +
 "    catch(e){ return res.json({ ok:false, reason:'unavailable' }); }\n" +
 "  });\n" +
-"  // ---- END IPTV RENEW (Hub) ----\n\n";
+END;
+
+// remove any prior IPTV block precisely (START..END), so neighbouring routes survive
+const si = s.indexOf(START);
+if (si >= 0) { const ei = s.indexOf(END, si); if (ei >= 0) { let cut = ei + END.length; s = s.slice(0, si) + s.slice(cut); } }
 
 const i = s.indexOf(ANCHOR);
+if (i < 0) throw new Error('ANCHOR MISS: FORGOT/RESET comment not found in account.js');
 s = s.slice(0, i) + ROUTES + s.slice(i);
 fs.writeFileSync(file, s);
-console.log('patched: /account/tools/iptv/options + /lookup');
+console.log('patched: /account/tools/iptv/options + /lookup (with body parsers)');
 console.log('IPTVHUB PATCH OK');
