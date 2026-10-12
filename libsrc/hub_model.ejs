@@ -521,10 +521,12 @@
     }).catch(function(){ body.innerHTML='<div class="cthm-empty errmsg">Couldn’t load right now.</div>'; });
   }
   function renew(orders){
-    if(!orders.length){ body.innerHTML='<div class="cthm-empty">No subscriptions to renew yet.</div>'; return; }
-    body.innerHTML='<p class="muted" style="margin:0 0 12px">Check a subscription and renew it — pay right here, no page change.</p>'+orders.map(function(o){
+    var _irHead='<button class="cthm-choice" id="iptvRenewGo" style="margin-bottom:14px"><span class="chi" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span><span><b>Renew IPTV Subscription</b><small>Any IPTV line — paste your details, we’ll find &amp; renew it.</small></span></button>';
+    if(!orders.length){ body.innerHTML=_irHead+'<div class="cthm-empty" style="padding:16px 10px">No site subscriptions to renew yet.</div>'; var _g0=document.getElementById('iptvRenewGo'); if(_g0) _g0.addEventListener('click',iptvRenew); return; }
+    body.innerHTML=_irHead+'<div class="cthm-sep" style="margin-top:2px">Your subscriptions</div><p class="muted" style="margin:0 0 12px">Check a subscription and renew it — pay right here, no page change.</p>'+orders.map(function(o){
       return '<div class="cthm-row"><div style="flex:1;min-width:0"><div class="onm">'+esc(o.product_name||'Order')+'</div><div class="osub">'+esc(o.order_no)+'</div></div><button class="cbtn cbtn-g" data-renew="'+esc(o.order_no)+'">Check &amp; renew</button></div><div class="renew-out" data-for="'+esc(o.order_no)+'"></div>';
     }).join('');
+    var _g1=document.getElementById('iptvRenewGo'); if(_g1) _g1.addEventListener('click',iptvRenew);
     body.querySelectorAll('button[data-renew]').forEach(function(b){ b.addEventListener('click',function(){
       var no=b.getAttribute('data-renew'); var out=body.querySelector('.renew-out[data-for="'+no+'"]');
       out.innerHTML='<div class="muted" style="margin:6px 0 10px">Checking…</div>';
@@ -540,6 +542,75 @@
         out.querySelectorAll('button[data-ren-no]').forEach(function(ob){ ob.addEventListener('click',function(){ coStep({ no:ob.getAttribute('data-ren-no'), slug:ob.getAttribute('data-slug'), idx:ob.getAttribute('data-idx'), price:Number(ob.getAttribute('data-price'))||0, label:ob.getAttribute('data-label') }); }); });
       }).catch(function(){ out.innerHTML='<div class="muted errmsg" style="margin:6px 0 10px">Couldn’t check right now.</div>'; });
     }); });
+  }
+  /* ---- Renew IPTV Subscription (any line, paste-and-detect) ---- */
+  var iptvSvcCache=null;
+  function iptvRenew(){
+    body.innerHTML='<div class="cthm-load">Loading…</div>';
+    fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var ver=!!(j&&j.ok&&j.profile&&j.profile.wa_verified);
+      if(!ver){ waVerify(iptvRenew); return; }
+      iptvServices();
+    }).catch(function(){ iptvServices(); });
+  }
+  function iptvBack(){ setTab('renew'); }
+  function iptvServices(){
+    body.innerHTML='<button class="cthm-back" id="irBack">← Back</button><div class="cthm-load">Loading services…</div>';
+    document.getElementById('irBack').addEventListener('click',iptvBack);
+    fetch('/account/tools/iptv/options',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var list=(j&&j.services)||[]; iptvSvcCache=list;
+      var back='<button class="cthm-back" id="irBack">← Back</button>';
+      if(!list.length){ body.innerHTML=back+'<div class="cthm-empty"><div style="font-size:30px">📺</div><div style="font-weight:700;margin-top:6px">No IPTV services to renew right now</div><p class="muted">Please check back soon.</p></div>'; document.getElementById('irBack').addEventListener('click',iptvBack); return; }
+      body.innerHTML=back+'<p class="muted" style="margin:0 0 12px">Choose your IPTV service — then we’ll find your line automatically.</p>'+list.map(function(s){
+        return '<button class="cthm-ord" data-svc="'+s.id+'"><span style="flex:1;min-width:0"><span class="onm" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.name)+'</span><span class="osub">'+s.plans.length+' renewal plan'+(s.plans.length>1?'s':'')+'</span></span><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:#9aa6c0;fill:none;stroke-width:2;flex:none"><path d="m9 18 6-6-6-6"/></svg></button>';
+      }).join('');
+      document.getElementById('irBack').addEventListener('click',iptvBack);
+      body.querySelectorAll('button[data-svc]').forEach(function(b){ b.addEventListener('click',function(){ var s=(iptvSvcCache||[]).filter(function(x){return String(x.id)===b.getAttribute('data-svc');})[0]; if(s) iptvEnter(s); }); });
+    }).catch(function(){ body.innerHTML='<button class="cthm-back" id="irBack">← Back</button><div class="cthm-empty errmsg">Couldn’t load services right now.</div>'; document.getElementById('irBack').addEventListener('click',iptvBack); });
+  }
+  function iptvEnter(s, needPw){
+    body.innerHTML='<button class="cthm-back" id="irB2">← Services</button>'
+      +'<div style="font-weight:800;font-size:16px;margin:2px 0 2px">'+esc(s.name)+'</div>'
+      +'<p class="muted" style="margin:0 0 12px">Paste your line details (any format) or just type the username — we’ll detect it automatically.</p>'
+      +'<div class="cthm-f"><label>Line details or username</label><textarea id="irRaw" placeholder="Paste the whole message, or e.g.  username: 12345  password: abcd"></textarea></div>'
+      +(needPw?'<div class="cthm-note">We found the username but this service needs the password too — paste the full line details above.</div>':'')
+      +'<div id="irOut"></div>'
+      +'<button class="cbtn cbtn-p" style="width:100%" id="irGo">Check my line</button>';
+    document.getElementById('irB2').addEventListener('click',iptvServices);
+    var go=document.getElementById('irGo');
+    function submit(){ var raw=(document.getElementById('irRaw').value||'').trim(), out=document.getElementById('irOut');
+      if(!raw){ out.innerHTML=authErr('Paste your line details or type the username.'); return; }
+      go.disabled=true; go.textContent='Checking…'; out.innerHTML='';
+      fetch('/account/tools/iptv/lookup',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify({sku:s.sku, raw:raw})}).then(function(r){return r.json();}).then(function(j){
+        go.disabled=false; go.textContent='Check my line';
+        if(j&&j.ok&&j.found){ iptvFound(s, j); return; }
+        if(j&&j.needs_password){ out.innerHTML=authErr('Found the username — now paste the full line details (with the password) so we can check it.'); return; }
+        if(j&&j.reason==='wa_unverified'){ waVerify(function(){ iptvEnter(s); }); return; }
+        if(j&&j.reason==='panel_unreachable'){ out.innerHTML=authErr('That service is busy right now — please try again in a moment.'); return; }
+        out.innerHTML=authErr('We couldn’t find that line on '+esc(s.name)+'. Please check the details and try again.');
+      }).catch(function(){ go.disabled=false; go.textContent='Check my line'; out.innerHTML=authErr('Couldn’t check right now. Please try again.'); });
+    }
+    go.addEventListener('click',submit);
+  }
+  function iptvFound(s, info){
+    var exp=info.expiry?fmtd(info.expiry):null;
+    var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
+    body.innerHTML='<button class="cthm-back" id="irB3">← Back</button>'
+      +'<div style="font-weight:800;font-size:16px;margin:2px 0 10px">'+esc(s.name)+'</div>'
+      +'<div class="wv-card" style="border-color:rgba(51,217,138,.32);background:rgba(51,217,138,.07)"><div class="wv-ic" style="background:rgba(51,217,138,.16);color:#33d98a"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div><div class="wv-tx"><b>Line found</b><small>Pick a plan below to renew it.</small></div></div>'
+      +meta
+      +'<div class="cthm-sep">Choose a renewal plan</div>'
+      +s.plans.map(function(pl){ return '<button class="cthm-ord" data-plan="'+pl.id+'"><span style="flex:1;min-width:0"><span class="onm">'+esc(pl.label)+'</span></span><span class="cthm-pill ok">'+money(pl.price_pkr)+'</span></button>'; }).join('')
+      +'<div id="irPlanOut" style="margin-top:12px"></div>';
+    document.getElementById('irB3').addEventListener('click',function(){ iptvEnter(s); });
+    body.querySelectorAll('button[data-plan]').forEach(function(b){ b.addEventListener('click',function(){ var pl=(s.plans||[]).filter(function(x){return String(x.id)===b.getAttribute('data-plan');})[0]; if(pl) iptvRenewPick(s, info, pl); }); });
+  }
+  function iptvRenewPick(s, info, pl){
+    /* Stage 2 wires on-site pay + renewal here. Interim: instant WhatsApp renewal, line pre-filled. */
+    var out=document.getElementById('irPlanOut');
+    var msg='Renew my '+s.name+' line\nUsername: '+info.username+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+fmtd(info.expiry)):'');
+    out.innerHTML='<div class="cthm-note">Your line is verified and ready to renew on <b>'+esc(pl.label)+'</b> — '+money(pl.price_pkr)+'. On-site renewal checkout is being finalised; to renew instantly right now, continue on WhatsApp with your details pre-filled.</div>'
+      +'<a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent(msg)+'">Renew on WhatsApp</a>';
   }
   function coStep(p){
     body.innerHTML='<button class="cthm-back" id="coBack">← Back</button><div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(p.label)+'</div><div class="muted">Order '+esc(p.no)+' · '+money(p.price)+'</div></div><div class="cthm-load">Loading payment options…</div>';
