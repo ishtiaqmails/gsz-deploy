@@ -23,37 +23,24 @@ const GET2 =
   "    res.render('admin/coupons', { rows, edit, products, scopeIds, toDTLocal, flash: req.query.ok || null });";
 s = s.replace(GET, GET2);
 
-/* 2) POST save: capture coupon id, then rebuild coupon_products */
-const SAVE =
-  "        if (id) {\n" +
-  "          await pool.query('UPDATE coupons SET code=$1,kind=$2,value=$3,min_order_pkr=$4,max_discount_pkr=$5,expires_at=$6,usage_limit=$7,active=$8,featured=$9 WHERE id=$10',\n" +
-  "            [code, kind, value, min, maxd, exp, limit, active, featured, id]);\n" +
-  "        } else {\n" +
-  "          await pool.query('INSERT INTO coupons(code,kind,value,min_order_pkr,max_discount_pkr,expires_at,usage_limit,active,featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',\n" +
-  "            [code, kind, value, min, maxd, exp, limit, active, featured]);\n" +
-  "        }\n" +
-  "        res.redirect('/admin/coupons?ok=' + encodeURIComponent('Saved ' + code));";
-if (s.indexOf(SAVE) < 0) throw new Error('ANCHOR MISS: coupon save block');
+/* 2) POST save: after the coupon is written, rebuild coupon_products.
+   Anchored on the (unique) success-redirect content only — no leading-whitespace dependency.
+   cid = the edit id, or (for a new code) looked up by its unique code. */
+const RED = "res.redirect('/admin/coupons?ok=' + encodeURIComponent('Saved ' + code));";
+if (s.indexOf(RED) < 0) throw new Error('ANCHOR MISS: coupon save redirect');
 const SAVE2 =
-  "        let cid = id; /*couponScopeSave*/\n" +
-  "        if (id) {\n" +
-  "          await pool.query('UPDATE coupons SET code=$1,kind=$2,value=$3,min_order_pkr=$4,max_discount_pkr=$5,expires_at=$6,usage_limit=$7,active=$8,featured=$9 WHERE id=$10',\n" +
-  "            [code, kind, value, min, maxd, exp, limit, active, featured, id]);\n" +
-  "        } else {\n" +
-  "          const _r = await pool.query('INSERT INTO coupons(code,kind,value,min_order_pkr,max_discount_pkr,expires_at,usage_limit,active,featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',\n" +
-  "            [code, kind, value, min, maxd, exp, limit, active, featured]);\n" +
-  "          cid = _r.rows[0].id;\n" +
-  "        }\n" +
-  "        try {\n" +
+  "let cid = id; /*couponScopeSave*/\n" +
+  "        if (!cid) { try { cid = ((await pool.query('SELECT id FROM coupons WHERE upper(code)=upper($1)', [code])).rows[0] || {}).id; } catch (e) {} }\n" +
+  "        if (cid) { try {\n" +
   "          await pool.query('DELETE FROM coupon_products WHERE coupon_id=$1', [cid]);\n" +
   "          if (String(b.scope) === 'products') {\n" +
   "            let pids = b.product_ids; if (!Array.isArray(pids)) pids = (pids != null && pids !== '') ? [pids] : [];\n" +
   "            pids = pids.map(function (x) { return parseInt(x, 10); }).filter(function (x) { return x; });\n" +
   "            for (const pid of pids) await pool.query('INSERT INTO coupon_products(coupon_id, product_id) VALUES($1,$2) ON CONFLICT DO NOTHING', [cid, pid]);\n" +
   "          }\n" +
-  "        } catch (e) {}\n" +
-  "        res.redirect('/admin/coupons?ok=' + encodeURIComponent('Saved ' + code));";
-s = s.replace(SAVE, SAVE2);
+  "        } catch (e) {} }\n" +
+  "        " + RED;
+s = s.replace(RED, SAVE2);
 
 fs.writeFileSync(file, s);
 console.log('patched: adminCoupons loads products + saves coupon_products scope');
