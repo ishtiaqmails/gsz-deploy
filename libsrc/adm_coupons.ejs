@@ -25,6 +25,26 @@
       <div><label class="fld">Usage limit (optional)</label><input type="number" step="1" min="0" name="usage_limit" value="<%= edit && edit.usage_limit ? edit.usage_limit : '' %>"></div>
       <div><label class="fld">Expires (optional)</label><input type="datetime-local" name="expires_at" value="<%= edit ? toDTLocal(edit.expires_at) : '' %>"></div>
     </div>
+    <div style="margin:4px 0 14px">
+      <label class="fld">Applies to</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+        <label style="display:inline-flex;gap:7px;align-items:center;font-weight:600"><input type="radio" name="scope" value="all" <%= (!edit || !scopeIds.length) ? 'checked' : '' %> onclick="cpToggle()" style="width:auto;margin:0">All products</label>
+        <label style="display:inline-flex;gap:7px;align-items:center;font-weight:600"><input type="radio" name="scope" value="products" <%= (edit && scopeIds.length) ? 'checked' : '' %> onclick="cpToggle()" style="width:auto;margin:0">Specific products</label>
+      </div>
+      <div id="cpList" style="display:<%= (edit && scopeIds.length) ? 'block' : 'none' %>;max-width:520px">
+        <input type="text" id="cpSearch" placeholder="Search products…" onkeyup="cpFilter()" style="margin-bottom:8px">
+        <div style="max-height:220px;overflow:auto;border:1px solid var(--hair);border-radius:10px;padding:6px">
+          <% (products||[]).forEach(function(p){ %>
+            <label class="cp-row" data-name="<%= String(p.name||'').toLowerCase() %>" style="display:flex;gap:9px;align-items:center;padding:6px;border-radius:8px;font-size:13.5px;cursor:pointer">
+              <input type="checkbox" name="product_ids" value="<%= p.id %>" <%= scopeIds.indexOf(p.id)>=0 ? 'checked' : '' %> style="width:auto;margin:0">
+              <span><%= p.name %></span>
+            </label>
+          <% }); %>
+          <% if(!(products||[]).length){ %><div class="muted" style="padding:8px">No active products found.</div><% } %>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px">Tick the products this code works on — one for a single product, several for a group. Leave on “All products” for a store-wide code.</div>
+      </div>
+    </div>
     <div style="display:flex;gap:20px;align-items:center;margin:6px 0 14px;flex-wrap:wrap">
       <label style="display:inline-flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="active" value="1" <%= !edit || edit.active ? 'checked' : '' %> style="width:auto;margin:0">Active</label>
       <label style="display:inline-flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="featured" value="1" <%= edit && edit.featured ? 'checked' : '' %> style="width:auto;margin:0">Show in top promo bar</label>
@@ -48,6 +68,7 @@
           <%= c.max_discount_pkr ? ('· Max Rs '+Math.round(c.max_discount_pkr).toLocaleString('en-US')+' ') : '' %>
           <%= c.usage_limit ? ('· Limit '+c.usage_limit+' ') : '' %>
           <%= c.expires_at ? ('· Ends '+new Date(c.expires_at).toLocaleDateString('en-GB')) : '' %>
+          <%= (Number(c.scope_count)>0) ? ('· '+c.scope_count+' product'+(c.scope_count>1?'s':'')) : '· All products' %>
         </td>
         <td><%= c.used_count || 0 %></td>
         <td><% if (c.active) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Active</span><% } else { %><span class="spill" style="background:#fdecec;color:#b42318">Off</span><% } %></td>
@@ -64,4 +85,8 @@
     </tbody>
   </table>
 </div>
+<script>
+function cpToggle(){ var on=document.querySelector('input[name=scope]:checked'); var box=document.getElementById('cpList'); if(box) box.style.display=(on&&on.value==='products')?'block':'none'; }
+function cpFilter(){ var q=((document.getElementById('cpSearch')||{}).value||'').toLowerCase().trim(); document.querySelectorAll('.cp-row').forEach(function(r){ r.style.display=(!q||r.getAttribute('data-name').indexOf(q)>=0)?'flex':'none'; }); }
+</script>
 <%- include('_shell_bottom') %>
