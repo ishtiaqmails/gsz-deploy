@@ -222,9 +222,13 @@ function answer(bk, message, ctx) {
 
   // recommend / category browse (no single product)
   if (det.intent === 'recommend' || det.intent === 'plans' || det.intent === 'price') {
-    // match a category if named
-    const mt = new Set(kb.expand(toks(msg)));
-    let cat = bk.categories.find(c => mt.has(c.slug) || toks(c.name).some(w => mt.has(w)));
+    // match a category if named (singular/plural tolerant, raw tokens)
+    const stem = w => w.replace(/s$/, '');
+    const rawm = uniq(toks(msg)).map(stem);
+    let cat = bk.categories.find(c => {
+      const ctoks = uniq([...toks(c.name), ...toks(c.slug)]).map(stem).filter(w => w.length >= 3);
+      return ctoks.some(ct => rawm.indexOf(ct) >= 0);
+    });
     let pool = bk.products.slice();
     if (cat) pool = pool.filter(x => x.cat_slug === cat.slug);
     pool.sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));
