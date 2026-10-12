@@ -74,6 +74,17 @@
   .cthm-th-file{color:#29d3ff;cursor:pointer;font-size:18px;line-height:1}
   .cthm-th-send{margin-left:auto;padding:7px 15px}
   .cthm-th-fn{font-size:11px;color:#9aa6c0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+  .ann-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5a5a;margin-left:5px;vertical-align:middle}
+  .ann-card{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;margin-bottom:11px;background:#0e1627}
+  .ann-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+  .ann-k{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .ann-k.promo{background:linear-gradient(135deg,#ffb347,#ff8a3d);color:#2a1600}
+  .ann-k.news{background:rgba(47,123,255,.18);color:#8fc0ff}
+  .ann-prod{font-size:11px;font-weight:700;color:#29d3ff;background:rgba(41,211,255,.12);padding:3px 9px;border-radius:999px}
+  .ann-date{font-size:11px;color:#9aa6c0;margin-left:auto}
+  .ann-title{font-size:15px;font-weight:800;color:#eef2fb;margin-bottom:4px}
+  .ann-body{font-size:13px;line-height:1.55;color:#c3ccde;white-space:pre-wrap;word-break:break-word}
+  .ann-code{margin-top:11px;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:12.5px;color:#fff;background:linear-gradient(135deg,#2f7bff,#29d3ff);border:0;border-radius:10px;padding:8px 13px;cursor:pointer}
   .acc-fld{border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:9px 11px;margin-bottom:7px;background:#0e1627}
   .acc-line{display:flex;align-items:center;gap:9px}
   .acc-lbl{font-size:11.5px;color:#9aa6c0;font-weight:600;flex:none;min-width:88px}
@@ -126,6 +137,7 @@
       <button class="cthm-tab" data-tab="renew">Renew</button>
       <button class="cthm-tab" data-tab="trials">Trials</button>
       <button class="cthm-tab" data-tab="claim">Claim</button>
+      <button class="cthm-tab" data-tab="updates">Updates<span class="ann-dot" data-anndot style="display:none"></span></button>
       <button class="cthm-tab" data-tab="account">Account</button>
     </div>
     <div class="cthm-body" id="cthmBody"><div class="cthm-load">Loading…</div></div>
@@ -152,7 +164,7 @@
     return fetch('/account/tools/orders',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){ if(r.redirected && /\/login/.test(r.url)){ authed=false; return {orders:[]}; } return r.json(); }).then(function(j){ if(j&&j.auth===false) authed=false; cache=(j&&j.orders)||[]; return cache; }).catch(function(){ cache=[]; return []; }); }
   function pc(s){ s=String(s||'').toLowerCase(); if(s==='delivered'||s==='completed'||s==='done') return 'ok'; if(s==='failed'||s==='rejected'||s==='cancelled') return 'bad'; return 'wait'; }
   function signin(){ signinForm(); }
-  function render(tab){ wvStop(); authScreen=(tab!=='support') && !isLoggedIn(); renderFoot(); if(tab==='support'){ support(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else if(tab==='trials') trials(); else if(tab==='account') account(); else claim(o); }); }
+  function render(tab){ wvStop(); authScreen=(tab!=='support'&&tab!=='updates') && !isLoggedIn(); renderFoot(); if(tab==='support'){ support(); return; } if(tab==='updates'){ updates(); return; } body.innerHTML='<div class="cthm-load">Loading…</div>'; loadOrders().then(function(o){ if(!authed){ signin(); return; } if(tab==='purchases') pur(o); else if(tab==='code') code(o); else if(tab==='renew') renew(o); else if(tab==='trials') trials(); else if(tab==='account') account(); else claim(o); }); }
   function account(){
     body.innerHTML='<div class="cthm-load">Loading…</div>';
     fetch('/account/tools/profile',{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
@@ -836,13 +848,39 @@
     claimFeed();
   }
   document.querySelectorAll('.cth-tile[data-tool]').forEach(function(el){ el.addEventListener('click',function(e){ e.preventDefault(); var _tl=el.getAttribute('data-tool'); if(_tl==='iptvrenew'){ openIptvRenew(); } else { open(_tl); } }); });
+  function updates(){
+    body.innerHTML='<div class="cthm-load">Loading…</div>';
+    fetch('/api/announcements',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var items=(j&&j.items)||[];
+      if(!items.length){ body.innerHTML='<div class="cthm-empty"><div style="font-size:30px">📣</div><p class="muted" style="margin-top:6px">No updates yet — check back soon.</p></div>'; return; }
+      try{ localStorage.setItem('gsz_ann_seen', String(items[0].id||0)); }catch(e){}
+      try{ document.querySelectorAll('[data-anndot]').forEach(function(d){ d.style.display='none'; }); }catch(e){}
+      body.innerHTML=items.map(function(a){
+        var k=String(a.kind||'').toLowerCase();
+        var badge=(k==='promo')?'<span class="ann-k promo">Offer</span>':'<span class="ann-k news">News</span>';
+        var prod=a.product?('<span class="ann-prod">'+esc(a.product)+'</span>'):'';
+        var date=a.created_at?('<span class="ann-date">'+fmtd(a.created_at)+'</span>'):'';
+        var coupon=a.coupon?('<button class="ann-code" data-cpy="'+esc(a.coupon)+'">🎟️ '+esc(a.coupon)+' · Copy</button>'):'';
+        return '<div class="ann-card"><div class="ann-top">'+badge+prod+date+'</div><div class="ann-title">'+esc(a.title)+'</div><div class="ann-body">'+esc(a.body)+'</div>'+coupon+'</div>';
+      }).join('');
+      body.querySelectorAll('[data-cpy]').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-cpy')); var o=b.innerHTML; b.innerHTML='Copied ✓'; setTimeout(function(){b.innerHTML=o;},1400);}catch(e){} }); });
+    }).catch(function(){ body.innerHTML='<div class="cthm-empty"><p class="muted">Couldn’t load updates right now.</p></div>'; });
+  }
+  // subtle "new" dot on the Updates tab when there's an unseen announcement
+  (function annDot(){ try{
+    fetch('/api/announcements',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var items=(j&&j.items)||[]; if(!items.length) return;
+      var seen=0; try{ seen=parseInt(localStorage.getItem('gsz_ann_seen')||'0',10)||0; }catch(e){}
+      if((items[0].id||0)>seen){ document.querySelectorAll('[data-anndot]').forEach(function(d){ d.style.display='inline-block'; }); }
+    }).catch(function(){});
+  }catch(e){} })();
   tabs.forEach(function(t){ t.addEventListener('click',function(){ setTab(t.getAttribute('data-tab')); }); });
   /* IPTV Free Trial (.trial-open) -> open the Hub Trials tab, not the old trial modal */
   document.addEventListener('click',function(e){ var t=(e.target&&e.target.closest)?e.target.closest('.trial-open'):null; if(t){ e.preventDefault(); e.stopImmediatePropagation(); if(window.__gszTools) window.__gszTools('trials'); } }, true);
   modal.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   // app-nav hook: open the tools modal from anywhere (bottom bar), and auto-open via ?tool=
-  var _HUBTABS=['purchases','code','renew','claim','support','trials','account'];
+  var _HUBTABS=['purchases','code','renew','claim','support','trials','account','updates'];
   window.__gszTools=function(tab){ if(tab==='iptvrenew'){ openIptvRenew(); return; } open(_HUBTABS.indexOf(tab)>=0?tab:'purchases'); };
   window.__gszAuth=function(mode){ if(!modal.classList.contains('on')){ modal.classList.add('on'); window.__gszScrollLock.lock(); } renderFoot(); if(mode==='signup') signupForm(); else signinForm(); };
   try{ var _qp=new URLSearchParams(location.search); var _t=_qp.get('tool'); if(_t){ if(_t==='iptvrenew'){ openIptvRenew(); } else { open(_HUBTABS.indexOf(_t)>=0?_t:'purchases'); } if(history.replaceState) history.replaceState(null,'',location.pathname); } }catch(e){}
