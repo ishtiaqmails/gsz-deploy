@@ -93,7 +93,7 @@
     if(j.wantsActEmail){ var _ael=(j.deliveryType==='vendor_invite')?'Email to receive your invite':(j.deliveryType==='portal')?'Email for your account login':(j.deliveryType==='amember')?'Email for your account access':'Email for activation'; h+='<div class="gbuy-f"><label>'+_ael+'</label><input type="email" id="gbActEmail" placeholder="you@email.com"></div>'; }
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div>'
      +'<div id="gbAcct"></div>'
-     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"><div id="gbCoupOut"></div></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order</button>'
      +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver. Need help? <a href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener" style="color:#29d3ff">WhatsApp us</a>.</p>';
@@ -101,9 +101,24 @@
     var tp=document.getElementById('gbTypes'); if(tp) tp.querySelectorAll('[data-type]').forEach(function(b){ b.addEventListener('click',function(){ tp.querySelectorAll('[data-type]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); CHOSEN.type=b.getAttribute('data-type'); }); });
     loadPayAmt(INFO.price_pkr);
     document.getElementById('gbGo').addEventListener('click',submit);
+    var _cp=document.getElementById('gbCoupon'); if(_cp){ _cp.addEventListener('blur',chkCoupon); _cp.addEventListener('keyup',function(e){ if(e.key==='Enter'){ e.preventDefault(); chkCoupon(); } }); }
   }
 
-  var METHODS=[], CURAMT=0;
+  var METHODS=[], CURAMT=0, FREE=false;
+  function _wrapOf(id){ var e=document.getElementById(id); return e?e.closest('.gbuy-f'):null; }
+  function setFree(on){ FREE=!!on; var pw=_wrapOf('gbMethods'), pf=_wrapOf('gbProof'), ac=document.getElementById('gbAcct'), go=document.getElementById('gbGo');
+    [pw,ac,pf].forEach(function(el){ if(el) el.style.display=on?'none':''; });
+    if(go) go.textContent=on?'Place free order':'Place Order'; }
+  function chkCoupon(){ var code=val('gbCoupon'); var out=document.getElementById('gbCoupOut'); if(!out) return;
+    if(!code){ out.innerHTML=''; setFree(false); return; }
+    out.innerHTML='<div class="muted" style="font-size:12px;margin-top:6px">Checking…</div>';
+    fetch('/api/coupon/validate?p='+encodeURIComponent(INFO.slug)+'&plan='+encodeURIComponent(INFO.planIdx)+'&region=PK&code='+encodeURIComponent(code),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      if(!j||!j.ok){ out.innerHTML='<div class="muted errmsg" style="font-size:12px;margin-top:6px">'+esc((j&&j.reason)||'That code is not valid.')+'</div>'; setFree(false); return; }
+      var disc=(j.display&&j.display.discount)||('Rs '+(j.discountPkr||0)); var tot=(j.display&&j.display.total)||'';
+      if(j.free){ out.innerHTML='<div style="font-size:12.5px;margin-top:6px;color:#16b765;font-weight:800">🎁 '+esc(j.code)+' — 100% off. No payment needed.</div>'; setFree(true); }
+      else { out.innerHTML='<div style="font-size:12.5px;margin-top:6px;color:#16b765;font-weight:800">✓ '+esc(j.code)+' applied — '+esc(disc)+' off'+(tot?(' · New total '+esc(tot)):'')+'</div>'; setFree(false); }
+    }).catch(function(){ out.innerHTML=''; setFree(false); });
+  }
   function loadPayAmt(amount){ CURAMT=Number(amount)||0;
     fetch('/account/tools/pay-methods?amount='+encodeURIComponent(CURAMT),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
       METHODS=(j&&j.methods)||[]; var box=document.getElementById('gbMethods'); if(!box) return;
@@ -128,10 +143,9 @@
     if((INFO.needFields||[]).indexOf('mac')>=0 && val('gbMac').replace(/[^0-9a-zA-Z]/g,'').length<12){ err('Enter the device MAC address.'); return; }
     if((INFO.needFields||[]).indexOf('link')>=0 && !val('gbLink')){ err('Enter the target link.'); return; }
     if((INFO.needFields||[]).indexOf('qty')>=0 && !/^[0-9]+$/.test(val('gbQty'))){ err('Enter a valid quantity.'); return; }
-    if(!method){ err('Choose a payment method.'); return; }
-    if(!pf){ err('Please upload your payment receipt.'); return; }
+    if(!FREE){ if(!method){ err('Choose a payment method.'); return; } if(!pf){ err('Please upload your payment receipt.'); return; } }
     var fd=new FormData();
-    fd.append('product',INFO.slug); fd.append('plan',INFO.planIdx); fd.append('region','PK'); fd.append('method',method);
+    fd.append('product',INFO.slug); fd.append('plan',INFO.planIdx); fd.append('region','PK'); if(method) fd.append('method',method);
     if(CHOSEN.type) fd.append('type',CHOSEN.type);
     var coupon=val('gbCoupon'); if(coupon) fd.append('coupon',coupon);
     if(!isIn()){ fd.append('email',val('gbEmail')); fd.append('whatsapp',val('gbWa')); }
@@ -139,12 +153,12 @@
     if((INFO.needFields||[]).indexOf('link')>=0) fd.append('link',val('gbLink'));
     if((INFO.needFields||[]).indexOf('qty')>=0) fd.append('qty',val('gbQty'));
     if(INFO.wantsActEmail) fd.append('act_email',val('gbActEmail'));
-    fd.append('proof',pf);
+    if(pf) fd.append('proof',pf);
     go.disabled=true; go.textContent='Placing order…'; out.innerHTML='';
     fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
       var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var no=m?decodeURIComponent(m[1]):null;
       if(!no){ return r.text().then(function(t){ var em=(t.match(/Order error:\s*([^<]+)/)||[])[1]; err(em?em.trim():'Couldn’t place the order. Please check your details and try again.'); go.disabled=false; go.textContent='Place Order'; }); }
-      body.innerHTML='<div class="gbuy-load"><div style="font-size:34px">✅</div><div style="font-weight:800;font-size:16px;color:#33d98a;margin-top:6px">Order placed</div><p class="muted">We’re verifying your payment — you’ll get your '+esc(INFO.name)+' shortly on WhatsApp &amp; email.</p><a class="gb-btn gb-p" style="margin-top:8px" href="/order/'+encodeURIComponent(no)+'">View order '+esc(no)+'</a></div>';
+      body.innerHTML='<div class="gbuy-load"><div style="font-size:34px">✅</div><div style="font-weight:800;font-size:16px;color:#33d98a;margin-top:6px">Order placed</div><p class="muted">'+(FREE?('Your free '+esc(INFO.name)+' is on its way — check WhatsApp &amp; email.'):('We’re verifying your payment — you’ll get your '+esc(INFO.name)+' shortly on WhatsApp &amp; email.'))+'</p><a class="gb-btn gb-p" style="margin-top:8px" href="/order/'+encodeURIComponent(no)+'">View order '+esc(no)+'</a></div>';
     }).catch(function(){ err('Couldn’t place the order right now. Please try again.'); go.disabled=false; go.textContent='Place Order'; });
   }
 
@@ -169,7 +183,7 @@
     });
     if(!isIn()){ h+='<div class="gbuy-f"><label>Email</label><input type="email" id="gbEmail" placeholder="you@email.com"></div><div class="gbuy-f"><label>WhatsApp number</label><input type="text" id="gbWa" placeholder="03xx… (add +code if outside Pakistan)"></div>'; }
     h+='<div class="gbuy-f"><label>Payment method</label><div id="gbMethods"><div class="muted">Loading payment options…</div></div></div><div id="gbAcct"></div>'
-     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"></div>'
+     +'<div class="gbuy-f"><label>Coupon code <span class="muted">(optional)</span></label><input type="text" id="gbCoupon" style="text-transform:uppercase"><div id="gbCoupOut"></div></div>'
      +'<div class="gbuy-f"><label>Upload payment receipt</label><input type="file" id="gbProof" accept="image/*,application/pdf"></div>'
      +'<div id="gbOut"></div><button class="gb-btn gb-p" style="width:100%" id="gbGo">Place Order · '+money(total)+'</button>'
      +'<p class="muted" style="text-align:center;margin:10px 0 0">You pay first, then we verify &amp; deliver.</p>';
