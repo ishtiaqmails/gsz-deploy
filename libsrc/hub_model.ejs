@@ -603,7 +603,7 @@
     go.addEventListener('click',submit);
   }
   function iptvFound(s, info){
-    var exp=info.expiry?fmtd(info.expiry):null;
+    var exp=info.expiry?String(info.expiry):null;  // the bot returns an already-formatted expiry (e.g. 13-10-2026) — show as-is
     var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
     var vmap={}; (s.version_labels||[]).forEach(function(v){ if(v&&v.key) vmap[String(v.key)]=v.label; });
     var vers=((info&&info.versions)||[]).filter(function(v){return v&&v.key;}).map(function(v){ return { key:String(v.key), label:(vmap[String(v.key)]||v.label||String(v.key)) }; });
@@ -625,7 +625,7 @@
     /* Stage 2 wires on-site pay + renewal here. Interim: instant WhatsApp renewal, line pre-filled. */
     var out=document.getElementById('irPlanOut');
     var verLabel=''; if(verKey && Array.isArray(vers)){ var vf=vers.filter(function(v){return v.key===verKey;})[0]; if(vf) verLabel=vf.label; }
-    var msg='Renew my '+s.name+' line\nUsername: '+info.username+(verLabel?('\nVersion: '+verLabel):'')+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+fmtd(info.expiry)):'');
+    var msg='Renew my '+s.name+' line\nUsername: '+info.username+(verLabel?('\nVersion: '+verLabel):'')+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+info.expiry):'');
     out.innerHTML='<div class="cthm-note">Your line is verified and ready to renew'+(verLabel?(' — <b>'+esc(verLabel)+'</b>'):'')+' on <b>'+esc(pl.label)+'</b> ('+money(pl.price_pkr)+'). On-site renewal checkout is being finalised; to renew instantly right now, continue on WhatsApp with your details pre-filled.</div>'
       +'<a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent(msg)+'">Renew on WhatsApp</a>';
   }
