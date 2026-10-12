@@ -51,11 +51,11 @@
   /* offers / announcement ticker — sits just above the bottom bar, phones only */
   .gna-ticker{display:none}
   @media(max-width:860px),(max-width:1366px) and (pointer:coarse){
-    .gna-ticker{position:fixed;left:0;right:0;bottom:calc(68px + env(safe-area-inset-bottom));z-index:99;
-      align-items:center;gap:9px;padding:7px 14px;background:var(--gna-grad);color:#fff;cursor:pointer;
-      font-family:inherit;box-shadow:0 -8px 22px -16px rgba(0,0,0,.9);transform:translateY(120%);transition:transform .3s cubic-bezier(.22,1,.36,1);-webkit-tap-highlight-color:transparent}
+    .gna-ticker{position:fixed;left:11px;right:11px;bottom:calc(110px + env(safe-area-inset-bottom));z-index:101;
+      align-items:center;gap:9px;padding:8px 8px 8px 13px;border-radius:14px;background:var(--gna-grad);color:#fff;cursor:pointer;
+      font-family:inherit;box-shadow:0 12px 30px -12px rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.28);transform:translateY(160%);transition:transform .3s cubic-bezier(.22,1,.36,1);-webkit-tap-highlight-color:transparent}
     .gna-ticker.on{display:flex;transform:translateY(0)}
-    body.gna-has-ticker{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
+    body.gna-has-ticker{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
   }
   .gna-tpin{flex:none;display:grid;place-items:center;width:18px;height:18px;opacity:.95}
   .gna-tpin svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -164,7 +164,16 @@
       var items=((d&&d.items)||[]).filter(function(a){return a.product;}); if(!items.length) return;
       document.body.classList.add('gna-has-ticker');
       // sit the ticker ABOVE the actual bottom nav (its height can vary), never under it
-      function placeTick(){ try{ var _nav=document.querySelector('.gna'); var _nh=_nav?Math.round(_nav.getBoundingClientRect().height):68; if(_nh>10){ tick.style.bottom=_nh+'px'; tick.style.zIndex='101'; var _th=Math.round(tick.getBoundingClientRect().height)||34; document.body.style.paddingBottom=(_nh+_th+8)+'px'; } }catch(e){} }
+      function placeTick(){ try{
+        var _nav=document.querySelector('.gna'); var _fab=document.querySelector('.gna-c'); var _winH=window.innerHeight;
+        var _topY=_nav?_nav.getBoundingClientRect().top:_winH;
+        if(_fab){ var _fr=_fab.getBoundingClientRect(); if(_fr.top>0 && _fr.top<_topY) _topY=_fr.top; }
+        if(_topY<=0||_topY>=_winH) return;
+        var _off=Math.round(_winH - _topY + 9);
+        tick.style.bottom=_off+'px'; tick.style.zIndex='101';
+        var _th=Math.round(tick.getBoundingClientRect().height)||34;
+        document.body.style.paddingBottom=(_off + _th + 12)+'px';
+      }catch(e){} }
       placeTick(); window.addEventListener('resize', placeTick);
       var i=0; msg.innerHTML=line(items[0]); msg.dataset.code=items[0].coupon||'';
       requestAnimationFrame(function(){ tick.classList.add('on'); placeTick(); });
