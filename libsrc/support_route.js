@@ -46,7 +46,18 @@ module.exports = function (pool) {
 
       const k = await kb.get(pool);
       const customer = (req.session && req.session.customer) || null;
-      const a = bot.answer(k, message, { customer });
+
+      // short conversation memory: last product discussed (per session, 20-min window)
+      let lastProduct = null;
+      try {
+        const cx = req.session && req.session._sbCtx;
+        if (cx && cx.id && (Date.now() - (cx.ts || 0) < 20 * 60 * 1000)) lastProduct = k.products.find(x => x.id === cx.id) || null;
+      } catch (e) {}
+
+      const a = bot.answer(k, message, { customer, lastProduct });
+
+      // remember the product this turn settled on (for follow-ups)
+      try { if (req.session && a.productId) req.session._sbCtx = { id: a.productId, ts: Date.now() }; } catch (e) {}
 
       // guest-safe order tracking: look up status by order number (no credentials, no contact).
       if (a.needsAction === 'order_status' && a.orderNo) {

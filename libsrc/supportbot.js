@@ -143,9 +143,19 @@ function answer(bk, message, ctx) {
   if (!msg) { out.text = 'Hi! Ask me about any product, price, plan, delivery, or your order.'; out.intent = 'greeting'; return out; }
 
   const det = detectIntent(msg);
-  const prods = findProducts(bk, msg);
-  const p = prods[0] || null;
+  let prods = findProducts(bk, msg);
+  let p = prods[0] || null;
   out.intent = det.intent;
+
+  // conversation memory: a short follow-up with no named product refers to the last one.
+  // ("how much?", "does it work on firestick?", "the 3-month one?")
+  const DETAIL = ['price', 'plans', 'warranty', 'stock', 'delivery', 'product_info', 'fallback'];
+  if (!p && ctx.lastProduct && DETAIL.indexOf(det.intent) >= 0) {
+    const wc = toks(msg).length;
+    const cue = /\b(it|its|that|this|them|one|same|3 ?months?|6 ?months?|12 ?months?|year|yearly|monthly|firestick|fire ?stick|android|ios|iphone|samsung|lg|smart ?tv|mac|windows|work|works|working|device|devices)\b/i.test(msg);
+    if (wc <= 6 || cue) { p = ctx.lastProduct; prods = [p]; }
+  }
+  out.productId = p ? p.id : null;
 
   // conversational
   if (det.intent === 'greeting' && !p) {
@@ -207,7 +217,7 @@ function answer(bk, message, ctx) {
   const faq = bestFaq(bk, msg, p ? p.id : null);
   if (faq && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
     out.text = faq.a;
-    if (faq.product) out.products = [pcard(faq.product)];
+    if (faq.product) { out.products = [pcard(faq.product)]; out.productId = faq.product.id; }
     return out;
   }
 

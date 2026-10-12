@@ -512,9 +512,11 @@
       +'<div class="sb-inbar"><input id="sbIn" type="text" placeholder="Ask anything — prices, plans, your order…" autocomplete="off" maxlength="500"><button class="sb-send" id="sbSend" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></button></div>'
       +'<a class="sb-wa" href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener">Prefer WhatsApp? <b>Chat us →</b></a>'
       +'</div>';
-    var msgs=document.getElementById('sbMsgs'), inp=document.getElementById('sbIn'), send=document.getElementById('sbSend'), sugg=document.getElementById('sbSugg'), busy=false;
+    var msgs=document.getElementById('sbMsgs'), inp=document.getElementById('sbIn'), send=document.getElementById('sbSend'), sugg=document.getElementById('sbSugg');
+    var queue=[], working=false;
     function scroll(){ msgs.scrollTop=msgs.scrollHeight; }
     function bubble(cls,html){ var d=document.createElement('div'); d.className='sb-b '+cls; d.innerHTML=html; msgs.appendChild(d); scroll(); return d; }
+    function typing(){ var d=document.createElement('div'); d.className='sb-typing'; d.innerHTML='<i></i><i></i><i></i>'; msgs.appendChild(d); scroll(); return d; }
     function cards(list){ return (list||[]).map(function(p){ return '<a class="sb-card" href="'+esc(p.url)+'"><span class="nm">'+esc(p.name)+'</span>'+(p.priceFrom>0?('<span class="pr">from Rs '+Number(p.priceFrom).toLocaleString('en-US')+'</span>'):'')+'</a>'; }).join(''); }
     function chips(list){ sugg.innerHTML=(list||[]).map(function(t){ return '<button class="cthm-chip" data-q="'+esc(t)+'">'+esc(t)+'</button>'; }).join(''); sugg.querySelectorAll('.cthm-chip').forEach(function(b){ b.addEventListener('click',function(){ ask(b.getAttribute('data-q')); }); }); }
     function reply(j){
@@ -528,12 +530,16 @@
       chips(j.suggestions||[]);
     }
     function ask(text){
-      text=(text||'').trim(); if(!text||busy) return;
-      bubble('sb-me',esc(text)); inp.value=''; chips([]); busy=true;
-      var t=document.createElement('div'); t.className='sb-typing'; t.innerHTML='<i></i><i></i><i></i>'; msgs.appendChild(t); scroll();
+      text=(text||'').trim(); if(!text) return;
+      bubble('sb-me',esc(text)); inp.value=''; chips([]);
+      queue.push(text); pump();
+    }
+    function pump(){
+      if(working||!queue.length) return;
+      working=true; var text=queue.shift(); var t=typing();
       fetch('/api/support/message',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({message:text})})
-        .then(function(r){return r.json();}).then(function(j){ t.remove(); busy=false; if(j&&j.ok!==false) reply(j); else bubble('sb-bot','Sorry, I hit a snag — please try again, or tap WhatsApp below.'); })
-        .catch(function(){ t.remove(); busy=false; bubble('sb-bot','Network issue — please try again, or tap WhatsApp below.'); });
+        .then(function(r){return r.json();}).then(function(j){ t.remove(); working=false; if(j&&j.ok!==false) reply(j); else bubble('sb-bot','Sorry, I hit a snag — please try again, or tap WhatsApp below.'); pump(); })
+        .catch(function(){ t.remove(); working=false; bubble('sb-bot','Network issue — please try again, or tap WhatsApp below.'); pump(); });
     }
     send.addEventListener('click',function(){ ask(inp.value); });
     inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ask(inp.value); } });
