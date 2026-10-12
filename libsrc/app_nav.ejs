@@ -159,12 +159,12 @@
       var h=''; if(t) h+='<b>'+t+'</b>'; if(t&&b) h+=' — '; if(b) h+=b; if(!h) h='New update available';
       if(code) h+='<span class="gna-tcode">'+esc(code)+'</span>'; return h; }
     fetch('/api/announcements',{credentials:'same-origin'}).then(function(r){ return r.ok?r.json():null; }).then(function(d){
-      var items=(d&&d.items)||[]; if(!items.length) return;
+      var items=((d&&d.items)||[]).filter(function(a){return a.product;}); if(!items.length) return;
       document.body.classList.add('gna-has-ticker');
       var i=0; msg.innerHTML=line(items[0]); msg.dataset.code=items[0].coupon||'';
       requestAnimationFrame(function(){ tick.classList.add('on'); });
       if(items.length>1){ setInterval(function(){ msg.classList.add('fade'); setTimeout(function(){ i=(i+1)%items.length; msg.innerHTML=line(items[i]); msg.dataset.code=items[i].coupon||''; msg.classList.remove('fade'); },260); }, 5000); }
-      tick.addEventListener('click',function(){ var code=msg.dataset.code||''; if(code){ try{ navigator.clipboard.writeText(code); }catch(e){} var prev=msg.innerHTML; msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML='<b>Copied '+esc(code)+'</b> — paste it at checkout'; msg.classList.remove('fade'); },260); setTimeout(function(){ msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML=prev; msg.classList.remove('fade'); },260); },2200); } else if(typeof window.__gszTools==='function'){ window.__gszTools('purchases'); } });
+      tick.addEventListener('click',function(){ var code=msg.dataset.code||''; if(code){ try{ navigator.clipboard.writeText(code); }catch(e){} var prev=msg.innerHTML; msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML='<b>Copied '+esc(code)+'</b> — paste it at checkout'; msg.classList.remove('fade'); },260); setTimeout(function(){ msg.classList.add('fade'); setTimeout(function(){ msg.innerHTML=prev; msg.classList.remove('fade'); },260); },2200); } else if(typeof window.__gszTools==='function'){ window.__gszTools('updates'); } });
     }).catch(function(){});
   })();
 })();
