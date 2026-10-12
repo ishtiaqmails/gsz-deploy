@@ -605,21 +605,26 @@
   function iptvFound(s, info){
     var exp=info.expiry?fmtd(info.expiry):null;
     var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
+    var vers=(s.versions||[]); var selVer = vers.length? vers[0].key : '';
+    var verHtml = (vers.length>1) ? ('<div class="cthm-sep">Choose version</div><div class="cthm-chips" id="irVers" style="flex-wrap:wrap">'+vers.map(function(v,i){ return '<button class="cthm-chip'+(i===0?' on':'')+'" data-ver="'+esc(v.key)+'">'+esc(v.label)+'</button>'; }).join('')+'</div>') : '';
     body.innerHTML='<button class="cthm-back" id="irB3">← Back</button>'
       +'<div style="font-weight:800;font-size:16px;margin:2px 0 10px">'+esc(s.name)+'</div>'
-      +'<div class="wv-card" style="border-color:rgba(51,217,138,.32);background:rgba(51,217,138,.07)"><div class="wv-ic" style="background:rgba(51,217,138,.16);color:#33d98a"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div><div class="wv-tx"><b>Line found</b><small>Pick a plan below to renew it.</small></div></div>'
+      +'<div class="wv-card" style="border-color:rgba(51,217,138,.32);background:rgba(51,217,138,.07)"><div class="wv-ic" style="background:rgba(51,217,138,.16);color:#33d98a"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div><div class="wv-tx"><b>Line found</b><small>'+(vers.length>1?'Choose a version and plan to renew it.':'Pick a plan below to renew it.')+'</small></div></div>'
       +meta
+      +verHtml
       +'<div class="cthm-sep">Choose a renewal plan</div>'
       +s.plans.map(function(pl){ return '<button class="cthm-ord" data-plan="'+pl.id+'"><span style="flex:1;min-width:0"><span class="onm">'+esc(pl.label)+'</span></span><span class="cthm-pill ok">'+money(pl.price_pkr)+'</span></button>'; }).join('')
       +'<div id="irPlanOut" style="margin-top:12px"></div>';
     document.getElementById('irB3').addEventListener('click',function(){ iptvEnter(s); });
-    body.querySelectorAll('button[data-plan]').forEach(function(b){ b.addEventListener('click',function(){ var pl=(s.plans||[]).filter(function(x){return String(x.id)===b.getAttribute('data-plan');})[0]; if(pl) iptvRenewPick(s, info, pl); }); });
+    if(vers.length>1){ body.querySelectorAll('#irVers .cthm-chip').forEach(function(ch){ ch.addEventListener('click',function(){ body.querySelectorAll('#irVers .cthm-chip').forEach(function(x){x.classList.remove('on');}); ch.classList.add('on'); selVer=ch.getAttribute('data-ver'); }); }); }
+    body.querySelectorAll('button[data-plan]').forEach(function(b){ b.addEventListener('click',function(){ var pl=(s.plans||[]).filter(function(x){return String(x.id)===b.getAttribute('data-plan');})[0]; if(pl) iptvRenewPick(s, info, pl, selVer, vers); }); });
   }
-  function iptvRenewPick(s, info, pl){
+  function iptvRenewPick(s, info, pl, verKey, vers){
     /* Stage 2 wires on-site pay + renewal here. Interim: instant WhatsApp renewal, line pre-filled. */
     var out=document.getElementById('irPlanOut');
-    var msg='Renew my '+s.name+' line\nUsername: '+info.username+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+fmtd(info.expiry)):'');
-    out.innerHTML='<div class="cthm-note">Your line is verified and ready to renew on <b>'+esc(pl.label)+'</b> — '+money(pl.price_pkr)+'. On-site renewal checkout is being finalised; to renew instantly right now, continue on WhatsApp with your details pre-filled.</div>'
+    var verLabel=''; if(verKey && Array.isArray(vers)){ var vf=vers.filter(function(v){return v.key===verKey;})[0]; if(vf) verLabel=vf.label; }
+    var msg='Renew my '+s.name+' line\nUsername: '+info.username+(verLabel?('\nVersion: '+verLabel):'')+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+fmtd(info.expiry)):'');
+    out.innerHTML='<div class="cthm-note">Your line is verified and ready to renew'+(verLabel?(' — <b>'+esc(verLabel)+'</b>'):'')+' on <b>'+esc(pl.label)+'</b> ('+money(pl.price_pkr)+'). On-site renewal checkout is being finalised; to renew instantly right now, continue on WhatsApp with your details pre-filled.</div>'
       +'<a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent(msg)+'">Renew on WhatsApp</a>';
   }
   function coStep(p){
