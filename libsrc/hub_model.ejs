@@ -124,6 +124,30 @@
   .wv-wait{display:flex;align-items:center;gap:9px;justify-content:center;color:#f4b64c;font-weight:700;font-size:13px;margin-top:12px}
   .wv-dot{width:9px;height:9px;border-radius:50%;background:#f4b64c;animation:wvp 1s infinite}
   @keyframes wvp{0%,100%{opacity:.3}50%{opacity:1}}
+  /* live support chat */
+  .sb-wrap{display:flex;flex-direction:column;gap:10px}
+  .sb-msgs{display:flex;flex-direction:column;gap:9px;overflow-y:auto;min-height:220px;max-height:54vh;padding:4px 2px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .sb-b{max-width:88%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;word-break:break-word}
+  .sb-bot{align-self:flex-start;background:#0e1627;border:1px solid rgba(255,255,255,.08);color:#eef2fb;border-bottom-left-radius:5px}
+  .sb-me{align-self:flex-end;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;border-bottom-right-radius:5px}
+  .sb-typing{align-self:flex-start;display:flex;gap:4px;padding:12px 14px;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:14px;border-bottom-left-radius:5px}
+  .sb-typing i{width:6px;height:6px;border-radius:50%;background:#6b7794;animation:sbbl 1s infinite}
+  .sb-typing i:nth-child(2){animation-delay:.15s}.sb-typing i:nth-child(3){animation-delay:.3s}
+  @keyframes sbbl{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  .sb-card{display:flex;align-items:center;gap:10px;margin-top:7px;padding:9px 11px;border:1px solid rgba(41,211,255,.28);border-radius:11px;background:rgba(41,211,255,.06);text-decoration:none;color:#eef2fb}
+  .sb-card .nm{flex:1;min-width:0;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sb-card .pr{font-size:12px;color:#29d3ff;font-weight:700;white-space:nowrap}
+  .sb-sugg{display:flex;flex-wrap:wrap;gap:7px}
+  .sb-sugg:empty{display:none}
+  .sb-inbar{display:flex;gap:8px;align-items:center}
+  .sb-inbar input{flex:1;min-width:0;background:#0e1627;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;color:#eef2fb;font:inherit;font-size:14px;outline:none}
+  .sb-inbar input:focus{border-color:rgba(47,123,255,.6)}
+  .sb-send{flex:none;width:42px;height:42px;border:0;border-radius:12px;background:linear-gradient(135deg,#2f7bff,#29d3ff);color:#fff;cursor:pointer;display:grid;place-items:center}
+  .sb-send svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .sb-wa{display:block;text-align:center;font-size:12.5px;color:#9aa6c0;text-decoration:none;margin-top:2px}
+  .sb-wa b{color:#25d366}
+  .sb-act{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .sb-act a,.sb-act button{text-decoration:none}
 </style>
 
 <div class="cthm" id="cthm" aria-hidden="true">
@@ -480,10 +504,41 @@
     var ov=document.getElementById('rsOver'); if(ov) ov.addEventListener('click',forgotForm);
   }
   function signOut(){ var btn=document.getElementById('cthmSignOut'); if(btn){ btn.disabled=true; btn.textContent='Signing out…'; } fetch('/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'fetch'}}).then(function(){ location.reload(); }).catch(function(){ var fm=document.createElement('form'); fm.method='POST'; fm.action='/logout'; document.body.appendChild(fm); fm.submit(); }); }
-  function support(){ body.innerHTML='<p class="muted" style="margin:0 0 14px">Choose how you’d like to reach us — pick whatever suits you.</p>'
-    +'<button class="cthm-choice" id="chLive"><span class="chi" style="color:#29d3ff;background:rgba(41,211,255,.14)"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span><span><b>Live Chat <span class="chbadge">Coming soon</span></b><small>Instant 24/7 help right here on the site.</small></span></button>'
-    +'<a class="cthm-choice" href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener"><span class="chi" style="color:#25d366;background:rgba(37,211,102,.14)"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg></span><span><b>WhatsApp</b><small>Quick replies — may take a little time at peak hours.</small></span></a>';
-    var cl=document.getElementById('chLive'); if(cl) cl.addEventListener('click',function(){ var s=cl.querySelector('small'); if(s) s.textContent='Launching soon — for now tap WhatsApp below and we’ll help you right away.'; }); }
+  function support(){
+    body.innerHTML='<div class="sb-wrap">'
+      +'<div class="sb-msgs" id="sbMsgs"></div>'
+      +'<div class="sb-sugg" id="sbSugg"></div>'
+      +'<div class="sb-inbar"><input id="sbIn" type="text" placeholder="Ask anything — prices, plans, your order…" autocomplete="off" maxlength="500"><button class="sb-send" id="sbSend" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></button></div>'
+      +'<a class="sb-wa" href="https://wa.me/'+WANUM+'" target="_blank" rel="noopener">Prefer WhatsApp? <b>Chat us →</b></a>'
+      +'</div>';
+    var msgs=document.getElementById('sbMsgs'), inp=document.getElementById('sbIn'), send=document.getElementById('sbSend'), sugg=document.getElementById('sbSugg'), busy=false;
+    function scroll(){ msgs.scrollTop=msgs.scrollHeight; }
+    function bubble(cls,html){ var d=document.createElement('div'); d.className='sb-b '+cls; d.innerHTML=html; msgs.appendChild(d); scroll(); return d; }
+    function cards(list){ return (list||[]).map(function(p){ return '<a class="sb-card" href="'+esc(p.url)+'"><span class="nm">'+esc(p.name)+'</span>'+(p.priceFrom>0?('<span class="pr">from Rs '+Number(p.priceFrom).toLocaleString('en-US')+'</span>'):'')+'</a>'; }).join(''); }
+    function chips(list){ sugg.innerHTML=(list||[]).map(function(t){ return '<button class="cthm-chip" data-q="'+esc(t)+'">'+esc(t)+'</button>'; }).join(''); sugg.querySelectorAll('.cthm-chip').forEach(function(b){ b.addEventListener('click',function(){ ask(b.getAttribute('data-q')); }); }); }
+    function reply(j){
+      var html=esc(j.reply||'').replace(/\n/g,'<br>');
+      if(j.products&&j.products.length) html+=cards(j.products);
+      if(j.needsAction && !j.signedIn){ html+='<div class="sb-act"><button class="cthm-chip on" id="sbSignin">Sign in</button></div>'; }
+      else if(j.handoff || j.wa){ var wl=j.wa||('https://wa.me/'+WANUM); html+='<div class="sb-act"><a class="cthm-chip on" href="'+esc(wl)+'" target="_blank" rel="noopener">Open WhatsApp</a></div>'; }
+      var b=bubble('sb-bot',html);
+      var si=b.querySelector('#sbSignin'); if(si) si.addEventListener('click',function(){ signin(); });
+      chips(j.suggestions||[]);
+    }
+    function ask(text){
+      text=(text||'').trim(); if(!text||busy) return;
+      bubble('sb-me',esc(text)); inp.value=''; chips([]); busy=true;
+      var t=document.createElement('div'); t.className='sb-typing'; t.innerHTML='<i></i><i></i><i></i>'; msgs.appendChild(t); scroll();
+      fetch('/api/support/message',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({message:text})})
+        .then(function(r){return r.json();}).then(function(j){ t.remove(); busy=false; if(j&&j.ok!==false) reply(j); else bubble('sb-bot','Sorry, I hit a snag — please try again, or tap WhatsApp below.'); })
+        .catch(function(){ t.remove(); busy=false; bubble('sb-bot','Network issue — please try again, or tap WhatsApp below.'); });
+    }
+    send.addEventListener('click',function(){ ask(inp.value); });
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); ask(inp.value); } });
+    bubble('sb-bot','Hi! 👋 I’m your support assistant. Ask me about any product — prices, plans, delivery, offers — or your order.');
+    chips(['Best IPTV','Netflix price','Delivery time','Talk to a human']);
+    setTimeout(function(){ try{ inp.focus(); }catch(e){} },60);
+  }
   function fmtd(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
   function subPill(o){ var s=o.sub_status; if(s==='active') return '<span class="cthm-pill ok">Active</span>'; if(s==='expiring') return '<span class="cthm-pill wait">Expiring soon</span>'; if(s==='expired') return '<span class="cthm-pill bad">Expired</span>'; return '<span class="cthm-pill wait">'+esc((o.status||'Pending').charAt(0).toUpperCase()+(o.status||'Pending').slice(1))+'</span>'; }
   function pur(orders){
