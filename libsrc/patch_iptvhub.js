@@ -46,6 +46,11 @@ START +
 "    try{ const r=await bot.iptvLookup({ sku:sku, raw:raw, username:username, password:password }); return res.json(r||{ ok:false, reason:'unavailable' }); }\n" +
 "    catch(e){ return res.json({ ok:false, reason:'unavailable', detail:String((e&&e.message)||e).slice(0,160) }); }\n" +
 "  });\n" +
+"  router.get('/account/tools/iptv/lookup-status/:id', requireLogin, async (req, res) => {\n" +
+"    const bot=_ivBot(); if(!bot || typeof bot.iptvLookupStatus!=='function') return res.json({ status:'failed', error:'unavailable' });\n" +
+"    try{ const r=await bot.iptvLookupStatus(String(req.params.id||'')); return res.json(r||{ status:'pending' }); }\n" +
+"    catch(e){ return res.json({ status:'pending' }); }\n" +
+"  });\n" +
 END;
 
 // remove any prior IPTV block precisely (START..END), so neighbouring routes survive

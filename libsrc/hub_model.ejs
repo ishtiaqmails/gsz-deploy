@@ -578,17 +578,27 @@
       +'<button class="cbtn cbtn-p" style="width:100%" id="irGo">Check my line</button>';
     document.getElementById('irB2').addEventListener('click',iptvServices);
     var go=document.getElementById('irGo');
+    function done(j){ var out=document.getElementById('irOut'); if(!out) return; go.disabled=false; go.textContent='Check my line';
+      if(j&&j.ok&&j.found){ iptvFound(s, j); return; }
+      if(j&&j.needs_password){ out.innerHTML=authErr('Found the username — now paste the full line details (with the password) so we can check it.'); return; }
+      if(j&&j.reason==='wa_unverified'){ waVerify(function(){ iptvEnter(s); }); return; }
+      if(j&&(j.reason==='panel_unreachable'||j.reason==='unavailable')){ out.innerHTML=authErr('That service is busy right now — please try again in a moment.'); return; }
+      out.innerHTML=authErr('We couldn’t find that line on '+esc(s.name)+'. Please check the details and try again.');
+    }
+    function poll(id, tries){ if(tries>48){ done({reason:'unavailable'}); return; }
+      fetch('/account/tools/iptv/lookup-status/'+encodeURIComponent(id),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(st){
+        if(st&&st.status==='done'){ done(st.result||{}); return; }
+        if(st&&st.status==='failed'){ done({reason:'unavailable'}); return; }
+        setTimeout(function(){ poll(id, tries+1); }, 2500);
+      }).catch(function(){ setTimeout(function(){ poll(id, tries+1); }, 2500); });
+    }
     function submit(){ var raw=(document.getElementById('irRaw').value||'').trim(), out=document.getElementById('irOut');
       if(!raw){ out.innerHTML=authErr('Paste your line details or type the username.'); return; }
-      go.disabled=true; go.textContent='Checking…'; out.innerHTML='';
+      go.disabled=true; go.textContent='Checking…'; out.innerHTML='<div class="muted" style="margin-top:8px">Checking your line… some services can take up to a minute.</div>';
       fetch('/account/tools/iptv/lookup',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'fetch'},credentials:'same-origin',body:JSON.stringify({sku:s.sku, raw:raw})}).then(function(r){return r.json();}).then(function(j){
-        go.disabled=false; go.textContent='Check my line';
-        if(j&&j.ok&&j.found){ iptvFound(s, j); return; }
-        if(j&&j.needs_password){ out.innerHTML=authErr('Found the username — now paste the full line details (with the password) so we can check it.'); return; }
-        if(j&&j.reason==='wa_unverified'){ waVerify(function(){ iptvEnter(s); }); return; }
-        if(j&&j.reason==='panel_unreachable'){ out.innerHTML=authErr('That service is busy right now — please try again in a moment.'); return; }
-        out.innerHTML=authErr('We couldn’t find that line on '+esc(s.name)+'. Please check the details and try again.');
-      }).catch(function(){ go.disabled=false; go.textContent='Check my line'; out.innerHTML=authErr('Couldn’t check right now. Please try again.'); });
+        if(j&&j.pending&&j.lookup_id){ poll(j.lookup_id, 0); return; }
+        done(j);
+      }).catch(function(){ done({reason:'unavailable'}); });
     }
     go.addEventListener('click',submit);
   }
