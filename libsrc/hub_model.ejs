@@ -579,7 +579,7 @@
     document.getElementById('irB2').addEventListener('click',iptvServices);
     var go=document.getElementById('irGo');
     function done(j){ var out=document.getElementById('irOut'); if(!out) return; go.disabled=false; go.textContent='Check my line';
-      if(j&&j.ok&&j.found){ iptvFound(s, j); return; }
+      if(j&&j.ok&&j.found){ var _raw=(document.getElementById('irRaw')||{}).value||''; iptvFound(s, j, _raw); return; }
       if(j&&j.needs_password){ out.innerHTML=authErr('Found the username — now paste the full line details (with the password) so we can check it.'); return; }
       if(j&&j.reason==='wa_unverified'){ waVerify(function(){ iptvEnter(s); }); return; }
       if(j&&(j.reason==='panel_unreachable'||j.reason==='unavailable')){ out.innerHTML=authErr('That service is busy right now — please try again in a moment.'); return; }
@@ -602,7 +602,7 @@
     }
     go.addEventListener('click',submit);
   }
-  function iptvFound(s, info){
+  function iptvFound(s, info, raw){
     var exp=info.expiry?String(info.expiry):null;  // the bot returns an already-formatted expiry (e.g. 13-10-2026) — show as-is
     var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
     var vmap={}; (s.version_labels||[]).forEach(function(v){ if(v&&v.key) vmap[String(v.key)]=v.label; });
@@ -619,15 +619,59 @@
       +'<div id="irPlanOut" style="margin-top:12px"></div>';
     document.getElementById('irB3').addEventListener('click',function(){ iptvEnter(s); });
     if(vers.length>1){ body.querySelectorAll('#irVers .cthm-chip').forEach(function(ch){ ch.addEventListener('click',function(){ body.querySelectorAll('#irVers .cthm-chip').forEach(function(x){x.classList.remove('on');}); ch.classList.add('on'); selVer=ch.getAttribute('data-ver'); }); }); }
-    body.querySelectorAll('button[data-plan]').forEach(function(b){ b.addEventListener('click',function(){ var pl=(s.plans||[]).filter(function(x){return String(x.id)===b.getAttribute('data-plan');})[0]; if(pl) iptvRenewPick(s, info, pl, selVer, vers); }); });
+    body.querySelectorAll('button[data-plan]').forEach(function(b){ b.addEventListener('click',function(){ var pl=(s.plans||[]).filter(function(x){return String(x.id)===b.getAttribute('data-plan');})[0]; if(pl) iptvPay(s, info, pl, selVer, raw); }); });
   }
-  function iptvRenewPick(s, info, pl, verKey, vers){
-    /* Stage 2 wires on-site pay + renewal here. Interim: instant WhatsApp renewal, line pre-filled. */
-    var out=document.getElementById('irPlanOut');
-    var verLabel=''; if(verKey && Array.isArray(vers)){ var vf=vers.filter(function(v){return v.key===verKey;})[0]; if(vf) verLabel=vf.label; }
-    var msg='Renew my '+s.name+' line\nUsername: '+info.username+(verLabel?('\nVersion: '+verLabel):'')+'\nPlan: '+pl.label+(info.expiry?('\nExpiry: '+info.expiry):'');
-    out.innerHTML='<div class="cthm-note">Your line is verified and ready to renew'+(verLabel?(' — <b>'+esc(verLabel)+'</b>'):'')+' on <b>'+esc(pl.label)+'</b> ('+money(pl.price_pkr)+'). On-site renewal checkout is being finalised; to renew instantly right now, continue on WhatsApp with your details pre-filled.</div>'
-      +'<a class="cbtn cbtn-p" style="width:100%" target="_blank" rel="noopener" href="https://wa.me/'+WANUM+'?text='+encodeURIComponent(msg)+'">Renew on WhatsApp</a>';
+  function iptvPay(s, info, pl, verKey, raw){
+    body.innerHTML='<button class="cthm-back" id="ipBack">← Back</button>'
+      +'<div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(s.name)+'</div><div class="muted">'+esc(info.username)+' · '+esc(pl.label)+' · '+money(pl.price_pkr)+'</div></div><div class="cthm-load">Loading payment options…</div>';
+    document.getElementById('ipBack').addEventListener('click',function(){ iptvFound(s, info, raw); });
+    fetch('/account/tools/pay-methods?amount='+encodeURIComponent(pl.price_pkr),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+      var ms=(j&&j.methods)||[]; var load=body.querySelector('.cthm-load');
+      if(!ms.length){ if(load) load.outerHTML='<div class="muted errmsg">No payment methods available — contact support.</div>'; return; }
+      var html='<div class="cthm-f"><label>Payment method</label><div class="co-mtiles">'+ms.map(function(m,i){ var lg=m.logo?('<img class="co-mlogo" src="/static/img/'+esc(m.logo)+'" alt="">'):('<span class="co-mmono">'+esc((m.name||'?').charAt(0).toUpperCase())+'</span>'); return '<label class="co-mtile'+(i===0?' sel':'')+'"><input type="radio" name="ipm" value="'+esc(m.key)+'"'+(i===0?' checked':'')+' style="position:absolute;opacity:0;width:0;height:0">'+lg+'<span class="co-mname">'+esc(m.name)+'</span><span class="co-mpay">'+esc(m.pay||'')+'</span></label>'; }).join('')+'</div></div>'
+        +'<div id="ipAcct"></div>'
+        +'<div class="cthm-f"><label>Coupon code <span class="muted">(optional)</span></label><input id="ipCoupon" type="text" autocapitalize="characters" style="text-transform:uppercase"></div>'
+        +'<div class="cthm-f"><label>Upload payment receipt</label><input id="ipProof" type="file" accept="image/*,application/pdf"></div>'
+        +'<div id="ipOut"></div><button class="cbtn cbtn-p" style="width:100%" id="ipSubmit">Submit Payment</button>';
+      if(load) load.outerHTML=html;
+      function acct(){ var k=(body.querySelector('input[name=ipm]:checked')||{}).value; var m=ms.filter(function(x){return x.key===k;})[0]; var box=document.getElementById('ipAcct'); if(!box) return; if(!m||!(m.title||m.account||m.details)){ box.innerHTML=''; return; } var lines=m.details||((m.title?('Title: '+m.title):'')+(m.account?('\nAccount: '+m.account):'')); var cpVal=m.account||lines;
+        box.innerHTML='<div class="co-acct"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><span class="muted">Send '+esc(m.pay||money(pl.price_pkr))+' to:</span><button type="button" class="cbtn cbtn-g ip-copy" style="padding:5px 12px;font-size:12px">Copy '+(m.account?'number':'details')+'</button></div><pre style="margin:0;white-space:pre-wrap;background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;font-size:13px">'+esc(lines)+'</pre>'+(m.instructions?('<div class="muted" style="margin-top:6px">'+esc(m.instructions)+'</div>'):'')+'</div>';
+        var cpb=box.querySelector('.ip-copy'); if(cpb) cpb.addEventListener('click',function(){ try{ navigator.clipboard.writeText(cpVal); cpb.textContent='Copied ✓'; setTimeout(function(){ cpb.textContent='Copy '+(m.account?'number':'details'); },1400); }catch(e){} }); }
+      acct(); body.querySelectorAll('input[name=ipm]').forEach(function(r){ r.addEventListener('change',function(){ body.querySelectorAll('.co-mtile').forEach(function(t){t.classList.remove('sel');}); var t=r.closest('.co-mtile'); if(t) t.classList.add('sel'); acct(); }); });
+      document.getElementById('ipSubmit').addEventListener('click',function(){ submitIptvRenew(s, info, pl, verKey, raw); });
+    }).catch(function(){ var l=body.querySelector('.cthm-load'); if(l) l.outerHTML='<div class="muted errmsg">Couldn’t load payment options.</div>'; });
+  }
+  function submitIptvRenew(s, info, pl, verKey, raw){
+    var out=document.getElementById('ipOut'), btn=document.getElementById('ipSubmit');
+    var method=(body.querySelector('input[name=ipm]:checked')||{}).value;
+    var pf=(document.getElementById('ipProof')||{}).files; pf=pf&&pf[0];
+    if(!method){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Choose a payment method.</div>'; return; }
+    if(!pf){ out.innerHTML='<div class="muted errmsg" style="margin:0 0 10px">Please upload your payment receipt.</div>'; return; }
+    var coupon=((document.getElementById('ipCoupon')||{}).value||'').trim();
+    var rl=JSON.stringify({ username:info.username, raw:raw||'', version:verKey||'family', sku:s.sku });
+    var fd=new FormData(); fd.append('product',s.slug); fd.append('plan',pl.idx); fd.append('region','PK'); fd.append('method',method); fd.append('renew_line',rl); if(coupon) fd.append('coupon',coupon); fd.append('proof',pf);
+    btn.disabled=true; btn.textContent='Submitting…'; out.innerHTML='';
+    fetch('/checkout',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      var m=String(r.url||'').match(/\/order\/([^\/?#]+)/); var newNo=m?decodeURIComponent(m[1]):null;
+      if(!newNo){ out.innerHTML='<div class="muted errmsg">Submitted — check My Orders shortly.</div>'; btn.style.display='none'; return; }
+      body.innerHTML='<div class="cthm-empty"><div class="cthm-load">⏳ Payment submitted — verifying &amp; applying your renewal…</div><p class="muted" style="margin-top:8px">This can take a minute. You can close this — we’ll notify you when it’s done.</p></div>';
+      pollIptvRenew(newNo, 0);
+    }).catch(function(){ out.innerHTML='<div class="muted errmsg">Couldn’t submit. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit Payment'; });
+  }
+  function pollIptvRenew(newNo, tries){
+    fetch('/account/tools/order-status/'+encodeURIComponent(newNo),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+      var st=String((j&&j.status)||'').toLowerCase();
+      if(j&&j.done){
+        body.innerHTML='<div class="cthm-empty"><div style="font-size:40px">✅</div><div class="okmsg" style="font-size:17px;margin-top:6px">Renewal complete</div><p class="muted" style="white-space:pre-wrap">'+esc(j.credentials||'Your line has been renewed.')+'</p><button class="cbtn cbtn-p" id="ipDone" style="margin-top:8px">Done</button></div>';
+        var d=document.getElementById('ipDone'); if(d) d.addEventListener('click',function(){ setTab('renew'); }); return;
+      }
+      if(st==='failed'||st==='out_of_stock'){
+        body.innerHTML='<div class="cthm-empty"><div class="errmsg" style="font-weight:700;font-size:16px">Renewal couldn’t complete</div><p class="muted">If you paid, don’t worry — contact support and we’ll sort it out right away.</p><button class="cbtn cbtn-p" id="ipDone" style="margin-top:8px">Back</button></div>';
+        var d2=document.getElementById('ipDone'); if(d2) d2.addEventListener('click',function(){ setTab('renew'); }); return;
+      }
+      if(tries<80){ setTimeout(function(){ pollIptvRenew(newNo, tries+1); }, 3000); }
+      else { body.innerHTML='<div class="cthm-empty"><div class="muted">Still processing — check My Orders shortly.</div><button class="cbtn cbtn-p" id="ipDone" style="margin-top:8px">Done</button></div>'; var d3=document.getElementById('ipDone'); if(d3) d3.addEventListener('click',function(){ setTab('renew'); }); }
+    }).catch(function(){ if(tries<80) setTimeout(function(){ pollIptvRenew(newNo, tries+1); }, 3000); });
   }
   function coStep(p){
     body.innerHTML='<button class="cthm-back" id="coBack">← Back</button><div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(p.label)+'</div><div class="muted">Order '+esc(p.no)+' · '+money(p.price)+'</div></div><div class="cthm-load">Loading payment options…</div>';

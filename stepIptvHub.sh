@@ -10,7 +10,7 @@ set -Eeuo pipefail
 GSZ=/opt/gsz; SRC=/opt/gsz-deploy/libsrc; TS=$(date +%Y%m%d-%H%M%S)
 BK="$GSZ/.bak-iptvhub-$TS"
 cd "$GSZ"
-FILES=(views/partials/hub_model.ejs routes/account.js lib/botapi.js)
+FILES=(views/partials/hub_model.ejs routes/account.js lib/botapi.js routes/checkout.js)
 
 echo "==> backup -> $BK"
 for f in "${FILES[@]}"; do mkdir -p "$BK/$(dirname "$f")"; cp "$GSZ/$f" "$BK/$f"; done
@@ -26,9 +26,13 @@ node "$SRC/patch_botapi3.js" "$GSZ/lib/botapi.js"
 echo "==> patch routes/account.js (iptv options + lookup)"
 node "$SRC/patch_iptvhub.js" "$GSZ"
 
+echo "==> patch routes/checkout.js (renew-line pay + fulfill + poll)"
+node "$SRC/patch_iptvrenew.js" "$GSZ"
+
 echo "==> validate"
 node --check "$GSZ/routes/account.js"
 node --check "$GSZ/lib/botapi.js"
+node --check "$GSZ/routes/checkout.js"
 node -e "const ejs=require('$GSZ/node_modules/ejs'),fs=require('fs');const p='$GSZ/views/partials/hub_model.ejs';ejs.compile(fs.readFileSync(p,'utf8'),{filename:p});console.log('   hub_model ejs ok');"
 
 trap - ERR

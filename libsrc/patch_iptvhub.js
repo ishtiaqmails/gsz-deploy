@@ -25,10 +25,11 @@ START +
 "      const prods=(await pool.query(\"SELECT p.id, p.name, p.slug, (SELECT pp.bot_sku FROM product_plans pp WHERE pp.product_id=p.id AND pp.source='bot' AND pp.bot_sku IS NOT NULL ORDER BY pp.sort,pp.id LIMIT 1) AS bot_sku FROM products p JOIN categories c ON c.id=p.category_id WHERE c.slug='iptv' AND p.active AND NOT p.hidden ORDER BY p.name\")).rows;\n" +
 "      const out=[];\n" +
 "      for(const p of prods){ if(!p.bot_sku) continue;\n" +
-"        let plans=[]; try{ plans=(await pool.query(\"SELECT id, label, price_pkr, bot_plan_key, bot_type, version_labels FROM product_plans WHERE product_id=$1 AND source='bot' AND bot_plan_key IS NOT NULL ORDER BY sort,id\",[p.id])).rows; }catch(e){}\n" +
+"        let allPlans=[]; try{ allPlans=(await pool.query(\"SELECT id, label, price_pkr, bot_plan_key, source, version_labels FROM product_plans WHERE product_id=$1 ORDER BY sort,id\",[p.id])).rows; }catch(e){}\n" +
+"        let plans=[]; allPlans.forEach(function(pl,idx){ if(pl.source==='bot' && pl.bot_plan_key) plans.push({ id:pl.id, idx:idx, label:pl.label, price_pkr:Number(pl.price_pkr)||0, plan_key:pl.bot_plan_key }); });\n" +
 "        if(!plans.length) continue;\n" +
-"        let relabels=[]; for(const pl of plans){ let vl=pl.version_labels; if(typeof vl==='string'){ try{ vl=JSON.parse(vl); }catch(e){ vl=null; } } if(Array.isArray(vl) && vl.length){ relabels=vl.filter(function(v){return v&&v.key;}).map(function(v){return { key:String(v.key), label:String(v.label||v.key) };}); break; } }\n" +
-"        out.push({ id:p.id, name:p.name, slug:p.slug, sku:p.bot_sku, version_labels:relabels, plans:plans.map(function(pl){ return { id:pl.id, label:pl.label, price_pkr:Number(pl.price_pkr)||0, plan_key:pl.bot_plan_key }; }) });\n" +
+"        let relabels=[]; for(const pl of allPlans){ let vl=pl.version_labels; if(typeof vl==='string'){ try{ vl=JSON.parse(vl); }catch(e){ vl=null; } } if(Array.isArray(vl) && vl.length){ relabels=vl.filter(function(v){return v&&v.key;}).map(function(v){return { key:String(v.key), label:String(v.label||v.key) };}); break; } }\n" +
+"        out.push({ id:p.id, name:p.name, slug:p.slug, sku:p.bot_sku, version_labels:relabels, plans:plans });\n" +
 "      }\n" +
 "      res.json({ ok:true, services: out });\n" +
 "    }catch(e){ res.json({ ok:false, services:[] }); }\n" +
