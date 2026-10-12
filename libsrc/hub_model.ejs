@@ -605,7 +605,9 @@
   function iptvFound(s, info){
     var exp=info.expiry?fmtd(info.expiry):null;
     var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
-    var vers=(s.versions||[]); var selVer = vers.length? vers[0].key : '';
+    var vmap={}; (s.version_labels||[]).forEach(function(v){ if(v&&v.key) vmap[String(v.key)]=v.label; });
+    var vers=((info&&info.versions)||[]).filter(function(v){return v&&v.key;}).map(function(v){ return { key:String(v.key), label:(vmap[String(v.key)]||v.label||String(v.key)) }; });
+    var selVer = vers.length? vers[0].key : '';
     var verHtml = (vers.length>1) ? ('<div class="cthm-sep">Choose version</div><div class="cthm-chips" id="irVers" style="flex-wrap:wrap">'+vers.map(function(v,i){ return '<button class="cthm-chip'+(i===0?' on':'')+'" data-ver="'+esc(v.key)+'">'+esc(v.label)+'</button>'; }).join('')+'</div>') : '';
     body.innerHTML='<button class="cthm-back" id="irB3">← Back</button>'
       +'<div style="font-weight:800;font-size:16px;margin:2px 0 10px">'+esc(s.name)+'</div>'
