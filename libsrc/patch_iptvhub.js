@@ -38,12 +38,13 @@ START +
 "    const b=req.body||{};\n" +
 "    const sku=String(b.sku||'').trim();\n" +
 "    const raw=String(b.raw||'');\n" +
-"    const username=String(b.username||'').trim();\n" +
+"    let username=String(b.username||'').trim();\n" +
 "    const password=String(b.password||'');\n" +
+"    if(!username){ const t=raw.trim(); if(t && !/[\\s:=@]/.test(t)) username=t; }\n" +  // a bare single token is the username
 "    if(!sku) return res.json({ ok:false, reason:'no_service' });\n" +
 "    const bot=_ivBot(); if(!bot || typeof bot.iptvLookup!=='function') return res.json({ ok:false, reason:'unavailable' });\n" +
 "    try{ const r=await bot.iptvLookup({ sku:sku, raw:raw, username:username, password:password }); return res.json(r||{ ok:false, reason:'unavailable' }); }\n" +
-"    catch(e){ return res.json({ ok:false, reason:'unavailable' }); }\n" +
+"    catch(e){ return res.json({ ok:false, reason:'unavailable', detail:String((e&&e.message)||e).slice(0,160) }); }\n" +
 "  });\n" +
 END;
 
