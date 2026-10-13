@@ -12,7 +12,7 @@ trap 'restore' ERR
 
 # 1) engine libraries
 mkdir -p "$GSZ/lib/iptv"
-for f in fetch.js m3u.js clean.js credsource.js proxy.js pages.js; do
+for f in fetch.js m3u.js clean.js credsource.js proxy.js pages.js worker.js; do
   cp -f "$SRC/iptv/$f" "$GSZ/lib/iptv/$f"; node --check "$GSZ/lib/iptv/$f"
 done
 # 2) route
@@ -40,6 +40,11 @@ for i in $(seq 1 20); do
   [ "$code" = "200" ] && { echo "health OK (${i}s)"; break; }
   sleep 1
 done
+
+# server-side puller — own PM2 process, fills any panel the VPS can reach directly (no phone needed)
+if pm2 describe gsz-iptv-worker >/dev/null 2>&1; then pm2 restart gsz-iptv-worker --update-env >/dev/null; else pm2 start "$GSZ/lib/iptv/worker.js" --name gsz-iptv-worker --time >/dev/null; fi
+pm2 save >/dev/null 2>&1 || true
+echo "gsz-iptv-worker running (server-side puller)"
 
 KEY=$(grep '^IPTV_INGEST_KEY=' "$GSZ/.env" | cut -d= -f2-)
 echo
