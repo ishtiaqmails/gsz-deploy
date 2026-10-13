@@ -581,30 +581,39 @@
     body.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click',function(){ var g=b.getAttribute('data-go'); if(g==='renew'){ renewOrderNow(o); } else { setTab(g); } }); });
     nfLoad(o.order_no,false);
   }
-  var NF_TYPES=[['signin_code','Sign-in code'],['new_signin','New sign-in'],['verification','Verification code'],['travel_code','Travel / temporary code'],['household_update','Update Household'],['password_reset','Reset password'],['other','Other']];
+  function nfAgo(d){ if(!d)return''; try{ var m=Math.round((Date.now()-new Date(d).getTime())/60000); if(m<1)return'just now'; if(m<60)return m+' min ago'; var h=Math.round(m/60); if(h<24)return h+'h ago'; return Math.round(h/24)+'d ago'; }catch(e){return'';} }
+  function nfPick(g,types,field){ var best=null; (types||[]).forEach(function(t){ ((g||{})[t]||[]).forEach(function(e){ if(e[field] && (!best||String(e.date||'')>String(best.date||''))) best=e; }); }); return best; }
+  function nfCss(){ if(document.getElementById('nf-css'))return; var s=document.createElement('style'); s.id='nf-css'; s.textContent=".nf-wrap{background:linear-gradient(180deg,#1b0609,#110912);border:1px solid rgba(229,9,20,.28);border-radius:16px;padding:16px}.nf-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.nf-logo{color:#e50914;font-weight:900;letter-spacing:.17em;font-size:15px}.nf-login{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 12px;margin-bottom:14px}.nf-lh{font-size:11.5px;color:#9aa6c0;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}.nf-l{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05)}.nf-l>span{width:66px;flex:none;font-size:12.5px;color:#9aa6c0}.nf-l code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:#eef1ff}.nf-l .cbtn{flex:none;padding:4px 10px;font-size:11px}.nf-codewrap{text-align:center;padding:4px 0 2px}.nf-ch{font-size:13px;color:#9aa6c0;margin-bottom:10px}.nf-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:clamp(28px,8vw,36px);letter-spacing:.1em;color:#fff;background:#0e1627;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 12px;display:inline-block;min-width:min(240px,82%)}.nf-crow{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}.nf-empty{color:#9aa6c0;font-size:13px;line-height:1.55;max-width:320px;margin:4px auto 2px}.nf-acts2{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.nf-acts2 .cbtn{flex:1;min-width:140px;text-align:center}"; document.head.appendChild(s); }
   function nfLoad(no,refresh){ var slot=document.getElementById('nfSlot'); if(!slot)return;
     fetch('/account/tools/netflix/'+encodeURIComponent(no)+(refresh?'?refresh=1':''),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(p){ nfRender(p,no); }).catch(function(){});
   }
   function nfRender(p,no){ var slot=document.getElementById('nfSlot'); if(!slot)return;
     if(!p||!p.isNetflix){ slot.innerHTML=''; return; }
-    if(p.expired){ slot.innerHTML='<div class="cthm-note" style="margin:0 0 4px">This Netflix plan has expired — renew to get codes again.</div>'; return; }
-    var ac=p.account||{}; var allowed=p.allowed||[];
-    var cr=[['Account',ac.email],['Password',ac.password],['Profile',ac.profile],['PIN',ac.pin]].filter(function(r){return r[1];});
-    var h='<div class="cthm-cred" style="border-color:rgba(229,9,20,.32)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><b style="color:#e50914">Netflix</b><span class="cthm-pill ok" style="text-transform:uppercase">'+esc(p.tier||'')+'</span><button class="cbtn cbtn-g nf-rf" style="margin-left:auto;padding:5px 12px;font-size:12px">Refresh</button></div>';
-    if(cr.length){ h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px">'+cr.map(function(r){return '<div style="background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:8px 10px;min-width:0"><div class="muted" style="font-size:11px">'+esc(r[0])+'</div><div style="display:flex;align-items:center;gap:6px"><code style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r[1])+'</code><button class="cbtn cbtn-g nf-cpy" data-v="'+esc(r[1])+'" style="padding:3px 8px;font-size:11px;margin-left:auto;flex:none">Copy</button></div></div>';}).join('')+'</div>'; }
-    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px">';
-    NF_TYPES.forEach(function(t){ if(allowed.indexOf(t[0])<0)return; var list=(p.groups&&p.groups[t[0]])||[]; var e=list[0]; var isLink=(t[0]==='household_update'||t[0]==='password_reset');
-      h+='<div style="background:#0e1627;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px"><div class="muted" style="font-size:12px;margin-bottom:6px">'+esc(t[1])+'</div>';
-      if(e&&isLink&&e.link){ h+='<a class="cbtn '+(t[0]==='household_update'?'cbtn-p':'cbtn-g')+'" target="_blank" rel="noopener" href="'+esc(e.link)+'" style="font-size:12.5px">'+(t[0]==='household_update'?'Update Household':'Open reset link')+'</a>'; }
-      else if(e&&e.code){ h+='<div class="codebox" style="margin:0 0 6px">'+esc(e.code)+'</div><button class="cbtn cbtn-g nf-cpy" data-v="'+esc(e.code)+'" style="padding:4px 10px;font-size:11px">Copy</button>'; }
-      else { h+='<div class="muted" style="font-size:12px">Nothing yet — sign in on your device, then Refresh.</div>'; }
-      if(e&&e.date){ h+='<div class="muted" style="font-size:10.5px;margin-top:5px">'+esc(String(e.date).replace('T',' ').slice(0,16))+'</div>'; }
-      h+='</div>';
-    });
-    h+='</div></div>';
+    if(p.expired){ slot.innerHTML='<div class="cthm-note" style="margin:0 0 4px">Your Netflix plan has expired — renew to use it again.</div>'; return; }
+    nfCss(); var ac=p.account||{}; var allowed=p.allowed||[]; var g=p.groups||{};
+    var login='';
+    if(ac.email) login+='<div class="nf-l"><span>Email</span><code>'+esc(ac.email)+'</code><button class="cbtn cbtn-g nf-cpy" data-v="'+esc(ac.email)+'">Copy</button></div>';
+    if(ac.password) login+='<div class="nf-l"><span>Password</span><code>'+esc(ac.password)+'</code><button class="cbtn cbtn-g nf-cpy" data-v="'+esc(ac.password)+'">Copy</button></div>';
+    if(ac.profile) login+='<div class="nf-l"><span>Profile</span><code>'+esc(ac.profile)+'</code></div>';
+    if(ac.pin) login+='<div class="nf-l"><span>PIN</span><code>'+esc(ac.pin)+'</code><button class="cbtn cbtn-g nf-cpy" data-v="'+esc(ac.pin)+'">Copy</button></div>';
+    var codeTypes=['signin_code','new_signin','verification','travel_code','other'].filter(function(t){return allowed.indexOf(t)>=0;});
+    var code=nfPick(g,codeTypes,'code');
+    var codeHtml = (code&&code.code)
+      ? '<div class="nf-code">'+esc(code.code)+'</div><div class="nf-crow"><button class="cbtn cbtn-p nf-cpy" data-v="'+esc(code.code)+'">Copy code</button><span class="muted" style="font-size:12px">'+esc(nfAgo(code.date))+'</span></div>'
+      : '<div class="nf-empty">Start signing in to Netflix on your device. When it asks for a code, tap <b>Refresh</b> and your code appears here.</div>';
+    var acts='';
+    var hh=(allowed.indexOf('household_update')>=0)?nfPick(g,['household_update'],'link'):null;
+    if(hh&&hh.link) acts+='<a class="cbtn cbtn-g nf-act" target="_blank" rel="noopener" href="'+esc(hh.link)+'">Approve this TV</a>';
+    var pr=(allowed.indexOf('password_reset')>=0)?nfPick(g,['password_reset'],'link'):null;
+    if(pr&&pr.link) acts+='<a class="cbtn cbtn-g nf-act" target="_blank" rel="noopener" href="'+esc(pr.link)+'">Reset password</a>';
+    var h='<div class="nf-wrap"><div class="nf-top"><span class="nf-logo">NETFLIX</span><button class="cbtn cbtn-g nf-rf" style="padding:5px 14px;font-size:12px">Refresh</button></div>'
+      +(login?('<div class="nf-login"><div class="nf-lh">Your login</div>'+login+'</div>'):'')
+      +'<div class="nf-codewrap"><div class="nf-ch">Your latest Netflix code</div>'+codeHtml+'</div>'
+      +(acts?('<div class="nf-acts2">'+acts+'</div>'):'')
+      +'</div>';
     slot.innerHTML=h;
     var rf=slot.querySelector('.nf-rf'); if(rf) rf.addEventListener('click',function(){ rf.textContent='…'; nfLoad(no,true); });
-    slot.querySelectorAll('.nf-cpy').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-v')); b.textContent='Copied ✓'; setTimeout(function(){b.textContent='Copy';},1400); }catch(e){} }); });
+    slot.querySelectorAll('.nf-cpy').forEach(function(b){ b.addEventListener('click',function(){ try{ navigator.clipboard.writeText(b.getAttribute('data-v')); var o=b.textContent; b.textContent='Copied ✓'; setTimeout(function(){b.textContent=o;},1400); }catch(e){} }); });
   }
   function reasonMsg(j,act){ var r=(j&&j.reason)||'error'; if(r==='waiting') return 'No '+(act==='link'?'link':'code')+' yet — tap again in a moment.'; if(r==='limit') return 'You’ve reached the limit'+((j&&j.used&&j.limit)?(' ('+j.used+'/'+j.limit+')'):'')+'. Contact support.'; if(r==='not_supported') return 'Not available for this product yet.'; if(r==='not_owner') return 'We couldn’t match this to your account.'; if(r==='expired') return 'The window has closed — contact support.'; return 'Couldn’t complete right now.'; }
   function doAct(no,act,tries){
