@@ -45,26 +45,31 @@ async function store(server, name, enh) {
      enh.rawCounts.live, enh.rawCounts.vod, enh.rawCounts.series, JSON.stringify(cats), items, enh.adult]);
 }
 
+// try one set of creds: get.php M3U first, then the Xtream player_api. Returns {ok, lib, via} or {ok:false}.
+async function tryCreds(host, user, pass) {
+  const url = String(host).replace(/\/+$/, '') + '/get.php?username=' + enc(user) + '&password=' + enc(pass) + '&type=m3u_plus&output=ts';
+  let lib = await m3u.fetchM3U(url, 30 * 60 * 1000);
+  if (lib.ok && (lib.live.length + lib.vod.length + lib.series.length) > 0) return { ok: true, lib, via: 'm3u' };
+  const x = await fetch.fetchAll(host, user, pass);
+  if (((x.live || []).length + (x.vod || []).length + (x.series || []).length) > 0) return { ok: true, lib: fromXtream(x), via: 'player_api' };
+  return { ok: false, err: (lib.error || 'empty'), api: x.errors };
+}
+
 async function pullOne(server, name, sku) {
-  // orders-only on the server side: a real delivered line is fast + full. No slow trial polling here —
-  // panels with no order are left to the phone agent (which does trials). Keeps the sweep moving.
+  // orders-first (fast, full). If that line is missing/expired/empty, recover with a fresh trial line.
+  let src = 'order', r = { ok: false };
   const cr = await credsource.resolve(sku, { allowTrial: false });
-  if (!cr.ok) return { server, skip: cr.error };
-  const url = String(cr.host).replace(/\/+$/, '') + '/get.php?username=' + enc(cr.username) + '&password=' + enc(cr.password) + '&type=m3u_plus&output=ts';
-  let lib = await m3u.fetchM3U(url, 30 * 60 * 1000); // direct server-side download, 30-min cap
-  let via = 'm3u';
-  if (!lib.ok || (lib.live.length + lib.vod.length + lib.series.length) === 0) {
-    // get.php failed/empty — fall back to the Xtream player_api (some panels only serve this)
-    const x = await fetch.fetchAll(cr.host, cr.username, cr.password);
-    const tot = (x.live || []).length + (x.vod || []).length + (x.series || []).length;
-    if (tot > 0) { lib = fromXtream(x); via = 'player_api'; }
-    else return { server, blocked: (lib.error || 'empty'), api: x.errors, source: cr.source };
+  if (cr.ok) { src = cr.source; r = await tryCreds(cr.host, cr.username, cr.password); }
+  if (!r.ok) {
+    const t = await credsource.resolve(sku, { forceTrial: true, hours: 24, trialTimeoutMs: 120000 });
+    if (t.ok) { const r2 = await tryCreds(t.host, t.username, t.password); if (r2.ok) { r = r2; src = 'trial'; } }
   }
-  const total = (lib.live || []).length + (lib.vod || []).length + (lib.series || []).length;
+  if (!r.ok) return { server, fail: r.err || cr.error, api: r.api };
+  const total = r.lib.live.length + r.lib.vod.length + r.lib.series.length;
   if (total === 0) return { server, empty: true };
-  const enh = clean.enhance(lib);
+  const enh = clean.enhance(r.lib);
   await store(server, name, enh);
-  return { server, source: cr.source, via, counts: enh.counts };
+  return { server, source: src, via: r.via, counts: enh.counts };
 }
 
 async function staleServers() {

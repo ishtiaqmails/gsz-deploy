@@ -108,19 +108,23 @@ function cachePut(sku, creds, ttlMs) {
    returns { ok, host, username, password, source:'order'|'trial', note } or { ok:false, error } */
 async function resolve(sku, opts) {
   opts = opts || {};
-  const cached = (!opts.fresh) ? cacheGet(sku) : null;
+  const cached = (!opts.fresh && !opts.forceTrial) ? cacheGet(sku) : null;
   // a cached FULL order line is the best source — trust it without a round-trip
   if (cached && cached.source === 'order') return Object.assign({ ok: true }, cached, { note: 'cached order' });
 
   // orders-first — a delivered FAMILY line has the COMPLETE library (trials are restricted), so we
   // always try it, even when a trial is cached, to upgrade a thin trial snapshot to the full one.
-  const o = await apiReq('GET', '/api/panel-sample-creds/' + encodeURIComponent(sku), null, 20000);
-  if (o.ok && o.data && o.data.ok !== false) {
-    const c = parseCreds(o.data.creds || o.data);
-    if (c.ok) { const out = Object.assign(c, { source: 'order', note: 'full delivered family line' }); cachePut(sku, out, 6 * 60 * 60 * 1000); return out; }
+  // forceTrial skips this entirely (used to recover when an order line is expired/invalid).
+  let o = { status: 0 };
+  if (!opts.forceTrial) {
+    o = await apiReq('GET', '/api/panel-sample-creds/' + encodeURIComponent(sku), null, 20000);
+    if (o.ok && o.data && o.data.ok !== false) {
+      const c = parseCreds(o.data.creds || o.data);
+      if (c.ok) { const out = Object.assign(c, { source: 'order', note: 'full delivered family line' }); cachePut(sku, out, 6 * 60 * 60 * 1000); return out; }
+    }
+    // no order available — fall back to a cached trial
+    if (cached && cached.source === 'trial') return Object.assign({ ok: true }, cached, { note: 'cached trial' });
   }
-  // no order available — fall back to a cached trial, then a fresh trial
-  if (cached && cached.source === 'trial') return Object.assign({ ok: true }, cached, { note: 'cached trial' });
   if (opts.allowTrial === false) return { ok: false, error: 'no_order_creds', detail: (o.status === 404 ? 'panel-sample-creds endpoint not deployed yet' : o.error || o.status) };
 
   // 2) free-trial fallback — ban-safe web-trial queue, demo ticket (free)
