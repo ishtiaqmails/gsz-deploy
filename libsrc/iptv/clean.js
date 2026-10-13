@@ -128,10 +128,11 @@ function detectCountry(groupTitle, name) {
 // "11.22.63 S01 The Kill Floor" -> "11.22.63". Run on an already-cleaned name.
 function seriesBase(nm) {
   let s = String(nm || '');
-  s = s.replace(/\s+S\d{1,2}(?:\s+S\d{1,2})?\b[\s\S]*$/i, '');        // " S01 …" (incl. duplicated " S01 S01 …")
-  s = s.replace(/\s+Season\s*\d+\b[\s\S]*$/i, '');
-  s = s.replace(/\s+(?:EP|Episode|Ep|E)\s*\d{1,3}\b[\s\S]*$/i, '');
-  s = s.replace(/\s+\d{1,2}\s*x\s*\d{1,3}\b[\s\S]*$/i, '');           // "1x05 …"
+  s = s.replace(/[\s._\-]+S\d{1,4}(?:\s*S\d{1,4})?\b[\s\S]*$/i, '');  // "…S01…", duplicated "…S01 S01…", and junky "…S8023…"
+  s = s.replace(/[\s._\-]+Season\s*\d+\b[\s\S]*$/i, '');
+  s = s.replace(/[\s._\-]+(?:EP|Episode|Ep)\s*\d{1,4}\b[\s\S]*$/i, '');
+  s = s.replace(/[\s._\-]+E\d{1,4}\b[\s\S]*$/i, '');                  // "…E01" / "…23rd.E01"
+  s = s.replace(/[\s._\-]+\d{1,2}\s*x\s*\d{1,4}\b[\s\S]*$/i, '');     // "…1x05…"
   return s.trim();
 }
 
