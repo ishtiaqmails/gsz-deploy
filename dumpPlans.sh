@@ -1,20 +1,5 @@
 #!/usr/bin/env bash
-# dumpPlans — everything needed to wire a per-plan "Most Popular" flag:
-#   1) the plan table name + schema
-#   2) how adminCatalog.js reads/saves plan rows (to add plan_popular)
-#   3) where the public product page builds its `plans` array (to pass `popular` through)
-GSZ=/opt/gsz; cd "$GSZ" || exit 1
-export PGPASSWORD="$(grep -E '^DB_PASS=' .env | cut -d= -f2-)"
-DBN="$(grep -E '^DB_NAME=' .env | cut -d= -f2-)"; DBU="$(grep -E '^DB_USER=' .env | cut -d= -f2-)"; DBH="$(grep -E '^DB_HOST=' .env | cut -d= -f2-)"
-PSQL(){ psql -h "${DBH:-localhost}" -U "$DBU" -d "$DBN" "$@"; }
-echo "########## tables containing 'plan' ##########"
-PSQL -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name ILIKE '%plan%';" 2>&1
-echo "########## schema of each plan-ish table ##########"
-for t in $(PSQL -tAc "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name ILIKE '%plan%';" 2>/dev/null); do echo "=== \\d $t ==="; PSQL -c "\\d $t" 2>&1 | sed -n '1,40p'; done
-echo
-echo "########## adminCatalog.js — plan read/save (plan_label/plan_price/INSERT/UPDATE) ##########"
-grep -nE "plan_label|plan_price|plan_old|plan_id|plan_from|plan_until|plan_warranty|INTO .*plan|UPDATE .*plan|DELETE .*plan|plans?\b" routes/adminCatalog.js 2>&1 | head -80
-echo
-echo "########## public product render — where `plans` is built ##########"
-grep -rnE "render\('product'|res\.render\(\"product\"|price_pkr|old_pkr|FROM .*plan" routes/*.js 2>&1 | grep -iE "product|plan|price_pkr" | head -40
-echo "== dumpPlans done =="
+# Compact plan map — read-only. One line per active product: id | name | slug | plan labels+prices.
+# So content can RESPECT the real plans (device/profile/duration) instead of generic claims.
+GSZ=/opt/gsz; cd "$GSZ"
+NODE_PATH="$GSZ/node_modules" node -e "require('dotenv').config({path:'$GSZ/.env'});const{Pool}=require('pg');const p=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:process.env.DB_NAME,user:process.env.DB_USER,password:process.env.DB_PASS});(async()=>{try{const pr=(await p.query('SELECT id,name,slug,category_id FROM products WHERE active AND NOT hidden ORDER BY category_id,sort,id')).rows;const pl=(await p.query('SELECT product_id,label,price_pkr,price_usd FROM product_plans ORDER BY product_id,sort,id')).rows;const by={};pl.forEach(r=>{(by[r.product_id]=by[r.product_id]||[]).push(r.label+'='+r.price_pkr+(r.price_usd?('/\$'+r.price_usd):''))});const cats=(await p.query('SELECT id,name FROM categories')).rows;const cn={};cats.forEach(c=>cn[c.id]=c.name);for(const x of pr){console.log(x.id+' ['+(cn[x.category_id]||'?')+'] '+x.name+'  ['+x.slug+']');console.log('    '+((by[x.id]||['(no plans)']).join('  |  ')));}}catch(e){console.log('ERR '+e.message)}await p.end();})();"
