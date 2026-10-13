@@ -172,12 +172,15 @@ module.exports = function (pool) {
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const size = Math.min(100, Math.max(10, parseInt(req.query.size, 10) || 48));
       const country = String(req.query.country || '').trim();
-      let rows = data[type] || []; // [name, quality, category, country, flag, variants, episodes]
+      let rows = data[type] || [];
+      const isNew = rows.length > 0 && rows[0].length >= 7; // new: [name,q,cat,country,flag,variants,eps]; old: [name,q,cat,variants,eps]
       if (cat) rows = rows.filter(r => r[2] === cat);
-      if (country) rows = rows.filter(r => r[3] === country);
+      if (country && isNew) rows = rows.filter(r => r[3] === country);
       if (q) rows = rows.filter(r => String(r[0]).toLowerCase().indexOf(q) >= 0);
       const total = rows.length;
-      const items = rows.slice((page - 1) * size, page * size).map(r => ({ name: r[0], quality: r[1], category: r[2], country: r[3], flag: r[4], variants: r[5], episodes: r[6] }));
+      const items = rows.slice((page - 1) * size, page * size).map(r => isNew
+        ? { name: r[0], quality: r[1], category: r[2], country: r[3], flag: r[4], variants: r[5], episodes: r[6] }
+        : { name: r[0], quality: r[1], category: r[2], variants: r[3], episodes: r[4] });
       res.json({ ok: true, type, total, page, size, pages: Math.ceil(total / size), items });
     } catch (e) { res.status(500).json({ ok: false }); }
   });

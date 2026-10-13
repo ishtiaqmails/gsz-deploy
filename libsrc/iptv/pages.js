@@ -131,8 +131,10 @@ ${topbar()}
   }
   function renderFilters(){
     var d=CATS[type]||{};
-    chips(g('cats'), d.categories||{}, cat, false, function(v){cat=v;load(true);});
-    chips(g('countries'), d.countries||{}, country, true, function(v){country=v;load(true);});
+    var catObj=(d&&d.categories)?d.categories:(d||{});   // new: {categories,countries}; old: {cat:count}
+    var countryObj=(d&&d.countries)?d.countries:{};
+    chips(g('cats'), catObj, cat, false, function(v){cat=v;load(true);});
+    var cn=g('countries'); if(Object.keys(countryObj).length){cn.style.display='';chips(cn, countryObj, country, true, function(v){country=v;load(true);});} else {cn.style.display='none';}
   }
   function card(it){
     var qv=it.quality?'<span class="q">'+it.quality.replace(/\\//g,' · ')+'</span>':'';
