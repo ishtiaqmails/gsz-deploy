@@ -61,18 +61,30 @@ function apiReq(method, path, body, ms) {
 /* Pull host / username / password out of the bot's delivery-format message (any shape).
    The bot returns lines like "👤 Username: xxx", "🔑 Password: yyy", "🌐 DNS: http://host:port"
    (host/m3u fields are often null even when the DNS line is present — hence we parse the text). */
+function originOf(u) { const m = String(u || '').match(/^(https?:\/\/[^/\s]+)/i); return m ? m[1] : ''; }
 function parseCreds(src) {
   const text = typeof src === 'string' ? src : (src && (src.formatted || src.credentials || src.message || '')) || '';
   const fields = (src && typeof src === 'object') ? src : {};
   const grab = (re) => { const m = text.match(re); return m ? m[1].trim() : ''; };
   let username = (fields.username || fields.user || '') || grab(/(?:user\s*name|username|user)\s*[:：]\s*`?([^\s`<]+)/i);
   let password = (fields.password || fields.pass || '') || grab(/(?:pass\s*word|password|pass)\s*[:：]\s*`?([^\s`<]+)/i);
-  let host = (fields.host || fields.dns || fields.url || fields.server || '') || grab(/(?:dns|host|server|url|portal)\s*[:：]\s*`?(https?:\/\/[^\s`<]+)/i) || grab(/(https?:\/\/[^\s`<]+?)(?:\/(?:get|player_api)\.php|\/c\/?|\s|$)/i);
-  // strip any trailing path so fetch.js can append /player_api.php
-  if (host) { const hm = host.match(/^(https?:\/\/[^/]+)/i); if (hm) host = hm[1]; }
-  // if the only host we have came as "domain:port" without scheme
+
+  // The STREAMING host is what the customer's player uses — it's the DNS / M3U line in the delivery
+  // text, NOT the management-panel host a structured field might carry (custom_laravel panels serve
+  // no player_api.php). So: prefer a DNS/Server/Portal-labelled URL, then the m3u/get.php host,
+  // then any other URL, then structured fields, then a bare domain:port.
+  const allUrls = (text.match(/https?:\/\/[^\s`<)"']+/gi) || []).map(originOf).filter(Boolean);
+  const labelled = originOf(grab(/(?:dns|server|portal|host)\s*[:：]\s*`?(https?:\/\/[^\s`<)"']+)/i));
+  const m3uHost = originOf(grab(/(?:m3u|get\.php|playlist|url)\s*[:：]?\s*`?(https?:\/\/[^\s`<)"']+)/i));
+  const fieldHost = originOf(fields.dns || fields.host || fields.url || fields.server || '');
+  // drop player-app download links (aftv.news, stores, uptodown…) — they aren't streaming hosts
+  const NONSTREAM = /aftv\.news|play\.google|apps\.apple|itunes\.apple|uptodown|apkpure|amazon\.|microsoft\.com|t\.me|wa\.me|whatsapp/i;
+  const keep = u => u && !NONSTREAM.test(u);
+  const candidates = [...new Set([labelled, m3uHost, ...allUrls, fieldHost].filter(keep))];
+  let host = labelled || m3uHost || allUrls[0] || fieldHost || '';
   if (!host) { const hp = grab(/\b((?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d{2,5})?)\b/i); if (hp) host = 'http://' + hp; }
-  return { host, username, password, ok: !!(host && username && password) };
+  host = originOf(host) || host;
+  return { host, username, password, ok: !!(host && username && password), candidates, raw: text };
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

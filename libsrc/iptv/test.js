@@ -52,6 +52,8 @@ function report(label, c) {
     const cr = await credsource.resolve(sku, { hours: 24, trialTimeoutMs: 150000, fresh });
     if (!cr.ok) { console.error('Could not source credentials: ' + cr.error + (cr.detail ? '  (' + cr.detail + ')' : '')); process.exit(1); }
     console.log('  got creds via ' + cr.source + ' — ' + cr.note + '  (host=' + cr.host + ' user=' + cr.username + ')');
+    if (cr.candidates && cr.candidates.length > 1) console.log('  host candidates seen: ' + cr.candidates.join('  '));
+    if (cr.raw) console.log('  ── raw delivery text ──\n' + cr.raw.replace(cr.password || '\u0000', '****').split('\n').map(l => '    ' + l).join('\n') + '\n  ───────────────────────');
     const inf = await fetch.info(cr.host, cr.username, cr.password);
     if (inf.ok && inf.user_info) console.log('  auth OK · UA="' + fetch.winningUA() + '" · status=' + (inf.user_info.status || '?') + (inf.user_info.exp_date ? ' · expires=' + new Date(inf.user_info.exp_date * 1000).toISOString().slice(0, 10) : ''));
     else console.log('  auth check: ' + (inf.error || 'failed') + (inf.sample ? '  (' + inf.sample + ')' : '') + '  — will still try the library pull');
@@ -59,6 +61,19 @@ function report(label, c) {
     const tf = Date.now();
     lib = await fetch.fetchAll(cr.host, cr.username, cr.password);
     console.log('  fetched in ' + ms(tf) + (Object.values(lib.errors || {}).some(Boolean) ? '  (errors: ' + JSON.stringify(lib.errors) + ')' : ''));
+    // player_api.php blocked? fall back to the M3U playlist (the second confirmed source).
+    const empty = (lib.live || []).length + (lib.vod || []).length + (lib.series || []).length === 0;
+    if (empty) {
+      const base = cr.host.replace(/\/+$/, '');
+      for (const candidate of (cr.candidates && cr.candidates.length ? cr.candidates : [base])) {
+        const m3uUrl = candidate.replace(/\/+$/, '') + '/get.php?username=' + encodeURIComponent(cr.username) + '&password=' + encodeURIComponent(cr.password) + '&type=m3u_plus&output=ts';
+        console.log('  player_api empty — trying M3U: ' + candidate + '/get.php …');
+        const tm = Date.now();
+        const r = await m3u.fetchM3U(m3uUrl, 180000);
+        if (r.ok && (r.live.length + r.vod.length + r.series.length) > 0) { console.log('  M3U worked: ' + r.scanned + ' entries in ' + ms(tm)); lib = r; break; }
+        console.log('  M3U: ' + (r.ok ? 'empty' : r.error) + ' in ' + ms(tm));
+      }
+    }
   } else if (args[0] === '--m3u') {
     src = 'M3U';
     console.log('Fetching M3U playlist (streaming)…');
