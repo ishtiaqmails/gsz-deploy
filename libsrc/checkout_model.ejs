@@ -67,7 +67,11 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape' && modal.classList.contains('on')) close(); });
 
   var INFO=null, CHOSEN={ type:'' };
-  window.__gszBuy=function(opts){ opts=opts||{}; if(!opts.slug){ return; } open(); body.innerHTML='<div class="gbuy-load">Loading…</div>'; ttl.textContent='Checkout'; sub.textContent='Pay securely — no page change.';
+  window.__gszBuy=function(opts){ opts=opts||{}; if(!opts.slug){ return; }
+    // SIGNIN_GATE_v1 — require an account before checkout. Guests go to sign-in and
+    // return to this page (with the same product) so Buy Now resumes after login.
+    if(!isIn()){ var nx=location.pathname+location.search+location.hash; location.href='/login?next='+encodeURIComponent(nx); return; }
+    open(); body.innerHTML='<div class="gbuy-load">Loading…</div>'; ttl.textContent='Checkout'; sub.textContent='Pay securely — no page change.';
     fetch('/account/tools/buy-info?slug='+encodeURIComponent(opts.slug)+'&plan='+encodeURIComponent(opts.planIdx!=null?opts.planIdx:0),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.ok){ body.innerHTML='<div class="gbuy-load errmsg">'+esc((j&&j.error)||'Couldn’t load this product.')+'</div>'; return; }
       if(!j.available){ body.innerHTML='<div class="gbuy-load">This plan is currently out of stock. Please try another plan or <a href="https://wa.me/'+WANUM+'" style="color:#29d3ff">message us</a>.</div>'; return; }

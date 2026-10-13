@@ -177,6 +177,10 @@
   var cache=null, authed=true, ordFilter='all', authScreen=false;
   var WANUM=<%- JSON.stringify(_wanum) %>;
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+  // CLEAN_CRED_v1 — some panels return a line/username wrapped in HTML (e.g. a
+  // <span class="user-cred-cell" title="…">123</span> table cell). Strip tags and
+  // collapse to the bare value so the renew UI never shows raw markup.
+  function cleanField(s){ if(s==null) return ''; var d=document.createElement('div'); d.innerHTML=String(s); var t=(d.textContent||d.innerText||'').replace(/\s+/g,' ').trim(); return t; }
   function money(n){ return 'Rs '+Math.round(Number(n||0)).toLocaleString('en-US'); }
   window.__gszScrollLock = window.__gszScrollLock || (function(){ var n=0,y=0; return {
     lock:function(){ if(n++>0) return; y=window.scrollY||window.pageYOffset||0; var b=document.body; b.style.position='fixed'; b.style.top=(-y)+'px'; b.style.left='0'; b.style.right='0'; b.style.width='100%'; b.style.overflow='hidden'; },
@@ -716,8 +720,9 @@
     go.addEventListener('click',submit);
   }
   function iptvFound(s, info, raw){
-    var exp=info.expiry?String(info.expiry):null;  // the bot returns an already-formatted expiry (e.g. 13-10-2026) — show as-is
-    var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(info.username)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
+    var uname=cleanField(info.username);           // strip any HTML wrapper a panel returned
+    var exp=info.expiry?cleanField(info.expiry):null;  // the bot returns an already-formatted expiry (e.g. 13-10-2026) — show as-is
+    var meta='<div class="cthm-meta"><div><div class="muted">Your line</div><div>'+esc(uname)+'</div></div>'+(exp?('<div><div class="muted">Current expiry</div><div>'+esc(exp)+'</div></div>'):'')+'</div>';
     var vmap={}; (s.version_labels||[]).forEach(function(v){ if(v&&v.key) vmap[String(v.key)]=v.label; });
     var vers=((info&&info.versions)||[]).filter(function(v){return v&&v.key;}).map(function(v){ return { key:String(v.key), label:(vmap[String(v.key)]||v.label||String(v.key)) }; });
     var selVer = vers.length? vers[0].key : '';
@@ -736,7 +741,7 @@
   }
   function iptvPay(s, info, pl, verKey, raw){
     body.innerHTML='<button class="cthm-back" id="ipBack">← Back</button>'
-      +'<div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(s.name)+'</div><div class="muted">'+esc(info.username)+' · '+esc(pl.label)+' · '+money(pl.price_pkr)+'</div></div><div class="cthm-load">Loading payment options…</div>';
+      +'<div style="margin:2px 0 12px"><div style="font-weight:800;font-size:16px">Renew — '+esc(s.name)+'</div><div class="muted">'+esc(cleanField(info.username))+' · '+esc(pl.label)+' · '+money(pl.price_pkr)+'</div></div><div class="cthm-load">Loading payment options…</div>';
     document.getElementById('ipBack').addEventListener('click',function(){ iptvFound(s, info, raw); });
     fetch('/account/tools/pay-methods?amount='+encodeURIComponent(pl.price_pkr),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
       var ms=(j&&j.methods)||[]; var load=body.querySelector('.cthm-load');

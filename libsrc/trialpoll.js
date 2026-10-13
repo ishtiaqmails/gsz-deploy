@@ -24,15 +24,7 @@ module.exports = function (pool) {
         idempotency_key: 'trial-' + (t.bot_ref || t.id)
       });
     } catch (e) {}
-    try {
-      if (mailer.configured && mailer.configured() && t.email) {
-        const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #eceef3;border-radius:14px">'
-          + '<h2 style="margin:0 0 6px;color:#0f1424">Your ' + (t.server_name || 'trial') + ' is ready</h2>'
-          + '<p style="color:#5a6276;font-size:14px">Valid for ' + (t.duration_label || ((t.duration_hours || '') + ' hours')) + '.</p>'
-          + '<pre style="background:#f4f6fb;border-radius:10px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:13.5px">' + String(t.credentials || '') + '</pre></div>';
-        await mailer.send(t.email, 'Your ' + (t.server_name || '') + ' trial is ready', html);
-      }
-    } catch (e) {}
+    // Email delivery intentionally disabled — trials are delivered via WhatsApp only.
   }
 
   async function tick() {

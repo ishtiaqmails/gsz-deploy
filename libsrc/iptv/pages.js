@@ -60,6 +60,7 @@ const STYLE = `<link rel="preconnect" href="https://fonts.googleapis.com"><link 
   .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:auto}
   .q{font:600 .68rem Inter;color:var(--accent);background:var(--chip);border-radius:6px;padding:2px 7px;letter-spacing:.02em}
   .ct{font:500 .76rem Inter;color:var(--faint)}
+  .co{font:600 .68rem Inter;color:#6b5bd1;background:#efecfd;border-radius:6px;padding:2px 7px}
   .ep{font:600 .7rem Inter;color:var(--ok);background:#e9f8f1;border-radius:6px;padding:2px 7px}
   .more{display:block;margin:4px auto 44px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 .95rem Inter;padding:11px 26px;border-radius:12px;cursor:pointer}
   .more:hover{border-color:var(--chipbd)}
@@ -124,7 +125,7 @@ ${topbar()}
   function chips(el, obj, cur, flags, onPick){
     var keys=Object.keys(obj||{}).sort(function(a,b){return obj[b]-obj[a];});
     var h='<span class="flabel">'+(flags?'Country':'Category')+'</span><button class="chip '+(cur===''?'on':'')+'" data-v="">All</button>';
-    keys.forEach(function(k){ var fl=flags&&FLAGS[k]?FLAGS[k]+' ':''; h+='<button class="chip '+(cur===k?'on':'')+'" data-v="'+k.replace(/"/g,'&quot;')+'">'+fl+k+' <i>'+obj[k]+'</i></button>'; });
+    keys.forEach(function(k){ h+='<button class="chip '+(cur===k?'on':'')+'" data-v="'+k.replace(/"/g,'&quot;')+'">'+k+' <i>'+obj[k]+'</i></button>'; });
     el.innerHTML=h;
     el.onclick=function(e){var b=e.target.closest('.chip');if(!b)return;onPick(b.dataset.v);
       [].forEach.call(el.querySelectorAll('.chip'),function(t){t.classList.remove('on');});b.classList.add('on');};
@@ -139,8 +140,8 @@ ${topbar()}
   function card(it){
     var qv=it.quality?'<span class="q">'+it.quality.replace(/\\//g,' · ')+'</span>':'';
     var ep=it.episodes?'<span class="ep">'+it.episodes+' eps</span>':'';
-    var fl=it.flag?'<span class="fl">'+it.flag+'</span>':'';
-    return '<div class="card"><div class="nm">'+fl+(it.name||'').replace(/</g,'&lt;')+'</div><div class="tags">'+qv+ep+'<span class="ct">'+(it.category||'')+'</span></div></div>';
+    var co=(it.country&&it.country!=='Worldwide')?'<span class="co">'+it.country+'</span>':'';
+    return '<div class="card"><div class="nm">'+(it.name||'').replace(/</g,'&lt;')+'</div><div class="tags">'+qv+ep+'<span class="ct">'+(it.category||'')+'</span>'+co+'</div></div>';
   }
   function load(reset){
     if(loading)return;loading=true;if(reset){page=1;grid.innerHTML='';}

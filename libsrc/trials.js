@@ -55,9 +55,18 @@ module.exports = function (pool) {
       .map(function (s) { const t = bt && bt[s.sku]; return (t && t.label) ? Object.assign({}, s, { duration_label: t.label }) : s; });
   }
 
+  // STORE_NAME_OVERLAY_v1 — show OUR product name (from the catalog) instead of the
+  // bot's raw panel name. Maps trial_servers.sku -> products.name via product_plans.bot_sku.
+  const STORE_NAME = `LEFT JOIN LATERAL (
+      SELECT p.name FROM product_plans pp
+        JOIN products p ON p.id = pp.product_id
+        JOIN categories c ON c.id = p.category_id
+       WHERE pp.bot_sku = ts.sku AND c.slug='iptv' AND p.active AND NOT p.hidden
+       ORDER BY p.name LIMIT 1) pn ON true`;
+
   // ---- public trials page ----
   router.get('/trials', async (req, res) => {
-    const raw = (await pool.query("SELECT sku, name, duration_label, duration_hours, max_per_customer FROM trial_servers WHERE enabled=true ORDER BY name")).rows;
+    const raw = (await pool.query("SELECT ts.sku, COALESCE(pn.name, ts.name) AS name, ts.duration_label, ts.duration_hours, ts.max_per_customer FROM trial_servers ts " + STORE_NAME + " WHERE ts.enabled=true ORDER BY name")).rows;
     const servers = gate(raw, await botTrials());
     let me = null, used = {};
     if (req.session && req.session.customer) {
@@ -72,7 +81,7 @@ module.exports = function (pool) {
   // ---- live trials JSON (for the home-page modal) ----
   router.get('/api/trials', async (req, res) => {
     try {
-      const raw = (await pool.query("SELECT sku, name, duration_label, duration_hours, max_per_customer FROM trial_servers WHERE enabled=true ORDER BY name")).rows;
+      const raw = (await pool.query("SELECT ts.sku, COALESCE(pn.name, ts.name) AS name, ts.duration_label, ts.duration_hours, ts.max_per_customer FROM trial_servers ts " + STORE_NAME + " WHERE ts.enabled=true ORDER BY name")).rows;
       const servers = gate(raw, await botTrials());
       let loggedIn = false, waOk = false, used = {};
       if (req.session && req.session.customer) {
@@ -89,7 +98,7 @@ module.exports = function (pool) {
     const cust = req.session.customer; const sku = (req.body.sku || '').trim();
     const ajax = req.xhr || String(req.headers['x-requested-with'] || '').toLowerCase() === 'fetch'; /*trialsAjax*/
     const back = m => ajax ? res.json({ ok: true, msg: m }) : res.redirect('/trials?msg=' + encodeURIComponent(m));
-    const srv = (await pool.query("SELECT * FROM trial_servers WHERE sku=$1 AND enabled=true", [sku])).rows[0];
+    const srv = (await pool.query("SELECT ts.*, COALESCE(pn.name, ts.name) AS name FROM trial_servers ts " + STORE_NAME + " WHERE ts.sku=$1 AND ts.enabled=true", [sku])).rows[0];
     if (!srv) return back('That trial is not available right now.');
     // BOT_TRIAL_GATE_v1 — the bot must currently allow this trial (don't create a dead claim)
     const bt = await botTrials();
