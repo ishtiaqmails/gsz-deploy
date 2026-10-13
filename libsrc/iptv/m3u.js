@@ -6,8 +6,26 @@
    its group-title and stream-url shape, the same split the Xtream API gives us for free. */
 const http = require('http');
 const https = require('https');
+const zlib = require('zlib');
 const readline = require('readline');
 const { URL } = require('url');
+
+const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+function browserHeaders() {
+  return {
+    'User-Agent': CHROME_UA,
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'Upgrade-Insecure-Requests': '1'
+  };
+}
 
 // Attributes on an #EXTINF line: key="value" pairs, then a trailing display name after the comma.
 const ATTR = /([a-zA-Z0-9_-]+)="([^"]*)"/g;
@@ -45,14 +63,12 @@ function seriesParts(name) {
 
 let _proxy = process.env.IPTV_PROXY || process.env.ALL_PROXY || process.env.HTTP_PROXY || '';
 function setProxy(p) { _proxy = p || ''; }
-// M3U playlists need a real player UA too, or panels 403 them.
-const PLAYER_UA = 'VLC/3.0.20 LibVLC/3.0.20';
 
 function openStream(rawUrl, ms) {
   return new Promise((resolve) => {
     let u;
     try { u = new URL(rawUrl); } catch (e) { return resolve({ ok: false, error: 'bad_url' }); }
-    const headers = { 'User-Agent': PLAYER_UA, 'Accept': '*/*' };
+    const headers = browserHeaders();
     let lib, opts;
     if (_proxy && u.protocol === 'http:') {
       let px; try { px = new URL(_proxy); } catch (e) { return resolve({ ok: false, error: 'bad_proxy' }); }
@@ -65,7 +81,15 @@ function openStream(rawUrl, ms) {
     }
     const req = lib.request(opts, (res) => {
       if (res.statusCode >= 300) { res.resume(); return resolve({ ok: false, error: 'http_' + res.statusCode }); }
-      resolve({ ok: true, stream: res });
+      // decompress on the fly if the panel/Cloudflare gzipped the playlist
+      const enc = (res.headers['content-encoding'] || '').toLowerCase();
+      let stream = res;
+      try {
+        if (enc === 'gzip') stream = res.pipe(zlib.createGunzip());
+        else if (enc === 'deflate') stream = res.pipe(zlib.createInflate());
+        else if (enc === 'br') stream = res.pipe(zlib.createBrotliDecompress());
+      } catch (e) {}
+      resolve({ ok: true, stream });
     });
     req.on('error', (e) => resolve({ ok: false, error: e.code || e.message }));
     req.setTimeout(ms || 120000, () => { try { req.destroy(); } catch (e) {} resolve({ ok: false, error: 'timeout' }); });
