@@ -5,13 +5,15 @@
 set -euo pipefail
 GSZ=/opt/gsz; SRC=/opt/gsz-deploy/libsrc; TS=$(date +%Y%m%d-%H%M%S)
 BK="$GSZ/.bak-uifixes-$TS"; cd "$GSZ"
-PG=lib/iptv/pages.js; CM=views/partials/checkout_model.ejs
-for f in "$PG" "$CM"; do mkdir -p "$BK/$(dirname "$f")"; cp "$GSZ/$f" "$BK/$f"; done
+PG=lib/iptv/pages.js; CM=views/partials/checkout_model.ejs; PH=lib/phone.js
+for f in "$PG" "$CM" "$PH"; do mkdir -p "$BK/$(dirname "$f")"; cp "$GSZ/$f" "$BK/$f"; done
 echo "   backup: $BK"
-restore(){ echo "!! FAILED — restoring"; for f in "$PG" "$CM"; do cp "$BK/$f" "$GSZ/$f"; done; pm2 restart gsz >/dev/null 2>&1 || true; }
+restore(){ echo "!! FAILED — restoring"; for f in "$PG" "$CM" "$PH"; do cp "$BK/$f" "$GSZ/$f"; done; pm2 restart gsz >/dev/null 2>&1 || true; }
 trap restore ERR
 cp -f "$SRC/iptv/pages.js"      "$GSZ/$PG"
 cp -f "$SRC/checkout_model.ejs" "$GSZ/$CM"
+cp -f "$SRC/phone.js"           "$GSZ/$PH"
+node --check "$GSZ/$PH" && echo "   phone.js ok"
 node --check "$GSZ/$PG" && echo "   pages.js ok"
 node -e "const ejs=require('$GSZ/node_modules/ejs'),fs=require('fs');ejs.compile(fs.readFileSync('$GSZ/$CM','utf8'),{filename:'$GSZ/$CM'});console.log('   checkout_model.ejs ok');"
 pm2 restart gsz --update-env >/dev/null
