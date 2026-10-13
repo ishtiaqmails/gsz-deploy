@@ -6,6 +6,7 @@ const http = require('http');
 const https = require('https');
 const zlib = require('zlib');
 const { URL } = require('url');
+const proxy = require('./proxy');
 
 // Full Chrome-like header set — Cloudflare's Browser Integrity Check 403s requests that don't look
 // like a real browser (missing sec-ch-ua / sec-fetch / Accept-Language). Mirrors what the panel
@@ -53,22 +54,32 @@ const USER_AGENTS = [
 let _proxy = process.env.IPTV_PROXY || process.env.ALL_PROXY || process.env.HTTP_PROXY || '';
 function setProxy(p) { _proxy = p || ''; }
 
-function getOnce(rawUrl, ms, ua) {
-  return new Promise((resolve) => {
-    let u;
-    try { u = new URL(rawUrl); } catch (e) { return resolve({ ok: false, status: 0, error: 'bad_url' }); }
-    const headers = browserHeaders(ua);
-    let lib, opts;
-    if (_proxy && u.protocol === 'http:') {
-      // absolute-URI form through an HTTP proxy (works for http targets, which these panels are)
-      let px; try { px = new URL(_proxy); } catch (e) { return resolve({ ok: false, status: 0, error: 'bad_proxy' }); }
+async function getOnce(rawUrl, ms, ua) {
+  let u;
+  try { u = new URL(rawUrl); } catch (e) { return { ok: false, status: 0, error: 'bad_url' }; }
+  const headers = browserHeaders(ua);
+  let lib = u.protocol === 'https:' ? https : http;
+  let opts = { method: 'GET', headers };
+  try {
+    if (_proxy && proxy.isSocks(_proxy)) {
+      // SOCKS5 tunnel: open a raw TCP tunnel to the origin, then speak HTTP over it ourselves.
+      const port = parseInt(u.port, 10) || (u.protocol === 'https:' ? 443 : 80);
+      const sock = await proxy.socks5Connect(_proxy, u.hostname, port, ms);
+      headers['Host'] = u.host;
+      opts = { method: 'GET', headers, createConnection: () => sock, host: u.hostname, port, path: u.pathname + u.search };
+      lib = http; // panels are http on :8080
+    } else if (_proxy && u.protocol === 'http:') {
+      // absolute-URI form through an HTTP proxy
+      let px = new URL(_proxy);
       lib = px.protocol === 'https:' ? https : http;
       headers['Host'] = u.host;
       opts = { host: px.hostname, port: px.port || (px.protocol === 'https:' ? 443 : 80), method: 'GET', path: rawUrl, headers };
     } else {
-      lib = u.protocol === 'https:' ? https : http;
       opts = u; opts.method = 'GET'; opts.headers = headers;
     }
+  } catch (e) { return { ok: false, status: 0, error: e.message || 'proxy_failed' }; }
+
+  return new Promise((resolve) => {
     const req = lib.request(opts, (res) => {
       const chunks = [];
       res.on('data', d => { chunks.push(d); });

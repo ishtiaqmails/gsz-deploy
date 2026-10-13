@@ -9,6 +9,7 @@ const https = require('https');
 const zlib = require('zlib');
 const readline = require('readline');
 const { URL } = require('url');
+const proxy = require('./proxy');
 
 const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 function browserHeaders() {
@@ -70,21 +71,30 @@ function seriesParts(name) {
 let _proxy = process.env.IPTV_PROXY || process.env.ALL_PROXY || process.env.HTTP_PROXY || '';
 function setProxy(p) { _proxy = p || ''; }
 
-function openStream(rawUrl, ms) {
-  return new Promise((resolve) => {
-    let u;
-    try { u = new URL(rawUrl); } catch (e) { return resolve({ ok: false, error: 'bad_url' }); }
-    const headers = browserHeaders();
-    let lib, opts;
-    if (_proxy && u.protocol === 'http:') {
-      let px; try { px = new URL(_proxy); } catch (e) { return resolve({ ok: false, error: 'bad_proxy' }); }
+async function openStream(rawUrl, ms) {
+  let u;
+  try { u = new URL(rawUrl); } catch (e) { return { ok: false, error: 'bad_url' }; }
+  const headers = browserHeaders();
+  let lib = u.protocol === 'https:' ? https : http;
+  let opts = { method: 'GET', headers };
+  try {
+    if (_proxy && proxy.isSocks(_proxy)) {
+      const port = parseInt(u.port, 10) || (u.protocol === 'https:' ? 443 : 80);
+      const sock = await proxy.socks5Connect(_proxy, u.hostname, port, ms);
+      headers['Host'] = u.host;
+      opts = { method: 'GET', headers, createConnection: () => sock, host: u.hostname, port, path: u.pathname + u.search };
+      lib = http;
+    } else if (_proxy && u.protocol === 'http:') {
+      let px = new URL(_proxy);
       lib = px.protocol === 'https:' ? https : http;
       headers['Host'] = u.host;
       opts = { host: px.hostname, port: px.port || (px.protocol === 'https:' ? 443 : 80), method: 'GET', path: rawUrl, headers };
     } else {
-      lib = u.protocol === 'https:' ? https : http;
       opts = u; opts.method = 'GET'; opts.headers = headers;
     }
+  } catch (e) { return { ok: false, error: e.message || 'proxy_failed' }; }
+
+  return new Promise((resolve) => {
     const req = lib.request(opts, (res) => {
       if (res.statusCode >= 300) { res.resume(); return resolve({ ok: false, error: 'http_' + res.statusCode }); }
       // decompress on the fly if the panel/Cloudflare gzipped the playlist
