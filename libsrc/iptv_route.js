@@ -52,13 +52,12 @@ module.exports = function (pool) {
 
   // Receive a pushed M3U (raw body, optionally gzipped) → clean → store. octet-stream content-type
   // so no global json/urlencoded parser touches the binary body.
-  router.post('/internal/iptv/ingest/:server', auth, express.raw({ type: () => true, limit: '120mb' }), async (req, res) => {
+  router.post('/internal/iptv/ingest/:server', auth, express.raw({ type: () => true, limit: '400mb' }), async (req, res) => {
     try {
-      let buf = req.body;
+      const buf = req.body;
       if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ ok: false, error: 'empty_body' });
-      // the phone gzips the body (sent as plain octet-stream) — decompress by magic bytes
-      if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) { try { buf = zlib.gunzipSync(buf); } catch (e) {} }
-      const parsed = await m3u.parseM3UString(buf.toString('utf8'));
+      // stream the (gzipped) body through gunzip+readline — huge panels never sit in memory whole
+      const parsed = await m3u.parseM3UData(buf);
       if (!parsed || !parsed.ok) return res.status(400).json({ ok: false, error: 'parse_failed' });
       // guard: never overwrite a good snapshot with an empty/failed fetch
       if ((parsed.live.length + parsed.vod.length + parsed.series.length) === 0)

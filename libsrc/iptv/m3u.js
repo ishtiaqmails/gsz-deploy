@@ -137,6 +137,16 @@ async function parseM3UString(text) {
   return parseFromInput(Readable.from([String(text || '')]));
 }
 
+// Parse a pushed body that may be gzipped — STREAMED through gunzip + readline so even a
+// multi-hundred-MB playlist (Mega's ~1.4M items) never has to sit in memory all at once.
+async function parseM3UData(buf) {
+  const { Readable } = require('stream');
+  if (!Buffer.isBuffer(buf)) buf = Buffer.from(String(buf || ''));
+  const gz = buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b;
+  const input = gz ? Readable.from([buf]).pipe(zlib.createGunzip()) : Readable.from([buf]);
+  return parseFromInput(input);
+}
+
 async function parseFromInput(input) {
   const live = [], vod = [];
   const seriesMap = new Map(); // title -> { name, category, episodes:Set("s-e"), logo }
@@ -184,4 +194,4 @@ async function parseFromInput(input) {
   };
 }
 
-module.exports = { fetchM3U, parseM3UString, parseExtinf, classify, seriesParts, setProxy };
+module.exports = { fetchM3U, parseM3UString, parseM3UData, parseExtinf, classify, seriesParts, setProxy };
