@@ -47,12 +47,19 @@ function cleanName(raw) {
   s = s.replace(/^[\s|:/\-–—.]+/, '');
   let m;
   while ((m = s.match(/^([A-Za-z0-9+]{1,6})\s*[|:/\-–—]+\s*/)) && GEO_CODE.test(m[1])) s = s.slice(m[0].length).replace(/^[\s|:/\-–—.]+/, '');
-  s = s.replace(BRACKETS, ' ');
+  // leading bracketed geo/lang tag that was never closed: "[FR Title", "(EN) Title" (known codes only)
+  s = s.replace(/^[\[(]\s*([A-Za-z]{2,3})\b[\s\-_:|]*/, (mm, c) => GEO_CODE.test(c) ? '' : mm);
+  s = s.replace(BRACKETS, ' ');              // balanced brackets: "[1080]", "(2016)"
+  s = s.replace(/[\[\]{}()]/g, ' ');         // any remaining stray / unbalanced brackets
+  s = s.replace(/^\d{1,2}\s+(?=\d{3,4}\b)/, ''); // leading index before a year: "1 1960 …" -> "1960 …"
   s = s.replace(QUALITY, ' ');
   s = s.replace(PIPES, ' ');
   s = s.replace(/\.{2,}/g, ' ').replace(/\s{2,}/g, ' ');
   s = s.replace(/^[\s\-–—:|/.,]+|[\s\-–—:|/.,]+$/g, '').replace(/\s{2,}/g, ' ').trim();
-  return s || String(raw || '').trim();
+  if (s) return s;
+  // full clean emptied it (badly-wrapped source) — still return a bracket/symbol-stripped version, not raw junk
+  const fb = String(raw || '').replace(EMOJI, ' ').replace(/[\[\]{}()|=~*►▶●★]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return fb || String(raw || '').trim();
 }
 
 // The de-dupe key: clean name lowercased, accent-folded, non-alphanumerics dropped. "ESPN FHD" and
