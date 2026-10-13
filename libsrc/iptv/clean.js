@@ -12,7 +12,17 @@ const BRACKETS = /[\[({][^\])}]*[\])}]/g;              // "[1080]", "(Backup)", 
 const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}\u{FE0F}\u{200D}\u{E000}-\u{F8FF}]/gu;
 const FULLWIDTH = /[\u{1D400}-\u{1D7FF}\u{FF00}-\u{FFEF}\u{2460}-\u{24FF}\u{2070}-\u{209F}\u{1D2C}-\u{1D6A}]/gu; // fancy "ᴴᴰ", "①", superscripts
 // decorative symbols providers sprinkle in: box-drawing, arrows, stars, bullets, bars, slashes
-const SYMBOLS = /[►▶◀◁◆◇■□▪▫●○◦◉★☆✦✪✯✧♦♣♠♥❤☀⚡✔✓➤➢»«›‹→←↕↔⇒│┃┆┇┊║▌▐▎▏＊*~_•·‣⁃※＃♪♫＼\/<>{}]+/g;
+const SYMBOLS = /[►▶◀◁◆◇■□▪▫●○◦◉★☆✦✪✯✧♦♣♠♥❤☀⚡✔✓➤➢»«›‹→←↕↔⇒│┃┆┇┊║▌▐▎▏＊*~_•·‣⁃※＃♪♫＼\/<>{}=＝]+/g;
+
+// "channel" rows that are really section separators / headers, e.g. "===== AUSTRALIA =====",
+// "---- SPORTS ----", "### VIP ###", or a row with no letters/digits at all. These are dropped.
+function isDivider(raw) {
+  const s = String(raw || '');
+  if (!/[\p{L}\p{N}]/u.test(s)) return true;          // pure symbols / separators
+  if (/[=*~#]{3,}|-{4,}|_{3,}/.test(s)) return true;   // runs of divider chars
+  if (/([=*~#]\s){3,}/.test(s)) return true;           // spaced dividers "= = = ="
+  return false;
+}
 const LEADING_INDEX = /^\s*[#№]?\s*\d{1,4}\s*[.):\-–—]\s+/;   // "01. ", "#12) ", "003 - "
 const PIPES = /[|¦]+/g;
 const QUAL_RANK = { '4k': 5, uhd: 5, fhd: 4, 'full hd': 4, hd: 3, hq: 3, sd: 2, lq: 1 };
@@ -118,6 +128,7 @@ function collapse(rows, kind) {
   for (const r of rows) {
     const rawName = r.name || r.title || '';
     if (!rawName) continue;
+    if (isDivider(rawName)) continue;   // drop section-separator rows masquerading as channels
     if (ADULT.test(rawName) || ADULT.test(r.category_name || '')) { adult++; continue; }
     const clean = cleanName(rawName);
     const key = dedupeKey(clean);
@@ -153,4 +164,4 @@ function enhance(lib) {
   };
 }
 
-module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket, detectCountry };
+module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket, detectCountry, isDivider };

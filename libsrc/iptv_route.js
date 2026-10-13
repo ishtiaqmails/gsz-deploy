@@ -184,6 +184,7 @@ module.exports = function (pool) {
       const size = Math.min(100, Math.max(10, parseInt(req.query.size, 10) || 48));
       const country = String(req.query.country || '').trim();
       let rows = data[type] || [];
+      rows = rows.filter(r => r[0] && !clean.isDivider(r[0])); // drop any separator rows already stored
       const isNew = rows.length > 0 && rows[0].length >= 7; // new: [name,q,cat,country,flag,variants,eps]; old: [name,q,cat,variants,eps]
       if (cat) rows = rows.filter(r => r[2] === cat);
       if (country && isNew) rows = rows.filter(r => r[3] === country);
