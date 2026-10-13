@@ -27,8 +27,11 @@ function friendlyStatus(s) {
 module.exports = function (pool) {
   const router = express.Router();
 
-  // push the catalog+FAQ corpus to the semantic sidecar shortly after start (best-effort)
-  setTimeout(() => { sem.ensureIndexed(pool).catch(() => {}); }, 4000);
+  // keep the semantic sidecar populated OUT of the request path: once shortly after start,
+  // then on a slow timer. Sig-gated, so it only re-embeds when content actually changed.
+  // Requests never trigger a re-index (that caused a busy-embed spiral) — they only query /match.
+  setTimeout(() => { sem.ensureIndexed(pool).catch(() => {}); }, 5000);
+  setInterval(() => { sem.ensureIndexed(pool).catch(() => {}); }, 5 * 60 * 1000);
 
   // light per-session rate limit (chat abuse guard)
   const WINDOW = 60 * 1000, MAX = 30;
@@ -51,8 +54,7 @@ module.exports = function (pool) {
       const k = await kb.get(pool);
       const customer = (req.session && req.session.customer) || null;
 
-      sem.ensureIndexed(pool).catch(() => {});          // keep the sidecar index warm (cached)
-      let semMatch = null;
+      let semMatch = null;                               // requests only QUERY the sidecar, never re-index it
       try { semMatch = await sem.match(message); } catch (e) {}
 
       // short conversation memory: last product discussed (per session, 20-min window)

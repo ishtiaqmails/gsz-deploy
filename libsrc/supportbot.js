@@ -171,7 +171,7 @@ function answer(bk, message, ctx) {
   // --- semantic layer: arbitrate product vs FAQ by confidence (calibrated on live scores) ---
   const semP = (ctx.sem && ctx.sem.product) ? ctx.sem.product : null;
   const semF = (ctx.sem && ctx.sem.faq && ctx.sem.faq.a) ? ctx.sem.faq : null;
-  const pStrong = !!(semP && semP.score >= 0.45 && semP.margin >= 0.12);
+  const pStrong = !!(semP && semP.score >= 0.45 && semP.margin >= 0.08);
   const fStrong = !!(semF && (semF.margin >= 0.10 || semF.score >= 0.40));
 
   // adopt a strong semantic product when keywords found none — unless a stronger FAQ wins

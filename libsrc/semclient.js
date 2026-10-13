@@ -34,9 +34,9 @@ async function ensureIndexed(pool, opts) {
   try {
     const kb = await kbmod.get(pool, { force: !!opts.force });   // rebuilds if stale
     if (!opts.force && kb.sig === _lastSig) return;              // nothing changed since last push
-    const h = await req('/health', null, 500);
+    const h = await req('/health', null, 800);
     if (!h || !h.ready) return;                                  // sidecar not up yet
-    const r = await req('/reindex', kbmod.corpus(kb), 15000);
+    const r = await req('/reindex', kbmod.corpus(kb), 90000);    // generous: let the embed finish so we mark success (no retry spiral)
     if (r && r.ok) _lastSig = kb.sig;
   } catch (e) { /* ignore */ } finally { _indexing = false; }
 }
