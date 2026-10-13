@@ -81,6 +81,14 @@ function scoreText(mtoks, text) {
   let hit = 0; for (const t of mtoks) if (tt.has(t)) hit++;
   return hit / Math.sqrt(tt.size);
 }
+function matchCategory(bk, message) {
+  const stem = w => w.replace(/s$/, '');
+  const rawm = uniq(toks(message)).map(stem);
+  return bk.categories.find(c => {
+    const ct = uniq([...toks(c.name), ...toks(c.slug)]).map(stem).filter(w => w.length >= 3);
+    return ct.some(x => rawm.indexOf(x) >= 0);
+  }) || null;
+}
 function bestFaq(bk, message, productId) {
   const mtoks = uniq(toks(message)).filter(t => t.length > 2);
   if (!mtoks.length) return null;
@@ -148,13 +156,16 @@ function answer(bk, message, ctx) {
   let p = prods[0] || null;
   out.intent = det.intent;
 
-  // conversation memory: a short follow-up with no named product refers to the last one.
-  // ("how much?", "does it work on firestick?", "the 3-month one?")
-  const DETAIL = ['price', 'plans', 'warranty', 'stock', 'delivery', 'product_info', 'fallback'];
-  if (!p && ctx.lastProduct && DETAIL.indexOf(det.intent) >= 0) {
+  // a named category must never be mistaken for a product follow-up
+  const namedCat = matchCategory(bk, msg);
+
+  // conversation memory: a short follow-up with no named product refers to the last one
+  // ("how much?", "does it work on firestick?", "the 3-month one?"). Never for a category name.
+  if (!p && !namedCat && ctx.lastProduct) {
     const wc = toks(msg).length;
-    const cue = /\b(it|its|that|this|them|one|same|3 ?months?|6 ?months?|12 ?months?|year|yearly|monthly|firestick|fire ?stick|android|ios|iphone|samsung|lg|smart ?tv|mac|windows|work|works|working|device|devices)\b/i.test(msg);
-    if (wc <= 6 || cue) { p = ctx.lastProduct; prods = [p]; }
+    const cue = /\b(it|its|that|this|them|one|same|3 ?months?|6 ?months?|12 ?months?|year|yearly|monthly|firestick|fire ?stick|android|ios|iphone|samsung|lg|smart ?tv|mac|windows|works?|working|device|devices)\b/i.test(msg);
+    const detailIntent = ['price', 'plans', 'warranty', 'stock', 'delivery'].indexOf(det.intent) >= 0;
+    if (cue || (detailIntent && wc <= 4)) { p = ctx.lastProduct; prods = [p]; }
   }
   out.productId = p ? p.id : null;
 
@@ -179,6 +190,7 @@ function answer(bk, message, ctx) {
   if (det.intent === 'catalog') {
     out.text = 'Here\'s what we offer: ' + bk.categories.map(c => c.name).join(', ') + '. 🛍️ Tap a category to browse, or just tell me what you\'re after.';
     out.suggestions = bk.categories.map(c => c.name);
+    out.clearCtx = true;
     return out;
   }
 
@@ -223,7 +235,7 @@ function answer(bk, message, ctx) {
 
   // a strongly-matching real FAQ beats a generic templated answer
   const faq = bestFaq(bk, msg, p ? p.id : null);
-  if (faq && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
+  if (faq && !namedCat && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
     out.text = faq.a;
     if (faq.product) { out.products = [pcard(faq.product)]; out.productId = faq.product.id; }
     return out;
@@ -263,13 +275,8 @@ function answer(bk, message, ctx) {
   // category browse — a named category ("Entertainment", "show me vpns", "iptv") lists its
   // products even without a "recommend" verb, singular/plural tolerant.
   {
-    const stem = w => w.replace(/s$/, '');
-    const rawm = uniq(toks(msg)).map(stem);
-    const cat = bk.categories.find(c => {
-      const ctoks = uniq([...toks(c.name), ...toks(c.slug)]).map(stem).filter(w => w.length >= 3);
-      return ctoks.some(ct => rawm.indexOf(ct) >= 0);
-    });
-    if (cat && ['recommend', 'catalog', 'fallback', 'price', 'plans', 'stock', 'delivery'].indexOf(det.intent) >= 0) {
+    const cat = namedCat;
+    if (cat && ['recommend', 'catalog', 'fallback', 'price', 'plans', 'stock', 'delivery', 'product_info'].indexOf(det.intent) >= 0) {
       const pool = bk.products.filter(x => x.cat_slug === cat.slug)
         .sort((a, b) => (b.most_selling - a.most_selling) || (b.trending - a.trending) || (a.priceFrom - b.priceFrom));
       if (pool.length) {
@@ -277,6 +284,7 @@ function answer(bk, message, ctx) {
         out.text = 'Top picks in ' + cat.name + ':';
         out.products = pool.slice(0, 4).map(pcard);
         out.suggestions = bk.categories.filter(c => c.slug !== cat.slug).map(c => c.name).slice(0, 4);
+        out.clearCtx = true;
         return out;
       }
     }
@@ -286,6 +294,7 @@ function answer(bk, message, ctx) {
       out.text = 'Here are some popular picks:';
       out.products = pool.slice(0, 4).map(pcard);
       out.suggestions = bk.categories.map(c => c.name).slice(0, 4);
+      out.clearCtx = true;
       return out;
     }
   }

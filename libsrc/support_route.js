@@ -56,8 +56,13 @@ module.exports = function (pool) {
 
       const a = bot.answer(k, message, { customer, lastProduct });
 
-      // remember the product this turn settled on (for follow-ups)
-      try { if (req.session && a.productId) req.session._sbCtx = { id: a.productId, ts: Date.now() }; } catch (e) {}
+      // remember the product this turn settled on (for follow-ups); clear it when we showed a list
+      try {
+        if (req.session) {
+          if (a.productId) req.session._sbCtx = { id: a.productId, ts: Date.now() };
+          else if (a.clearCtx) delete req.session._sbCtx;
+        }
+      } catch (e) {}
 
       // guest-safe order tracking: look up status by order number (no credentials, no contact).
       if (a.needsAction === 'order_status' && a.orderNo) {
