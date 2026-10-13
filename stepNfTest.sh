@@ -13,9 +13,11 @@ const p=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:pro
   if(!nf) throw new Error('netflix-premium product not found');
   const plan=(await p.query(\"SELECT id,label FROM product_plans WHERE product_id=\$1 AND label ILIKE '%TV%' AND label ILIKE '%Pakistan%' ORDER BY id LIMIT 1\",[nf.id])).rows[0];
   if(!plan) throw new Error('TV Pakistan plan not found');
-  const cu=(await p.query(\"SELECT customer_id FROM orders WHERE order_no='GSZ-2008'\")).rows[0];
-  if(!cu||!cu.customer_id) throw new Error('could not resolve customer from GSZ-2008');
-  const cid=cu.customer_id;
+  const g=(await p.query(\"SELECT customer_id,email FROM orders WHERE order_no='GSZ-2008'\")).rows[0];
+  if(!g) throw new Error('GSZ-2008 not found');
+  let cid=g.customer_id;
+  if(!cid && g.email){ const c=(await p.query(\"SELECT id FROM customers WHERE lower(email)=lower(\$1) LIMIT 1\",[g.email])).rows[0]; if(c) cid=c.id; }
+  // cid may stay null; the cloned test order inherits GSZ-2008's email, so it's still owned by you.
   // clean any prior test rows first (idempotent)
   await p.query(\"DELETE FROM nf_assignments WHERE order_no='NFTEST-GSZ'\");
   await p.query(\"DELETE FROM orders WHERE order_no='NFTEST-GSZ'\");
@@ -31,8 +33,9 @@ const p=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:pro
   Object.keys(ov).forEach(k=>{ if(k in base) base[k]=ov[k]; });
   const cols=Object.keys(base).filter(c=>!skip.has(c));
   const ord=(await p.query('INSERT INTO orders('+cols.join(',')+') VALUES('+cols.map((_,i)=>'\$'+(i+1)).join(',')+') RETURNING id', cols.map(c=>base[c]))).rows[0];
-  await p.query(\"INSERT INTO nf_assignments(nf_account_id,order_id,order_no,customer_id,plan_tier,status,expires_at) VALUES(\$1,\$2,'NFTEST-GSZ',\$3,'tv','active',now()+interval '30 days')\",[acc.id,ord.id,cid]);
-  console.log('TEST READY -> order NFTEST-GSZ | nf_account '+acc.id+' | customer '+cid+' | plan \"'+plan.label+'\" (tv tier)');
+  if(cid!=null){ await p.query(\"INSERT INTO nf_assignments(nf_account_id,order_id,order_no,customer_id,plan_tier,status,expires_at) VALUES(\$1,\$2,'NFTEST-GSZ',\$3,'tv','active',now()+interval '30 days')\",[acc.id,ord.id,cid]); }
+  else { await p.query(\"INSERT INTO nf_assignments(nf_account_id,order_id,order_no,plan_tier,status,expires_at) VALUES(\$1,\$2,'NFTEST-GSZ','tv','active',now()+interval '30 days')\",[acc.id,ord.id]); }
+  console.log('TEST READY -> order NFTEST-GSZ | nf_account '+acc.id+' | customer '+(cid==null?'(by email)':cid)+' | plan \"'+plan.label+'\" (tv tier)');
   await p.end();
 })().catch(e=>{console.error('TEST SETUP FAIL:',e.message);process.exit(1);});
 "
