@@ -47,12 +47,14 @@ function report(label, c) {
     if (!sku) { console.error('usage: node test.js --auto <SKU>'); process.exit(1); }
     const { base, key } = credsource.loadEnv();
     console.log('gsz-api: ' + (base || '(none found)') + (key ? '  key:' + key.slice(0, 4) + '…' : '  (no key)'));
+    const fresh = args.includes('--fresh');
     console.log('Resolving read-only credentials for ' + sku + ' (orders-first, free-trial fallback)…');
-    const cr = await credsource.resolve(sku, { hours: 24, trialTimeoutMs: 150000 });
+    const cr = await credsource.resolve(sku, { hours: 24, trialTimeoutMs: 150000, fresh });
     if (!cr.ok) { console.error('Could not source credentials: ' + cr.error + (cr.detail ? '  (' + cr.detail + ')' : '')); process.exit(1); }
     console.log('  got creds via ' + cr.source + ' — ' + cr.note + '  (host=' + cr.host + ' user=' + cr.username + ')');
     const inf = await fetch.info(cr.host, cr.username, cr.password);
-    if (inf.ok && inf.user_info) console.log('  auth OK · status=' + (inf.user_info.status || '?') + (inf.user_info.exp_date ? ' · expires=' + new Date(inf.user_info.exp_date * 1000).toISOString().slice(0, 10) : ''));
+    if (inf.ok && inf.user_info) console.log('  auth OK · UA="' + fetch.winningUA() + '" · status=' + (inf.user_info.status || '?') + (inf.user_info.exp_date ? ' · expires=' + new Date(inf.user_info.exp_date * 1000).toISOString().slice(0, 10) : ''));
+    else console.log('  auth check: ' + (inf.error || 'failed') + (inf.sample ? '  (' + inf.sample + ')' : '') + '  — will still try the library pull');
     console.log('Pulling full library…');
     const tf = Date.now();
     lib = await fetch.fetchAll(cr.host, cr.username, cr.password);

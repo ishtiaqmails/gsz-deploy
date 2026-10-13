@@ -1,3 +1,4 @@
+/package.json
+libsrc/iptv/.creds-cache.json
 node_modules/
 package-lock.json
-/package.json

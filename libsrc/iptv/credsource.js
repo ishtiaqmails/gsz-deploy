@@ -77,16 +77,33 @@ function parseCreds(src) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// Tiny on-disk creds cache so repeat refreshes reuse a still-valid line instead of generating a
+// fresh trial every time (free + ban-safe, but pointless churn). Trial creds live ~trial-hours;
+// order creds are a real customer line, re-checked hourly. Cache is local + gitignored.
+const CACHE = require('path').join(__dirname, '.creds-cache.json');
+function readCache() { try { return JSON.parse(fs.readFileSync(CACHE, 'utf8')); } catch (e) { return {}; } }
+function cacheGet(sku) {
+  const c = readCache()[sku];
+  if (c && c.host && c.username && c.password && c.expires > Date.now()) return c;
+  return null;
+}
+function cachePut(sku, creds, ttlMs) {
+  try { const all = readCache(); all[sku] = Object.assign({}, creds, { expires: Date.now() + ttlMs, cachedAt: Date.now() }); fs.writeFileSync(CACHE, JSON.stringify(all)); } catch (e) {}
+}
+
 /* Resolve a usable read-only Xtream login for a product sku.
    opts: { hours=24, trialTimeoutMs=120000, allowTrial=true }
    returns { ok, host, username, password, source:'order'|'trial', note } or { ok:false, error } */
 async function resolve(sku, opts) {
   opts = opts || {};
+  // 0) reuse a cached, still-valid line (unless caller forces fresh)
+  if (!opts.fresh) { const cached = cacheGet(sku); if (cached) return Object.assign({ ok: true }, cached, { note: 'cached ' + cached.source }); }
+
   // 1) orders-first — a delivered FAMILY line, nothing generated, zero credit
   const o = await apiReq('GET', '/api/panel-sample-creds/' + encodeURIComponent(sku), null, 20000);
   if (o.ok && o.data) {
     const c = parseCreds(o.data.creds || o.data);
-    if (c.ok) return Object.assign(c, { source: 'order', note: 'recent delivered family line' });
+    if (c.ok) { const out = Object.assign(c, { source: 'order', note: 'recent delivered family line' }); cachePut(sku, out, 60 * 60 * 1000); return out; }
   }
   if (opts.allowTrial === false) return { ok: false, error: 'no_order_creds', detail: (o.status === 404 ? 'panel-sample-creds endpoint not deployed yet' : o.error || o.status) };
 
@@ -96,9 +113,10 @@ async function resolve(sku, opts) {
   if (!g.ok && g.status !== 409 /*idempotent re-post*/) return { ok: false, error: 'trial_request_failed', detail: g.error || g.status || g.raw };
   const rid = (g.data && (g.data.request_id || g.data.id)) || request_id;
 
+  const trialTtl = Math.max(30 * 60 * 1000, (opts.hours || 24) * 3600 * 1000 - 30 * 60 * 1000); // trial life minus 30-min safety
   // some panels deliver inline on the POST already
   let c = parseCreds(g.data || {});
-  if (c.ok) return Object.assign(c, { source: 'trial', note: 'inline trial' });
+  if (c.ok) { const out = Object.assign(c, { source: 'trial', note: 'inline trial' }); cachePut(sku, out, trialTtl); return out; }
 
   const deadline = Date.now() + (opts.trialTimeoutMs || 120000);
   while (Date.now() < deadline) {
@@ -107,7 +125,7 @@ async function resolve(sku, opts) {
     const d = st.data || {};
     const status = String(d.status || '').toLowerCase();
     c = parseCreds(d);
-    if (c.ok) return Object.assign(c, { source: 'trial', note: 'queued trial ready' });
+    if (c.ok) { const out = Object.assign(c, { source: 'trial', note: 'queued trial ready' }); cachePut(sku, out, trialTtl); return out; }
     if (status === 'failed' || status === 'error' || status === 'rejected') return { ok: false, error: 'trial_failed', detail: d.error || d.reason || status };
   }
   return { ok: false, error: 'trial_timeout', detail: 'no credentials within ' + ((opts.trialTimeoutMs || 120000) / 1000) + 's' };
