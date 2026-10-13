@@ -81,10 +81,10 @@ module.exports = function (pool) {
   });
 
   async function store(server, name, enh) {
-    // persist only name/quality/category/variants/episodes (no stream URL, no password) — gzipped
-    const pack = k => enh[k].items.map(i => [i.name, (i.quality || []).join('/'), i.category, i.variants, i.episodes || 0]);
+    // persist only name/quality/category/country/variants/episodes (no stream URL, no password) — gzipped
+    const pack = k => enh[k].items.map(i => [i.name, (i.quality || []).join('/'), i.category, i.country || '', i.flag || '', i.variants, i.episodes || 0]);
     const items = zlib.gzipSync(Buffer.from(JSON.stringify({ live: pack('live'), vod: pack('vod'), series: pack('series') })));
-    const cats = { live: enh.live.categories, vod: enh.vod.categories, series: enh.series.categories };
+    const cats = { live: { categories: enh.live.categories, countries: enh.live.countries }, vod: { categories: enh.vod.categories, countries: enh.vod.countries }, series: { categories: enh.series.categories, countries: enh.series.countries } };
     await pool.query(
       `INSERT INTO iptv_library(server_key,name,live_count,vod_count,series_count,episode_count,raw_live,raw_vod,raw_series,categories,items,adult_hidden,status,updated_at)
        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'ok',now())
@@ -171,11 +171,13 @@ module.exports = function (pool) {
       const cat = String(req.query.cat || '').trim();
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const size = Math.min(100, Math.max(10, parseInt(req.query.size, 10) || 48));
-      let rows = data[type] || []; // [name, quality, category, variants, episodes]
+      const country = String(req.query.country || '').trim();
+      let rows = data[type] || []; // [name, quality, category, country, flag, variants, episodes]
       if (cat) rows = rows.filter(r => r[2] === cat);
+      if (country) rows = rows.filter(r => r[3] === country);
       if (q) rows = rows.filter(r => String(r[0]).toLowerCase().indexOf(q) >= 0);
       const total = rows.length;
-      const items = rows.slice((page - 1) * size, page * size).map(r => ({ name: r[0], quality: r[1], category: r[2], variants: r[3], episodes: r[4] }));
+      const items = rows.slice((page - 1) * size, page * size).map(r => ({ name: r[0], quality: r[1], category: r[2], country: r[3], flag: r[4], variants: r[5], episodes: r[6] }));
       res.json({ ok: true, type, total, page, size, pages: Math.ceil(total / size), items });
     } catch (e) { res.status(500).json({ ok: false }); }
   });

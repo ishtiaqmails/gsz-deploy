@@ -33,9 +33,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ts = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
 
 async function store(server, name, enh) {
-  const pack = k => enh[k].items.map(i => [i.name, (i.quality || []).join('/'), i.category, i.variants, i.episodes || 0]);
+  const pack = k => enh[k].items.map(i => [i.name, (i.quality || []).join('/'), i.category, i.country || '', i.flag || '', i.variants, i.episodes || 0]);
   const items = zlib.gzipSync(Buffer.from(JSON.stringify({ live: pack('live'), vod: pack('vod'), series: pack('series') })));
-  const cats = { live: enh.live.categories, vod: enh.vod.categories, series: enh.series.categories };
+  const cats = { live: { categories: enh.live.categories, countries: enh.live.countries }, vod: { categories: enh.vod.categories, countries: enh.vod.countries }, series: { categories: enh.series.categories, countries: enh.series.countries } };
   await pool.query(
     `INSERT INTO iptv_library(server_key,name,live_count,vod_count,series_count,episode_count,raw_live,raw_vod,raw_series,categories,items,adult_hidden,status,updated_at)
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'ok',now())

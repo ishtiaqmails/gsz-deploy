@@ -42,20 +42,57 @@ function dedupeKey(cleaned) {
 
 // ---- category bucketing: provider group-titles are chaos; map them to a stable human taxonomy ----
 const CAT_RULES = [
-  ['Sports', /sport|espn|sky\s*sp|bein|dazn|fight|ufc|wwe|nba|nfl|mlb|nhl|cricket|football|soccer|ligue|la\s*liga|serie\s*a|bundesliga|premier|ptv\s*sport|ten\s*sport|willow|golf|tennis|f1|motogp|rugby/i],
-  ['News', /news|cnn|bbc\s*news|fox\s*news|al\s*jazeera|sky\s*news|msnbc|bloomberg|cnbc|geo\s*news|ary\s*news|dunya|samaa|aaj/i],
-  ['Kids', /kids|cartoon|nick|disney\s*jr|baby|boomerang|pbs\s*kids|junior|cbeebies|toon/i],
-  ['Movies', /movie|cinema|film|hbo|starz|showtime|cinemax|mgm|sony\s*max|star\s*movies/i],
-  ['Entertainment', /entertain|comedy|drama|hbo|star\s*plus|zee|colors|sony|hum\s*tv|ary\s*digital|geo\s*ent|star\s*world|mbc|general/i],
-  ['Documentary', /document|discovery|nat\s*geo|national\s*geographic|history|animal\s*planet|science|investigation/i],
-  ['Music', /music|mtv|vevo|vh1|song|radio|hits/i],
-  ['Religious', /islam|quran|makkah|madina|peace\s*tv|church|god|gospel|hindu|bhakti|spiritual/i],
-  ['Regional', /urdu|hindi|punjabi|pakistan|india|arab|turk|bangla|tamil|telugu|desi|pak\b/i]
+  ['Sports', /\bsport|espn|sky\s*sp|bein|dazn|fight|ufc|wwe|aew|nba|nfl|mlb|nhl|cricket|football|soccer|ligue|la\s*liga|serie\s*a|bundesliga|premier\s*le|epl|ptv\s*sport|ten\s*sport|willow|golf|tennis|f1|formula\s*1|motogp|rugby|boxing|wrestling|supersport|astro\s*s/i],
+  ['Kids', /\bkids|cartoon|nick|disney\s*jr|disney\s*ch|baby|boomerang|pbs\s*kids|junior|cbeebies|\btoon|pogo|chutti|hungama|duck\s*tv/i],
+  ['News', /\bnews|cnn|bbc\s*news|fox\s*news|al\s*jazeera|sky\s*news|msnbc|bloomberg|cnbc|geo\s*news|ary\s*news|dunya|samaa|aaj|24\s*news|france\s*24|dw\b|trt\s*world|republic|aajtak|ndtv|times\s*now/i],
+  ['Movies', /\bmovie|cinema|\bfilm|hbo|starz|showtime|cinemax|mgm|sony\s*max|star\s*movies|pix|zee\s*cinema|\bvod|\bott/i],
+  ['Documentary', /document|discovery|nat\s*geo|national\s*geographic|\bhistory|animal\s*planet|\bscience|investigation|crime|travel|fyi/i],
+  ['Kids & Family', /family/i],
+  ['Music', /\bmusic|\bmtv|vevo|vh1|\bsong|radio|\bhits|9xm|mtunes|b4u\s*music/i],
+  ['Religious', /islam|quran|makkah|madina|peace\s*tv|\bchurch|\bgod\b|gospel|hindu|bhakti|spiritual|hajj|ramadan|aastha|sanskar/i],
+  ['Entertainment', /entertain|comedy|\bdrama|star\s*plus|\bzee|colors|\bsony|hum\s*tv|ary\s*digital|geo\s*ent|star\s*world|\bmbc|general|lifestyle|\btv\b|\bhd\b|\bseries\b|show/i]
 ];
 function bucket(groupTitle, name) {
   const hay = ((groupTitle || '') + ' ' + (name || '')).toLowerCase();
   for (const [label, re] of CAT_RULES) if (re.test(hay)) return label;
   return 'General';
+}
+
+// ---- country / region detection (group-title first, then a leading name code) ----
+const COUNTRIES = [
+  ['Pakistan', '🇵🇰', /\b(pak(istan)?|urdu|\bpk\b|lollywood|ptv|geo tv|ary|hum tv|express news|bol\b)\b/i],
+  ['India', '🇮🇳', /\b(india|hindi|\bind\b|bollywood|tamil|telugu|kannada|malayalam|marathi|bengali|punjabi|desi|zee|colors|sony|star plus|sun tv)\b/i],
+  ['Bangladesh', '🇧🇩', /\b(bangla(desh)?|\bbd\b)\b/i],
+  ['Afghanistan', '🇦🇫', /\b(afghan(istan)?|pashto|dari|\baf\b|tolo)\b/i],
+  ['Arabic', '🇸🇦', /\b(arab(ic)?|\bksa\b|saudi|\buae\b|dubai|qatar|kuwait|egypt|\bmbc|\bosn|iraq|jordan|lebanon|\bar\b)\b/i],
+  ['Turkey', '🇹🇷', /\b(turk(ey|ish)?|\btr\b|trt|bein türk)\b/i],
+  ['Iran', '🇮🇷', /\b(iran|persian|farsi|\bir\b)\b/i],
+  ['United Kingdom', '🇬🇧', /\b(uk|united kingdom|british|britain|\beng\b|england|sky uk|bbc|itv|channel 4|freeview)\b/i],
+  ['USA', '🇺🇸', /\b(usa|u\.s\.a|united states|american|\bus\b|\bamc\b|espn us)\b/i],
+  ['Canada', '🇨🇦', /\b(canada|canadian|\bca\b|\bcbc\b)\b/i],
+  ['Australia', '🇦🇺', /\b(australia|aussie|\bau\b|\babc au|foxtel)\b/i],
+  ['Ireland', '🇮🇪', /\b(ireland|irish|\brte\b)\b/i],
+  ['France', '🇫🇷', /\b(france|french|\bfr\b|canal\+|tf1)\b/i],
+  ['Germany', '🇩🇪', /\b(german(y)?|deutsch|\bde\b|\brtl\b|sky de)\b/i],
+  ['Spain', '🇪🇸', /\b(spain|spanish|españa|\bes\b|movistar)\b/i],
+  ['Italy', '🇮🇹', /\b(ital(y|ian|ia)|\bit\b|\brai\b|mediaset)\b/i],
+  ['Portugal', '🇵🇹', /\b(portug(al|uese)|\bpt\b|sport tv)\b/i],
+  ['Netherlands', '🇳🇱', /\b(netherlands|dutch|holland|\bnl\b)\b/i],
+  ['Poland', '🇵🇱', /\b(poland|polsk|polish|\bpl\b)\b/i],
+  ['Balkans', '🇷🇸', /\b(balkan|serbia|croatia|bosnia|ex-?yu|\bhrt\b|slovenia|macedonia|montenegro)\b/i],
+  ['Albania', '🇦🇱', /\b(albania|shqip|kosov|\bal\b)\b/i],
+  ['Romania', '🇷🇴', /\b(romania|\bro\b|digi)\b/i],
+  ['Greece', '🇬🇷', /\b(greece|greek|\bgr\b|\bert\b)\b/i],
+  ['Russia', '🇷🇺', /\b(russia|russian|\bru\b)\b/i],
+  ['Africa', '🌍', /\b(africa|nigeria|ghana|kenya|somali|ethiop|dstv|south africa|\bza\b)\b/i],
+  ['Philippines', '🇵🇭', /\b(philippine|filipino|pinoy|\bph\b|gma|abs-?cbn)\b/i],
+  ['Latino', '🌎', /\b(latino|mexico|mexican|brazil|brasil|argentina|colombia|chile|espanol|português br)\b/i],
+  ['Nordic', '🇸🇪', /\b(nordic|sweden|norway|denmark|finland|svenska|\bse\b|\bno\b|\bdk\b)\b/i]
+];
+function detectCountry(groupTitle, name) {
+  const hay = ((groupTitle || '') + ' ' + (name || ''));
+  for (const [label, flag, re] of COUNTRIES) if (re.test(hay)) return { country: label, flag };
+  return { country: 'Worldwide', flag: '🌐' };
 }
 
 // adult content we flag so the store can hide it by default
@@ -76,18 +113,20 @@ function collapse(rows, kind) {
     if (!key) continue;
     const q = detectQuality(rawName);
     const cat = bucket(r.category_name, clean);
+    const geo = detectCountry(r.category_name, rawName);
     let e = map.get(key);
-    if (!e) { e = { name: clean, key, quality: new Set(), category: cat, logo: r.stream_icon || r.cover || '', variants: 0, episodes: 0 }; map.set(key, e); }
+    if (!e) { e = { name: clean, key, quality: new Set(), category: cat, country: geo.country, flag: geo.flag, logo: r.stream_icon || r.cover || '', variants: 0, episodes: 0 }; map.set(key, e); }
     if (q) e.quality.add(q);
     e.variants++;
+    if (e.country === 'Worldwide' && geo.country !== 'Worldwide') { e.country = geo.country; e.flag = geo.flag; }
     if (!e.logo && (r.stream_icon || r.cover)) e.logo = r.stream_icon || r.cover;
     if (kind === 'series' && r.episode_count) e.episodes = Math.max(e.episodes, r.episode_count);
   }
-  const items = [...map.values()].map(e => ({ name: e.name, key: e.key, quality: [...e.quality], category: e.category, logo: e.logo, variants: e.variants, episodes: e.episodes || undefined }));
+  const items = [...map.values()].map(e => ({ name: e.name, key: e.key, quality: [...e.quality], category: e.category, country: e.country, flag: e.flag, logo: e.logo, variants: e.variants, episodes: e.episodes || undefined }));
   items.sort((a, b) => a.name.localeCompare(b.name));
-  const categories = {};
-  items.forEach(i => { categories[i.category] = (categories[i.category] || 0) + 1; });
-  return { items, categories, total: items.length, raw: rows.length, dupes: rows.length - items.length - adult, adult };
+  const categories = {}, countries = {};
+  items.forEach(i => { categories[i.category] = (categories[i.category] || 0) + 1; countries[i.country] = (countries[i.country] || 0) + 1; });
+  return { items, categories, countries, total: items.length, raw: rows.length, dupes: rows.length - items.length - adult, adult };
 }
 
 /* Full enhance pass over a fetched library (Xtream fetchAll OR m3u fetchM3U output). */
@@ -103,4 +142,4 @@ function enhance(lib) {
   };
 }
 
-module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket };
+module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket, detectCountry };

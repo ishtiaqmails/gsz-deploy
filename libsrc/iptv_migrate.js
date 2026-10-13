@@ -17,6 +17,17 @@ const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, da
     status TEXT DEFAULT 'pending', updated_at TIMESTAMPTZ DEFAULT now())`);
   console.log('iptv_library table ready');
 
+  // one-time re-process trigger: when the engine version bumps, mark every panel stale so the worker
+  // re-pulls once with the new categorisation/country logic. Runs ONCE per version, not every deploy.
+  await pool.query(`CREATE TABLE IF NOT EXISTS iptv_meta(k text primary key, v text)`);
+  const ENGINE_VER = '2-geo';
+  const cur = (await pool.query("SELECT v FROM iptv_meta WHERE k='engine_ver'")).rows[0];
+  if (!cur || cur.v !== ENGINE_VER) {
+    const n = (await pool.query("UPDATE iptv_library SET updated_at = now() - interval '2 days'")).rowCount;
+    await pool.query("INSERT INTO iptv_meta(k,v) VALUES('engine_ver',$1) ON CONFLICT (k) DO UPDATE SET v=$1", [ENGINE_VER]);
+    console.log('engine upgraded to ' + ENGINE_VER + ' — marked ' + n + ' panels for one-time re-process');
+  }
+
   const rows = (await pool.query(
     `SELECT DISTINCT p.slug, p.name, pp.bot_sku AS sku
        FROM products p
