@@ -17,18 +17,35 @@ const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 ];
 
+// Optional residential proxy (env or setProxy) — IPTV panels commonly 403 datacenter IPs, so the
+// periodic catalog pull routes through a residential relay (e.g. the Tailscale phone, Every Proxy).
+let _proxy = process.env.IPTV_PROXY || process.env.ALL_PROXY || process.env.HTTP_PROXY || '';
+function setProxy(p) { _proxy = p || ''; }
+
 function getOnce(rawUrl, ms, ua) {
   return new Promise((resolve) => {
     let u;
     try { u = new URL(rawUrl); } catch (e) { return resolve({ ok: false, status: 0, error: 'bad_url' }); }
-    const lib = u.protocol === 'https:' ? https : http;
-    const req = lib.request(u, { method: 'GET', headers: { 'User-Agent': ua, 'Accept': '*/*', 'Connection': 'close' } }, (res) => {
+    const headers = { 'User-Agent': ua, 'Accept': '*/*', 'Connection': 'close' };
+    let lib, opts;
+    if (_proxy && u.protocol === 'http:') {
+      // absolute-URI form through an HTTP proxy (works for http targets, which these panels are)
+      let px; try { px = new URL(_proxy); } catch (e) { return resolve({ ok: false, status: 0, error: 'bad_proxy' }); }
+      lib = px.protocol === 'https:' ? https : http;
+      headers['Host'] = u.host;
+      opts = { host: px.hostname, port: px.port || (px.protocol === 'https:' ? 443 : 80), method: 'GET', path: rawUrl, headers };
+    } else {
+      lib = u.protocol === 'https:' ? https : http;
+      opts = u; opts.method = 'GET'; opts.headers = headers;
+    }
+    const req = lib.request(opts, (res) => {
       let s = '';
-      res.on('data', d => { s += d; });
+      res.on('data', d => { if (s.length < 4000) s += d; });
       res.on('end', () => {
-        if (res.statusCode >= 300) return resolve({ ok: false, status: res.statusCode, error: 'http_' + res.statusCode });
+        const hdr = { server: res.headers['server'] || '', cfRay: res.headers['cf-ray'] || '', via: res.headers['via'] || '' };
+        if (res.statusCode >= 300) return resolve({ ok: false, status: res.statusCode, error: 'http_' + res.statusCode, sample: s.replace(/\s+/g, ' ').slice(0, 220), hdr });
         try { resolve({ ok: true, status: res.statusCode, data: JSON.parse(s) }); }
-        catch (e) { resolve({ ok: false, status: res.statusCode, error: 'bad_json', sample: s.slice(0, 160) }); }
+        catch (e) { resolve({ ok: false, status: res.statusCode, error: 'bad_json', sample: s.slice(0, 160), hdr }); }
       });
     });
     req.on('error', (e) => resolve({ ok: false, status: 0, error: e.code || e.message }));
@@ -63,7 +80,7 @@ function api(host, user, pass, action, ms) {
 async function info(host, user, pass) {
   const base = String(host || '').replace(/\/+$/, '');
   const r = await getJson(base + '/player_api.php?username=' + encodeURIComponent(user) + '&password=' + encodeURIComponent(pass), 20000);
-  if (!r.ok) return { ok: false, error: r.error, sample: r.sample };
+  if (!r.ok) return { ok: false, error: r.error, sample: r.sample, hdr: r.hdr };
   const d = r.data || {};
   const auth = d.user_info && (d.user_info.auth === 1 || d.user_info.auth === '1');
   return { ok: !!auth, user_info: d.user_info || null, server_info: d.server_info || null, error: auth ? null : 'auth_failed' };
@@ -88,4 +105,4 @@ async function fetchAll(host, user, pass) {
   };
 }
 
-module.exports = { info, fetchAll, api, winningUA: () => _goodUA, userAgents: USER_AGENTS };
+module.exports = { info, fetchAll, api, setProxy, winningUA: () => _goodUA, userAgents: USER_AGENTS };

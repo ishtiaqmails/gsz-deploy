@@ -43,12 +43,27 @@ function seriesParts(name) {
   return { title: m[1].replace(/[._-]+/g, ' ').trim(), season: parseInt(m[2], 10), ep: parseInt(m[3], 10) };
 }
 
+let _proxy = process.env.IPTV_PROXY || process.env.ALL_PROXY || process.env.HTTP_PROXY || '';
+function setProxy(p) { _proxy = p || ''; }
+// M3U playlists need a real player UA too, or panels 403 them.
+const PLAYER_UA = 'VLC/3.0.20 LibVLC/3.0.20';
+
 function openStream(rawUrl, ms) {
   return new Promise((resolve) => {
     let u;
     try { u = new URL(rawUrl); } catch (e) { return resolve({ ok: false, error: 'bad_url' }); }
-    const lib = u.protocol === 'https:' ? https : http;
-    const req = lib.request(u, { method: 'GET', headers: { 'User-Agent': 'IPTVLibraryEngine/1.0' } }, (res) => {
+    const headers = { 'User-Agent': PLAYER_UA, 'Accept': '*/*' };
+    let lib, opts;
+    if (_proxy && u.protocol === 'http:') {
+      let px; try { px = new URL(_proxy); } catch (e) { return resolve({ ok: false, error: 'bad_proxy' }); }
+      lib = px.protocol === 'https:' ? https : http;
+      headers['Host'] = u.host;
+      opts = { host: px.hostname, port: px.port || (px.protocol === 'https:' ? 443 : 80), method: 'GET', path: rawUrl, headers };
+    } else {
+      lib = u.protocol === 'https:' ? https : http;
+      opts = u; opts.method = 'GET'; opts.headers = headers;
+    }
+    const req = lib.request(opts, (res) => {
       if (res.statusCode >= 300) { res.resume(); return resolve({ ok: false, error: 'http_' + res.statusCode }); }
       resolve({ ok: true, stream: res });
     });
@@ -120,4 +135,4 @@ async function fetchM3U(source, ms) {
   };
 }
 
-module.exports = { fetchM3U, parseExtinf, classify, seriesParts };
+module.exports = { fetchM3U, parseExtinf, classify, seriesParts, setProxy };

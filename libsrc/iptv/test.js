@@ -39,6 +39,10 @@ function report(label, c) {
   const args = process.argv.slice(2);
   if (!args.length) { console.error('usage:\n  node test.js <host> <user> <pass>\n  node test.js --m3u <url>'); process.exit(1); }
 
+  // optional residential proxy for all fetches: --proxy http://host:port
+  const pi = args.indexOf('--proxy');
+  if (pi >= 0 && args[pi + 1]) { fetch.setProxy(args[pi + 1]); m3u.setProxy(args[pi + 1]); console.log('routing fetches through proxy: ' + args[pi + 1]); }
+
   let lib, src;
   const t0 = Date.now();
   if (args[0] === '--auto') {
@@ -56,7 +60,7 @@ function report(label, c) {
     if (cr.raw) console.log('  ── raw delivery text ──\n' + cr.raw.replace(cr.password || '\u0000', '****').split('\n').map(l => '    ' + l).join('\n') + '\n  ───────────────────────');
     const inf = await fetch.info(cr.host, cr.username, cr.password);
     if (inf.ok && inf.user_info) console.log('  auth OK · UA="' + fetch.winningUA() + '" · status=' + (inf.user_info.status || '?') + (inf.user_info.exp_date ? ' · expires=' + new Date(inf.user_info.exp_date * 1000).toISOString().slice(0, 10) : ''));
-    else console.log('  auth check: ' + (inf.error || 'failed') + (inf.sample ? '  (' + inf.sample + ')' : '') + '  — will still try the library pull');
+    else { console.log('  auth check: ' + (inf.error || 'failed') + '  — will still try the library pull'); if (inf.hdr && (inf.hdr.server || inf.hdr.cfRay)) console.log('    blocker: server="' + inf.hdr.server + '"' + (inf.hdr.cfRay ? ' cf-ray=' + inf.hdr.cfRay + ' (Cloudflare)' : '')); if (inf.sample) console.log('    body: ' + inf.sample); }
     console.log('Pulling full library…');
     const tf = Date.now();
     lib = await fetch.fetchAll(cr.host, cr.username, cr.password);
