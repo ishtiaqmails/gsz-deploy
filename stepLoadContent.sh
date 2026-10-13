@@ -3,9 +3,15 @@
 # Usage: bash stepLoadContent.sh pilot.json   (file lives in libsrc/content/)
 set -Eeuo pipefail
 GSZ=/opt/gsz; SRC=/opt/gsz-deploy/libsrc
-F="${1:-pilot.json}"
-echo "--- loading content: $F ---"
-node "$SRC/load_content.js" "$SRC/content/$F"
+if [ "${1:-}" = "all" ]; then
+  FILES=$(ls "$SRC"/content/*.json 2>/dev/null)
+  echo "--- loading ALL content batches ---"
+  node "$SRC/load_content.js" $FILES
+else
+  F="${1:-pilot.json}"
+  echo "--- loading content: $F ---"
+  node "$SRC/load_content.js" "$SRC/content/$F"
+fi
 echo
 echo "--- bot re-test on the previously-weak queries ---"
 for q in "something to watch movies in 4k" "i need to hide my ip and browse safely" "will this run on firestick" "does netflix have 4k"; do

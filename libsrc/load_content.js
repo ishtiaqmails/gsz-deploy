@@ -8,9 +8,10 @@ const ROOT = '/opt/gsz';
 require(ROOT + '/node_modules/dotenv').config({ path: ROOT + '/.env' });
 const { Pool } = require(ROOT + '/node_modules/pg');
 
-const file = process.argv[2];
-if (!file) { console.error('usage: node load_content.js <content.json>'); process.exit(1); }
-const items = JSON.parse(fs.readFileSync(file, 'utf8'));
+const files = process.argv.slice(2);
+if (!files.length) { console.error('usage: node load_content.js <content.json> [more.json ...]'); process.exit(1); }
+const items = [];
+for (const f of files) { try { const arr = JSON.parse(fs.readFileSync(f, 'utf8')); if (Array.isArray(arr)) items.push.apply(items, arr); console.log('loaded file: ' + f + ' (' + arr.length + ' items)'); } catch (e) { console.error('bad file ' + f + ': ' + e.message); process.exit(1); } }
 const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASS });
 
 (async () => {
