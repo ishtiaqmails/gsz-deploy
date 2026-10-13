@@ -123,6 +123,18 @@ function detectCountry(groupTitle, name) {
   return { country: 'Worldwide', flag: '🌐' };
 }
 
+// Series base name: strip the season / episode tail so every episode folds into ONE series.
+// "1000 Babies S01 S01 EP01" -> "1000 Babies", "#Love S01 Episode 1" -> "#Love",
+// "11.22.63 S01 The Kill Floor" -> "11.22.63". Run on an already-cleaned name.
+function seriesBase(nm) {
+  let s = String(nm || '');
+  s = s.replace(/\s+S\d{1,2}(?:\s+S\d{1,2})?\b[\s\S]*$/i, '');        // " S01 …" (incl. duplicated " S01 S01 …")
+  s = s.replace(/\s+Season\s*\d+\b[\s\S]*$/i, '');
+  s = s.replace(/\s+(?:EP|Episode|Ep|E)\s*\d{1,3}\b[\s\S]*$/i, '');
+  s = s.replace(/\s+\d{1,2}\s*x\s*\d{1,3}\b[\s\S]*$/i, '');           // "1x05 …"
+  return s.trim();
+}
+
 // adult content we flag so the store can hide it by default
 const ADULT = /\b(xxx|adult|porn|18\+|sex|erotic)\b/i;
 
@@ -138,20 +150,21 @@ function collapse(rows, kind) {
     if (isDivider(rawName)) continue;   // drop section-separator rows masquerading as channels
     if (ADULT.test(rawName) || ADULT.test(r.category_name || '')) { adult++; continue; }
     const clean = cleanName(rawName);
-    const key = dedupeKey(clean);
+    const display = kind === 'series' ? (seriesBase(clean) || clean) : clean;  // fold episodes into their series
+    const key = dedupeKey(display);
     if (!key) continue;
     const q = detectQuality(rawName);
-    const cat = bucket(r.category_name, clean);
+    const cat = bucket(r.category_name, display);
     const geo = detectCountry(r.category_name, rawName);
     let e = map.get(key);
-    if (!e) { e = { name: clean, key, quality: new Set(), category: cat, country: geo.country, flag: geo.flag, logo: r.stream_icon || r.cover || '', variants: 0, episodes: 0 }; map.set(key, e); }
+    if (!e) { e = { name: display, key, quality: new Set(), category: cat, country: geo.country, flag: geo.flag, logo: r.stream_icon || r.cover || '', variants: 0, episodes: 0, rows: 0 }; map.set(key, e); }
     if (q) e.quality.add(q);
-    e.variants++;
+    e.variants++; e.rows++;
     if (e.country === 'Worldwide' && geo.country !== 'Worldwide') { e.country = geo.country; e.flag = geo.flag; }
     if (!e.logo && (r.stream_icon || r.cover)) e.logo = r.stream_icon || r.cover;
     if (kind === 'series' && r.episode_count) e.episodes = Math.max(e.episodes, r.episode_count);
   }
-  const items = [...map.values()].map(e => ({ name: e.name, key: e.key, quality: [...e.quality], category: e.category, country: e.country, flag: e.flag, logo: e.logo, variants: e.variants, episodes: e.episodes || undefined }));
+  const items = [...map.values()].map(e => ({ name: e.name, key: e.key, quality: [...e.quality], category: e.category, country: e.country, flag: e.flag, logo: e.logo, variants: e.variants, episodes: (kind === 'series' ? (e.episodes || e.rows) : e.episodes) || undefined }));
   items.sort((a, b) => a.name.localeCompare(b.name));
   const categories = {}, countries = {};
   items.forEach(i => { categories[i.category] = (categories[i.category] || 0) + 1; countries[i.country] = (countries[i.country] || 0) + 1; });
@@ -165,10 +178,10 @@ function enhance(lib) {
   const series = collapse(lib.series || [], 'series');
   return {
     live, vod, series,
-    counts: { live: live.total, vod: vod.total, series: series.total, episodes: (lib.series || []).reduce((n, s) => n + (s.episode_count || 0), 0) },
+    counts: { live: live.total, vod: vod.total, series: series.total, episodes: series.items.reduce((n, s) => n + (s.episodes || 0), 0) },
     rawCounts: { live: (lib.live || []).length, vod: (lib.vod || []).length, series: (lib.series || []).length },
     adult: live.adult + vod.adult + series.adult
   };
 }
 
-module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket, detectCountry, isDivider };
+module.exports = { enhance, collapse, cleanName, dedupeKey, detectQuality, bucket, detectCountry, isDivider, seriesBase };

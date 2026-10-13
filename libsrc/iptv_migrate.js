@@ -20,7 +20,7 @@ const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, da
   // one-time re-process trigger: when the engine version bumps, mark every panel stale so the worker
   // re-pulls once with the new categorisation/country logic. Runs ONCE per version, not every deploy.
   await pool.query(`CREATE TABLE IF NOT EXISTS iptv_meta(k text primary key, v text)`);
-  const ENGINE_VER = '2-geo';
+  const ENGINE_VER = '3-clean';
   const cur = (await pool.query("SELECT v FROM iptv_meta WHERE k='engine_ver'")).rows[0];
   if (!cur || cur.v !== ENGINE_VER) {
     const n = (await pool.query("UPDATE iptv_library SET updated_at = now() - interval '2 days'")).rowCount;

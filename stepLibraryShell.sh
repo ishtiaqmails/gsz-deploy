@@ -26,6 +26,9 @@ cp -f "$SRC/library.ejs"   "$GSZ/$LV"
 echo "==> de-market product.ejs What's Inside copy"
 node "$SRC/patch_pdplibrary.js"
 
+echo "==> engine migrate (bump version -> background re-pull with folded series + full clean)"
+node "$SRC/iptv_migrate.js" || echo "   (migrate non-fatal; display-time fold still applies)"
+
 echo "==> syntax checks"
 node --check "$GSZ/$CL" && echo "   clean.js ok"
 node --check "$GSZ/$PG" && echo "   pages.js ok"

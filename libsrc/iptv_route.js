@@ -164,6 +164,26 @@ module.exports = function (pool) {
 
   // ---- "What's Inside" display: decompressed-items cache + browse API + premium pages ----
   const _items = {};
+  const _seriesFold = {};
+  // Fold stored series rows (which some panels store per-EPISODE) into one entry per series,
+  // so existing data shows clean series immediately — a full re-pull then makes the stored
+  // counts match. Rows already folded (one per series) pass through with their episode count.
+  function foldStoredSeries(arr) {
+    const map = new Map();
+    for (const r of arr) {
+      const nm = r[0]; if (!nm || clean.isDivider(nm)) continue;
+      const base = clean.cleanName(clean.seriesBase(clean.cleanName(nm))) || clean.cleanName(nm);
+      const key = base.toLowerCase().replace(/[^a-z0-9]+/g, ''); if (!key) continue;
+      let e = map.get(key);
+      if (!e) { e = [base, r[1] || '', r[2] || '', r[3] || '', r[4] || '', 0, 0, 0]; map.set(key, e); }
+      e[5]++; e[7]++;                                   // variants, rowcount
+      const epc = (r.length >= 7 ? +r[6] : +r[4]) || 0; // explicit episode count if the row carried one
+      if (epc > +e[6]) e[6] = epc;
+    }
+    const out = [...map.values()].map(e => { e[6] = Math.max(+e[6] || 0, e[7] || 0); return e.slice(0, 7); });
+    out.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    return out;
+  }
   async function loadItems(server) {
     const c = _items[server];
     if (c && (Date.now() - c.at) < 5 * 60 * 1000) return c.data;
@@ -185,6 +205,11 @@ module.exports = function (pool) {
       const country = String(req.query.country || '').trim();
       let rows = data[type] || [];
       rows = rows.filter(r => r[0] && !clean.isDivider(r[0])); // drop any separator rows already stored
+      if (type === 'series') {
+        const fc = _seriesFold[req.params.server];
+        if (fc && (Date.now() - fc.at) < 5 * 60 * 1000) rows = fc.rows;
+        else { rows = foldStoredSeries(rows); _seriesFold[req.params.server] = { rows, at: Date.now() }; }
+      }
       const isNew = rows.length > 0 && rows[0].length >= 7; // new: [name,q,cat,country,flag,variants,eps]; old: [name,q,cat,variants,eps]
       if (cat) rows = rows.filter(r => r[2] === cat);
       if (country && isNew) rows = rows.filter(r => r[3] === country);
