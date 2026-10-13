@@ -9,10 +9,21 @@ const m3u = require('../lib/iptv/m3u');
 const clean = require('../lib/iptv/clean');
 const credsource = require('../lib/iptv/credsource');
 const pages = require('../lib/iptv/pages');
+const storefront = require('../lib/storefront');
 
 module.exports = function (pool) {
   const router = express.Router();
   const KEY = process.env.IPTV_INGEST_KEY || '';
+
+  // Same shell data the storefront pages use, so /library renders inside the real site
+  // (header, footer, theme). Mirrors the trials route's shell().
+  async function shell() {
+    const cats = await storefront.loadCats(pool);
+    const s = await storefront.loadSettings(pool);
+    const products = await storefront.loadProducts(pool);
+    const waNumber = s.wa_number || process.env.WA_NUMBER || '';
+    return { cats, settings: s, waNumber, siteName: s.site_name || 'Galaxy Subz × Zayron', logoFile: s.logo_file || 'logo.png', shellJson: storefront.shellJson(cats, products, s, waNumber) };
+  }
 
   function auth(req, res, next) {
     const k = req.get('x-iptv-key') || req.query.key || '';
@@ -178,9 +189,11 @@ module.exports = function (pool) {
       if (country && isNew) rows = rows.filter(r => r[3] === country);
       if (q) rows = rows.filter(r => String(r[0]).toLowerCase().indexOf(q) >= 0);
       const total = rows.length;
+      // display-time clean pass: idempotent, so already-stored names get the latest cleaning
+      // (symbols/leftover codes) without waiting for a re-pull.
       const items = rows.slice((page - 1) * size, page * size).map(r => isNew
-        ? { name: r[0], quality: r[1], category: r[2], country: r[3], flag: r[4], variants: r[5], episodes: r[6] }
-        : { name: r[0], quality: r[1], category: r[2], variants: r[3], episodes: r[4] });
+        ? { name: clean.cleanName(r[0]), quality: r[1], category: r[2], country: r[3], flag: r[4], variants: r[5], episodes: r[6] }
+        : { name: clean.cleanName(r[0]), quality: r[1], category: r[2], variants: r[3], episodes: r[4] });
       res.json({ ok: true, type, total, page, size, pages: Math.ceil(total / size), items });
     } catch (e) { res.status(500).json({ ok: false }); }
   });
@@ -190,7 +203,7 @@ module.exports = function (pool) {
         `SELECT server_key,name,live_count,vod_count,series_count,episode_count,raw_live,raw_vod,raw_series
            FROM iptv_library WHERE status='ok' AND (live_count+vod_count+series_count)>0
           ORDER BY (raw_live+raw_vod+raw_series) DESC`)).rows;
-      res.type('html').send(pages.libraryIndexHtml(rows, ''));
+      res.render('library', Object.assign(await shell(), { title: 'IPTV Library', libBody: pages.libraryIndexInner(rows, "") }));
     } catch (e) { res.status(500).send('error'); }
   });
   router.get('/library/:server', async (req, res) => {
@@ -199,8 +212,8 @@ module.exports = function (pool) {
         `SELECT server_key,name,live_count,vod_count,series_count,episode_count,
                 raw_live,raw_vod,raw_series,categories,updated_at
            FROM iptv_library WHERE server_key=$1`, [req.params.server])).rows[0];
-      if (!r) return res.status(404).send('<p style="font:16px system-ui;padding:40px">This server is still importing — check back soon.</p>');
-      res.type('html').send(pages.serverExplorerHtml(r, ''));
+      if (!r) return res.render('library', Object.assign(await shell(), { title: 'IPTV Library', libBody: '<div class="lib"><div class="lib-wrap" style="padding:60px 0"><p style="color:var(--muted)">This library is still importing — check back soon.</p></div></div>' }));
+      res.render('library', Object.assign(await shell(), { title: (r.name || 'IPTV') + ' — Library', libBody: pages.serverExplorerInner(r, "") }));
     } catch (e) { res.status(500).send('error'); }
   });
 

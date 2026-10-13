@@ -89,7 +89,7 @@ let changed = [];
     + "        +'<div class=\"wi-tile\"><b>'+fmt(s.vod_count)+'</b><span>Movies</span></div>'\n"
     + "        +'<div class=\"wi-tile\"><b>'+fmt(s.series_count)+'</b><span>Series</span></div>'\n"
     + "        +'<div class=\"wi-tile\"><b>'+fmt(s.episode_count)+'</b><span>Episodes</span></div></div>';\n"
-    + "      h+='<p class=\"wi-meta\">A fully loaded library'+(nCat?(' across <b>'+nCat+'</b> categories'):'')+(nCo?(' and <b>'+nCo+'</b> countries'):'')+' — organised, premium and updated automatically.</p>';\n"
+    + "      var bits=[]; if(nCat) bits.push(nCat+' categories'); if(nCo) bits.push(nCo+' countries'); if(bits.length) h+='<p class=\"wi-meta\">'+bits.join(' \\u00b7 ')+'</p>';\n"
     + "      if(topCo.length){ h+='<div class=\"wi-chips\">'+topCo.map(function(c){return '<span class=\"wi-chip\">'+esc(c)+'</span>';}).join('')+'</div>'; }\n"
     + "      h+='<a class=\"wi-browse\" href=\"/library/'+encodeURIComponent(slug)+'\">Browse the full library <svg viewBox=\"0 0 24 24\"><path d=\"M5 12h14\"/><path d=\"M13 6l6 6-6 6\"/></svg></a>';\n"
     + "      panel.innerHTML=h;\n"
@@ -104,6 +104,15 @@ let changed = [];
   fs.writeFileSync(p, s);
   changed.push('views/product.ejs');
   console.log('   product.ejs: What\'s Inside tab added');
+})();
+
+/* ---------- 3) de-market already-deployed What's Inside copy ---------- */
+(function () {
+  const p = GSZ + '/views/product.ejs';
+  let s = fs.readFileSync(p, 'utf8'); const before = s;
+  const oldLine = "      h+='<p class=\"wi-meta\">A fully loaded library'+(nCat?(' across <b>'+nCat+'</b> categories'):'')+(nCo?(' and <b>'+nCo+'</b> countries'):'')+' — organised, premium and updated automatically.</p>';";
+  const newLine = "      var bits=[]; if(nCat) bits.push(nCat+' categories'); if(nCo) bits.push(nCo+' countries'); if(bits.length) h+='<p class=\"wi-meta\">'+bits.join(' · ')+'</p>';";
+  if (s.indexOf(oldLine) !== -1) { s = s.replace(oldLine, newLine); fs.writeFileSync(p, s); if (changed.indexOf('views/product.ejs') === -1) changed.push('views/product.ejs'); console.log('   product.ejs: de-marketed What\'s Inside copy'); }
 })();
 
 console.log('PATCH OK' + (changed.length ? ' — changed: ' + changed.join(', ') : ' — nothing to change'));
