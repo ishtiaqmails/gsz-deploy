@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1, "slug": "prime-video",
+    "short": "Amazon Prime Video — stream movies, Amazon Originals & series in 4K Ultra HD. Watch The Boys, Reacher & Fallout on any device. Flexible profile plans.",
+    "long": "Amazon Prime Video brings you thousands of movies, TV series and acclaimed Amazon Originals — The Boys, Reacher, Fallout, Jack Ryan and The Lord of the Rings: The Rings of Power — streaming in up to 4K Ultra HD with HDR on supported titles at no extra cost. Watch on your Smart TV, Amazon Firestick, phone, tablet, laptop, Apple TV and games consoles, with offline downloads for travel.\n\nWe offer flexible options, from a single private profile to multi-profile plans. The choices available right now and their live prices are shown on this page, so you can pick the one that fits.",
+    "faqs": [
+      { "q": "Does Prime Video stream in 4K?", "a": "Yes — Prime Video offers 4K Ultra HD with HDR on supported titles at no extra cost, on compatible devices and a fast connection." },
+      { "q": "What can I watch on Prime Video?", "a": "Thousands of movies and series plus Amazon Originals such as The Boys, Reacher, Fallout and Jack Ryan, with new titles added regularly." },
+      { "q": "Which devices does it work on?", "a": "Prime Video works on Smart TVs, Amazon Firestick & Fire TV, Android & iPhone, tablets, laptops, Apple TV and games consoles." },
+      { "q": "How many profiles or devices do I get?", "a": "It depends on the plan you choose — we offer single-profile and multi-profile options. The current choices and what each includes are shown with live prices on this page." },
+      { "q": "Can I download shows to watch offline?", "a": "Yes — you can download titles to your phone or tablet and watch them offline. Delivery of your account details is fast once payment is confirmed." }
+    ]
+  },
+  {
+    "id": 3, "slug": "hbo-max",
+    "short": "HBO Max (Max) — stream HBO originals, Warner Bros movies & DC in up to 4K. House of the Dragon, The Last of Us, Game of Thrones & Harry Potter.",
+    "long": "Max (formerly HBO Max) is home to HBO's biggest originals and the Warner Bros. film library — House of the Dragon, The Last of Us, Game of Thrones, Succession, Dune, the DC universe and the Harry Potter films — streaming in crisp quality up to 4K Ultra HD on the premium tier. Watch on Smart TVs, Firestick, phones, tablets, laptops, Apple TV and consoles, with offline downloads.\n\nChoose the plan that suits you from the options and live prices shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Max (HBO Max)?", "a": "HBO originals like House of the Dragon, The Last of Us, Game of Thrones and Succession, plus Warner Bros. films, the DC universe and the Harry Potter series." },
+      { "q": "Does Max stream in 4K Ultra HD?", "a": "4K Ultra HD is available on the premium tier for supported titles. The quality included with each plan is shown on this page." },
+      { "q": "Which devices does it work on?", "a": "Max works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets, laptops, Apple TV and games consoles." },
+      { "q": "How many profiles or screens do I get?", "a": "It depends on the plan you choose. The current options, and how many profiles each includes, are shown with live prices on this page." },
+      { "q": "Can I download shows and how fast is delivery?", "a": "Yes — you can download titles to watch offline, and your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 4, "slug": "disney-no-ads",
+    "short": "Disney+ (No Ads) — stream Disney, Pixar, Marvel, Star Wars & National Geographic in 4K. The Mandalorian, Loki & the MCU. Ad-free family streaming.",
+    "long": "Disney+ brings together Disney, Pixar, Marvel, Star Wars and National Geographic — blockbusters, series and kids' favourites — in stunning 4K Ultra HD with Dolby Vision, completely ad-free. Watch The Mandalorian, Loki, the Marvel Cinematic Universe, classic Disney films and more.\n\nThis is an ad-free shared-profile plan that plays in the Disney+ app on phones, tablets, laptops, Firestick and Android, and casts to your TV. The live price is shown on this page.",
+    "faqs": [
+      { "q": "What's included with Disney+?", "a": "Everything from Disney, Pixar, Marvel, Star Wars and National Geographic — the MCU, The Mandalorian, animated classics, documentaries and kids' content — all ad-free." },
+      { "q": "Does Disney+ stream in 4K?", "a": "Yes — Disney+ streams in 4K Ultra HD with Dolby Vision on supported titles and devices, with a fast connection." },
+      { "q": "How do I watch — does it work on my TV?", "a": "This shared-profile plan works in the Disney+ app on phones, tablets, laptops, Firestick and Android, and you can cast it to your TV. Direct Smart-TV app login isn't used on this plan — you watch via the app or by casting to the big screen." },
+      { "q": "Is Disney+ good for kids?", "a": "Yes — it's one of the most family-friendly services, with kids' profiles and a huge library of Disney, Pixar and animated content." },
+      { "q": "How fast is delivery after I pay?", "a": "Your access details are delivered shortly after payment is confirmed, so you can start watching within minutes." }
+    ]
+  },
+  {
+    "id": 5, "slug": "hulu-no-ads",
+    "short": "Hulu (No Ads) — stream Hulu Originals, next-day US TV & FX shows ad-free. The Handmaid's Tale, Only Murders in the Building & The Bear.",
+    "long": "Hulu is the home of acclaimed originals and next-day US network TV — The Handmaid's Tale, Only Murders in the Building, The Bear, FX hits like Shōgun, plus a huge library of shows and movies — all ad-free on this plan.\n\nThis is an ad-free shared-profile plan that plays in the Hulu app on phones, tablets, laptops, Firestick and Android, and casts to your TV. Hulu is a US service; the live price is shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Hulu?", "a": "Hulu Originals and next-day US TV plus FX shows — The Handmaid's Tale, Only Murders in the Building, The Bear and Shōgun — alongside a large library of movies and series, ad-free." },
+      { "q": "How do I watch — does it work on my TV?", "a": "This shared-profile plan works in the Hulu app on phones, tablets, laptops, Firestick and Android, and you can cast it to your TV. Direct Smart-TV app login isn't used on this plan." },
+      { "q": "Is Hulu a US service — will it work for me?", "a": "Hulu is a US-based service, and we provide a ready-to-use account so you can watch. If you have any trouble accessing it from your region, message us and we'll help." },
+      { "q": "Is this plan really ad-free?", "a": "Yes — this is the No-Ads plan, so you watch without ad interruptions (a few titles may carry provider restrictions)." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 6, "slug": "paramount-no-ads-usa",
+    "short": "Paramount+ (No Ads) USA — stream Star Trek, Paramount movies, CBS shows & the Yellowstone universe ad-free. 1923, Tulsa King, SpongeBob & more.",
+    "long": "Paramount+ brings you the Star Trek universe, Paramount Pictures films, CBS shows, the Yellowstone spin-offs (1923, Tulsa King, Lawmen: Bass Reeves), SpongeBob and a deep library of movies and series — all ad-free on this plan.\n\nThis is an ad-free shared-profile US plan that plays in the Paramount+ app on phones, tablets, laptops, Firestick and Android, and casts to your TV. The live price is shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Paramount+?", "a": "Star Trek series and films, Paramount movies, CBS shows, the Yellowstone spin-offs (1923, Tulsa King), SpongeBob and a big library of movies and TV — ad-free on this plan." },
+      { "q": "How do I watch — does it work on my TV?", "a": "This shared-profile plan works in the Paramount+ app on phones, tablets, laptops, Firestick and Android, and casts to your TV. Direct Smart-TV app login isn't used on this plan." },
+      { "q": "Is it a US service?", "a": "Yes — this is the US Paramount+, and we provide a ready-to-use account. If you have any trouble accessing it from your region, just message us." },
+      { "q": "Does it have live sports or CBS?", "a": "Paramount+ carries CBS content and some live sports in the US; availability can vary, so message us to confirm a specific match or channel." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 7, "slug": "peacock-tv",
+    "short": "Peacock TV — stream NBC & Universal shows, movies, WWE & live sports. The Office, hit films & Premier League (US). Premium ad-free access.",
+    "long": "Peacock is NBCUniversal's streaming home — hit NBC and Universal shows and movies, WWE, and live sports including Premier League coverage (US), plus favourites like The Office and blockbuster films soon after cinemas. Watch on your phone, tablet, laptop, Firestick and Smart TV.\n\nThis is a premium, no-ads plan; the live price is shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Peacock?", "a": "NBC and Universal shows and movies, WWE, The Office, live sports such as Premier League (US), and new films soon after their cinema release." },
+      { "q": "Does Peacock have WWE and live sports?", "a": "Yes — Peacock is the US home of WWE and carries live sports including Premier League. Event and match availability can vary, so message us to confirm a specific one." },
+      { "q": "Which devices does it work on?", "a": "Peacock works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets, laptops and consoles." },
+      { "q": "Is this the ad-free plan?", "a": "This is a premium no-ads plan; the exact plan and its live price are shown on this page." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 8, "slug": "hilal-play",
+    "short": "Hilal Play — halal entertainment + Islamic tools in one app. Turkish & Islamic family series with Urdu/Arabic subtitles, plus Quran, prayer times & Qibla.",
+    "long": "Hilal Play is a family-friendly streaming service and Muslim super-app in one. Enjoy Turkish, Arabic and international Islamic and family series and films with subtitles in Urdu, Arabic, English and more — a wholesome, halal entertainment choice for the whole family. Alongside the shows, the app includes Islamic tools like the Holy Quran, prayer times (Athan), Qibla direction and Tasbih, with the interface available in multiple languages including Urdu.\n\nThe plan and live price are shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Hilal Play?", "a": "Turkish, Arabic and international Islamic and family-friendly series and films — historical dramas, wholesome entertainment and more — with multi-language subtitles." },
+      { "q": "Does it have Urdu subtitles?", "a": "Yes — Hilal Play offers subtitles in Urdu, Arabic, English and other languages, and the app interface is available in several languages including Urdu." },
+      { "q": "Does it include Islamic features like the Quran and prayer times?", "a": "Yes — alongside streaming, Hilal Play includes the Holy Quran, prayer times (Athan), Qibla direction and Tasbih, making it a complete app for Muslim families." },
+      { "q": "Which devices does it work on?", "a": "Hilal Play works on Android and iPhone, tablets and supported Smart TV / streaming devices." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 9, "slug": "britbox",
+    "short": "BritBox — stream the best of British TV. Classic & new BBC/ITV dramas, mysteries, comedies & soaps. Doctor Who, Line of Duty & Broadchurch.",
+    "long": "BritBox is the home of British television, a BBC and ITV service streaming the best classic and current UK shows — gripping dramas, cosy mysteries, comedies and soaps. Watch Doctor Who, Line of Duty, Broadchurch, classic Agatha Christie adaptations and much-loved British comedy, on your phone, tablet, laptop, Firestick and Smart TV.\n\nThe plan and live price are shown on this page.",
+    "faqs": [
+      { "q": "What shows are on BritBox?", "a": "A huge range of British TV — dramas like Line of Duty and Broadchurch, mysteries and detective series, classic and current comedies, soaps and Doctor Who." },
+      { "q": "Is it only old British shows?", "a": "No — BritBox has both classic favourites and current UK series, so there's a mix of nostalgia and new releases." },
+      { "q": "Which devices does it work on?", "a": "BritBox works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets and laptops." },
+      { "q": "Is BritBox worth it for British TV fans?", "a": "If you love British drama, mystery and comedy, BritBox gathers the best of BBC and ITV in one place — the plan and price are shown here." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 10, "slug": "zee5",
+    "short": "ZEE5 — stream Hindi, Tamil, Telugu & more Indian movies, originals & TV in 12+ languages. ZEE5 Originals, Bollywood hits & live TV.",
+    "long": "ZEE5 is a leading Indian streaming service with content in over 12 languages — Hindi, Tamil, Telugu, Bengali, Marathi, Kannada and more. Enjoy ZEE5 Originals, the latest Bollywood and regional movies, popular TV serials and some live TV, all in one app. Watch on your phone, tablet, laptop, Firestick and Smart TV.\n\nThe plan and live price are shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on ZEE5?", "a": "ZEE5 Originals, Bollywood and regional movies, TV serials and some live TV, with content in over 12 Indian languages including Hindi, Tamil, Telugu and Marathi." },
+      { "q": "Which languages are available?", "a": "ZEE5 offers content across 12+ Indian languages, so you can watch in Hindi, Tamil, Telugu, Bengali, Marathi, Kannada and more." },
+      { "q": "Does ZEE5 have live TV?", "a": "Yes — ZEE5 includes some live TV channels alongside its on-demand movies, originals and serials." },
+      { "q": "Which devices does it work on?", "a": "ZEE5 works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets and laptops." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 11, "slug": "crave",
+    "short": "Crave — stream HBO/Max hits, Starz & Showtime plus Canadian TV & movies. The Last of Us, House of the Dragon & Succession (Canada).",
+    "long": "Crave is Canada's premium streaming service, carrying HBO and Max hits, Starz and Showtime content plus Canadian originals and a big movie library. Watch The Last of Us, House of the Dragon, Succession and more, on your phone, tablet, laptop, Firestick and Smart TV, with 4K available on the top tier.\n\nThe plan and live price are shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on Crave?", "a": "HBO and Max hits like The Last of Us and House of the Dragon, plus Starz and Showtime content, Canadian originals and a large movie library." },
+      { "q": "Does Crave have 4K?", "a": "4K is available on Crave's top tier for supported titles. The quality included with each plan is shown on this page." },
+      { "q": "Which devices does it work on?", "a": "Crave works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets and laptops." },
+      { "q": "Is Crave a Canadian service?", "a": "Yes — Crave is Canada's premium streamer, and we provide a ready-to-use account. Message us if you have any trouble accessing it from your region." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 12, "slug": "shemaroome",
+    "short": "ShemarooMe — stream classic Bollywood, Gujarati, Marathi & devotional content. A huge nostalgia film library plus regional shows & bhakti.",
+    "long": "ShemarooME is an Indian streaming service with one of the richest classic Bollywood catalogues around, plus Gujarati and Marathi cinema, devotional and bhakti content, comedy and regional shows. It's the go-to for nostalgia films and wholesome, family-friendly Indian entertainment. Watch on your phone, tablet, laptop, Firestick and Smart TV.\n\nThe plan and live price are shown on this page.",
+    "faqs": [
+      { "q": "What can I watch on ShemarooME?", "a": "A large library of classic Bollywood films, Gujarati and Marathi cinema, devotional and bhakti content, comedy and regional shows — great for nostalgia and family viewing." },
+      { "q": "Which languages and content does it focus on?", "a": "ShemarooME leans on classic Hindi Bollywood plus Gujarati, Marathi and devotional content, making it a strong pick for regional and nostalgia fans." },
+      { "q": "Which devices does it work on?", "a": "ShemarooME works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets and laptops." },
+      { "q": "Does it have devotional content?", "a": "Yes — ShemarooME includes a dedicated devotional and bhakti section alongside its film and show library." },
+      { "q": "How fast is delivery?", "a": "Your access details are delivered shortly after payment is confirmed." }
+    ]
+  }
+]
