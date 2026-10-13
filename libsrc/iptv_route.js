@@ -20,20 +20,31 @@ module.exports = function (pool) {
     next();
   }
 
-  // Self-aware list of IPTV servers to refresh: every active IPTV product + its bot sku.
+  // Self-aware list of IPTV servers: every active IPTV product + its bot sku, each flagged `stale`
+  // (no data yet, empty, or older than the refresh window) so the agent only pulls what it needs.
+  // ?stale=1 returns just the stale ones — lets the agent self-complete without re-pulling everything.
+  const REFRESH_HOURS = 12;
   router.get('/internal/iptv/servers', auth, async (req, res) => {
     try {
       const rows = (await pool.query(
-        `SELECT DISTINCT p.slug, p.name, pp.bot_sku AS sku
+        `SELECT DISTINCT p.slug, p.name, pp.bot_sku AS sku, l.updated_at,
+                COALESCE(l.live_count,0)+COALESCE(l.vod_count,0)+COALESCE(l.series_count,0) AS have
            FROM products p
            JOIN categories c ON c.id = p.category_id
            JOIN product_plans pp ON pp.product_id = p.id
+           LEFT JOIN iptv_library l ON l.server_key = p.slug
           WHERE c.slug = 'iptv' AND p.active AND NOT p.hidden
             AND pp.bot_sku IS NOT NULL AND pp.bot_sku <> ''
           ORDER BY p.name`)).rows;
+      const cutoff = Date.now() - REFRESH_HOURS * 3600 * 1000;
       const seen = new Set(), servers = [];
-      rows.forEach(r => { if (!seen.has(r.sku)) { seen.add(r.sku); servers.push({ server: r.slug, sku: r.sku, name: r.name }); } });
-      res.json({ ok: true, servers });
+      rows.forEach(r => {
+        if (seen.has(r.sku)) return; seen.add(r.sku);
+        const stale = !r.updated_at || (+r.have === 0) || (new Date(r.updated_at).getTime() < cutoff);
+        servers.push({ server: r.slug, sku: r.sku, name: r.name, have: +r.have, stale });
+      });
+      const out = (req.query.stale === '1') ? servers.filter(s => s.stale) : servers;
+      res.json({ ok: true, servers: out });
     } catch (e) { res.status(500).json({ ok: false, error: 'server_list_failed', detail: String(e.message || e) }); }
   });
 
@@ -102,34 +113,38 @@ module.exports = function (pool) {
   // resolve the M3U link, download it on the phone's residential connection, gzip, push it back.
   const AGENT = [
     '#!/data/data/com.termux/files/usr/bin/env sh',
-    '# GSZ IPTV agent — pulls each panel library on this phone and pushes it to GSZ. Free, automatic.',
+    '# GSZ IPTV agent — self-looping. Each sweep pulls only the servers that still need data',
+    '# (missing / empty / stale), pushing each full library to GSZ. Free, automatic, self-healing.',
     'BASE="__BASE__"', 'KEY="__KEY__"',
+    'INTERVAL=7200   # seconds between sweeps (2h)',
     'TMP="$HOME/.gsz-iptv"; mkdir -p "$TMP"',
     'ts(){ date "+%H:%M:%S"; }',
-    'echo "$(ts) GSZ IPTV agent starting"',
     'termux-wake-lock 2>/dev/null || true',
     '# pull one panel: $1=server $2=sku $3=extra query (&fresh=1). 0=pushed, 1=empty, 2=no link',
     'pull(){',
     '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$2?key=$KEY$3" | grep -o \'"m3u_url":"[^"]*"\' | sed \'s/"m3u_url":"//; s/"$//\')',
-    '  [ -z "$M3U" ] && { echo "$(ts) [$1] no trial/order available yet — skipping"; return 2; }',
-    '  curl -s --max-time 900 --compressed -o "$TMP/lib.m3u" "$M3U"',
+    '  [ -z "$M3U" ] && { echo "$(ts) [$1] no order/trial available yet — skipping"; return 2; }',
+    '  curl -s --max-time 1800 --compressed -o "$TMP/lib.m3u" "$M3U"',
     '  SZ=$(wc -c < "$TMP/lib.m3u" 2>/dev/null || echo 0)',
     '  if [ "${SZ:-0}" -lt 1000 ]; then echo "$(ts) [$1] empty download (${SZ}b): $(head -c 100 "$TMP/lib.m3u" 2>/dev/null | tr -d "\\n")"; return 1; fi',
     '  echo "$(ts) [$1] pushing (${SZ}b)…"',
-    '  RESP=$(gzip -c "$TMP/lib.m3u" | curl -s --max-time 300 -X POST -H "x-iptv-key: $KEY" -H "Content-Type: application/octet-stream" --data-binary @- "$BASE/internal/iptv/ingest/$1")',
+    '  RESP=$(gzip -c "$TMP/lib.m3u" | curl -s --max-time 600 -X POST -H "x-iptv-key: $KEY" -H "Content-Type: application/octet-stream" --data-binary @- "$BASE/internal/iptv/ingest/$1")',
     '  echo "$(ts) [$1] $RESP"; rm -f "$TMP/lib.m3u"; return 0',
     '}',
-    'LIST=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY" | grep -o \'"server":"[^"]*","sku":"[^"]*"\' | sed \'s/"server":"\\([^"]*\\)","sku":"\\([^"]*\\)"/\\1 \\2/\')',
-    'if [ -z "$LIST" ]; then echo "$(ts) could not reach server list — check key/internet"; exit 1; fi',
-    'echo "$LIST" | while read SERVER SKU; do',
+    'echo "$(ts) sweep starting — checking which servers need data"',
+    'LIST=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY&stale=1" | grep -o \'"server":"[^"]*","sku":"[^"]*"\' | sed \'s/"server":"\\([^"]*\\)","sku":"\\([^"]*\\)"/\\1 \\2/\')',
+    'if [ -z "$LIST" ]; then echo "$(ts) all servers fresh — nothing to pull this sweep";',
+    'else echo "$LIST" | while read SERVER SKU; do',
     '  [ -z "$SERVER" ] && continue',
     '  echo "$(ts) [$SERVER] resolving link…"',
     '  pull "$SERVER" "$SKU" ""; rc=$?',
-    '  if [ "$rc" = "1" ]; then echo "$(ts) [$SERVER] retrying with a fresh trial…"; pull "$SERVER" "$SKU" "&fresh=1"; fi',
+    '  if [ "$rc" = "1" ]; then echo "$(ts) [$SERVER] retrying with a fresh order/trial…"; pull "$SERVER" "$SKU" "&fresh=1"; fi',
     '  sleep 3',
-    'done',
-    'termux-wake-unlock 2>/dev/null || true',
-    'echo "$(ts) all done"'
+    'done; fi',
+    'echo "$(ts) sweep done — self-updating + sleeping ${INTERVAL}s"',
+    'curl -s --max-time 30 "$BASE/internal/iptv/agent.sh?key=$KEY" -o "$HOME/gsz-iptv.sh" 2>/dev/null',
+    'sleep "$INTERVAL"',
+    'exec sh "$HOME/gsz-iptv.sh"'
   ].join('\n');
   router.get('/internal/iptv/agent.sh', auth, (req, res) => {
     const base = (process.env.SITE_BASE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '');
