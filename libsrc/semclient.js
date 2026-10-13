@@ -42,7 +42,7 @@ async function ensureIndexed(pool, opts) {
 }
 
 async function match(message) {
-  const r = await req('/match', { message: String(message || '').slice(0, 512) }, 600);
+  const r = await req('/match', { message: String(message || '').slice(0, 512) }, 1500);
   return (r && r.ok) ? { product: r.product, faq: r.faq, intent: r.intent } : null;
 }
 
