@@ -31,9 +31,8 @@ const STYLE = `<style>
   .lib-search{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;border:1px solid var(--l-line);border-radius:13px;padding:10px 14px;background:rgba(255,255,255,.03)}
   .lib-search input{border:none;outline:none;font:500 .95rem inherit;flex:1;background:none;color:var(--l-ink)}
   .lib-search input::placeholder{color:var(--l-mut)} .lib-search svg{flex:none;color:var(--l-mut)}
-  .lib-frow{display:flex;gap:8px;align-items:center;overflow-x:auto;padding:12px 0;scrollbar-width:none}
-  .lib-frow::-webkit-scrollbar{display:none}
-  .lib-flabel{flex:none;font:700 .7rem inherit;color:var(--l-mut);text-transform:uppercase;letter-spacing:.07em;padding-right:4px}
+  .lib-frow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0}
+  .lib-flabel{flex:none;width:100%;font:700 .68rem inherit;color:var(--l-mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
   .lib-chip{white-space:nowrap;border:1px solid var(--l-line);background:rgba(255,255,255,.03);color:var(--l-ink);font:600 .83rem inherit;padding:7px 14px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .lib-chip.on{background:rgba(59,130,255,.16);border-color:rgba(59,130,255,.5);color:#cfe0ff}
   .lib-chip i{color:var(--l-mut);font-style:normal;font-weight:500}

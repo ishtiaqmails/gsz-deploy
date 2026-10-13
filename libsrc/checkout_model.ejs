@@ -21,6 +21,8 @@
   .gbuy input[type=file]::file-selector-button,.gbuy input[type=file]::-webkit-file-upload-button{padding:8px 12px;margin-right:10px;border:0;border-radius:8px;background:#16203a;color:var(--gb-ink);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
   .gbuy .gb-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-weight:800;font-size:14px;padding:12px 16px;border-radius:12px;font-family:inherit}
   .gbuy .gb-p{background:var(--gb-grad);color:#fff} .gbuy .gb-g{background:#16203a;color:var(--gb-ink);border:1px solid var(--gb-ln)}
+  .gbuy .gb-full{width:100%;margin-bottom:10px;text-decoration:none}
+  .gbuy-signin{padding:6px 0 4px}
   .gbuy .gb-m{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:13.5px}
   .gbuy .gb-m input{accent-color:#2f7bff}
   .gbuy .gb-mtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -67,10 +69,19 @@
   document.addEventListener('keydown',function(e){ if(e.key==='Escape' && modal.classList.contains('on')) close(); });
 
   var INFO=null, CHOSEN={ type:'' };
+  function signinGate(){
+    // SIGNIN_GATE_v2 — require an account before checkout, but stay in the SAME modal
+    // (sheet on phones, pop-up on desktop) instead of jumping to a separate page.
+    var nx=location.pathname+location.search+location.hash;
+    open(); ttl.textContent='Sign in to continue'; sub.textContent='You need an account to place an order.';
+    body.innerHTML='<div class="gbuy-signin">'
+      +'<p class="muted" style="margin:2px 0 16px">Sign in or create your account to check out — your order picks up right where you left off.</p>'
+      +'<a class="gb-btn gb-p gb-full" href="/login?next='+encodeURIComponent(nx)+'">Sign in</a>'
+      +'<a class="gb-btn gb-g gb-full" href="/signup?next='+encodeURIComponent(nx)+'">Create account</a>'
+      +'</div>';
+  }
   window.__gszBuy=function(opts){ opts=opts||{}; if(!opts.slug){ return; }
-    // SIGNIN_GATE_v1 — require an account before checkout. Guests go to sign-in and
-    // return to this page (with the same product) so Buy Now resumes after login.
-    if(!isIn()){ var nx=location.pathname+location.search+location.hash; location.href='/login?next='+encodeURIComponent(nx); return; }
+    if(!isIn()){ return signinGate(); }
     open(); body.innerHTML='<div class="gbuy-load">Loading…</div>'; ttl.textContent='Checkout'; sub.textContent='Pay securely — no page change.';
     fetch('/account/tools/buy-info?slug='+encodeURIComponent(opts.slug)+'&plan='+encodeURIComponent(opts.planIdx!=null?opts.planIdx:0),{headers:{'X-Requested-With':'fetch'},credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
       if(!j||!j.ok){ body.innerHTML='<div class="gbuy-load errmsg">'+esc((j&&j.error)||'Couldn’t load this product.')+'</div>'; return; }
