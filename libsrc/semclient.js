@@ -8,7 +8,7 @@ const kbmod = require('./supportkb');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.SEM_PORT || 3910);
-let _indexedAt = 0, _indexing = false;
+let _lastSig = null, _indexing = false;
 
 function req(path, body, ms) {
   return new Promise(resolve => {
@@ -23,19 +23,21 @@ function req(path, body, ms) {
   });
 }
 
-// Push the current catalog+FAQ corpus to the sidecar. Cached ~10 min unless forced.
+// Self-aware re-index: push the corpus whenever the catalog's content signature changes
+// (any product / plan / price / FAQ / category edit), and only then — so nothing is
+// re-embedded needlessly. The KB auto-refreshes on its own TTL, so edits propagate by
+// themselves within a couple of minutes; markStale()/force make it immediate.
 async function ensureIndexed(pool, opts) {
   opts = opts || {};
-  const fresh = (Date.now() - _indexedAt) < 10 * 60 * 1000;
-  if (_indexing || (fresh && !opts.force)) return;
+  if (_indexing) return;
   _indexing = true;
   try {
+    const kb = await kbmod.get(pool, { force: !!opts.force });   // rebuilds if stale
+    if (!opts.force && kb.sig === _lastSig) return;              // nothing changed since last push
     const h = await req('/health', null, 500);
-    if (!h || !h.ready) return;                              // service not up yet
-    if (h.counts && h.counts.products > 0 && fresh && !opts.force) { _indexedAt = Date.now(); return; }
-    const kb = await kbmod.get(pool, { force: !!opts.force });
+    if (!h || !h.ready) return;                                  // sidecar not up yet
     const r = await req('/reindex', kbmod.corpus(kb), 15000);
-    if (r && r.ok) _indexedAt = Date.now();
+    if (r && r.ok) _lastSig = kb.sig;
   } catch (e) { /* ignore */ } finally { _indexing = false; }
 }
 
@@ -44,6 +46,6 @@ async function match(message) {
   return (r && r.ok) ? { product: r.product, faq: r.faq, intent: r.intent } : null;
 }
 
-function markStale() { _indexedAt = 0; }
+function markStale() { _lastSig = null; }
 
 module.exports = { ensureIndexed, match, markStale };

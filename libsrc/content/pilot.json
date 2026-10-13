@@ -2,53 +2,53 @@
   {
     "id": 26, "slug": "opplex-tv-iptv",
     "short": "Opplex TV IPTV — thousands of live channels, movies & live sports in HD/4K. Works on Firestick, Android & Smart TV with fast, anti-freeze streams.",
-    "long": "Opplex TV is a premium IPTV subscription built for smooth, reliable streaming. Get instant access to thousands of live TV channels from around the world — entertainment, news, kids and live sports — plus a huge on-demand library of movies and TV series. Streams are delivered in sharp HD and 4K where available over a stable, anti-freeze network, so you spend less time buffering and more time watching.\n\nOpplex works on almost any device: Amazon Firestick & Fire TV, Android phones, tablets and TV boxes, Android TV, Samsung & LG Smart TVs, MAG boxes and popular IPTV players. A full EPG (TV guide), catch-up and VOD make it easy to find what you want. Pick the plan length that suits you and start watching within minutes of purchase.",
+    "long": "Opplex TV is a premium IPTV subscription built for smooth, reliable streaming. Get instant access to thousands of live TV channels from around the world — entertainment, news, kids and live sports — plus a huge on-demand library of movies and TV series. Streams are delivered in sharp HD and 4K where available over a stable, anti-freeze network, so you spend less time buffering and more time watching.\n\nOpplex works on almost any device: Amazon Firestick & Fire TV, Android phones, tablets and TV boxes, Android TV, Samsung & LG Smart TVs, MAG boxes and popular IPTV players. A full EPG (TV guide), catch-up and VOD make it easy to find what you want. Pick the plan that suits you from the options shown on this page and start watching within minutes of purchase.",
     "faqs": [
       { "q": "Does Opplex TV work on Firestick and Smart TV?", "a": "Yes. Opplex works on Amazon Firestick & Fire TV, Android phones and TV boxes, Android TV, Samsung & LG Smart TVs, MAG boxes and most IPTV players. After your order we send the setup details so you can start watching in minutes." },
       { "q": "Do you have live sports channels?", "a": "Yes — Opplex includes a wide range of live sports plus premium entertainment, news, kids and international channels. Channel availability can vary by region, so message us if you'd like a specific channel confirmed before you buy." },
       { "q": "Is Opplex available in 4K and HD?", "a": "Streams are delivered in HD and 4K where the source provides it, over a stable anti-freeze network to reduce buffering. A fast, stable internet connection (around 15–25 Mbps for 4K) gives the best experience." },
-      { "q": "How many devices can I watch on at the same time?", "a": "A subscription runs on one connection at a time by default. If you need to watch on more than one device at once, just let us know and we'll set you up with the right plan." },
-      { "q": "How fast will I get my subscription after paying?", "a": "Delivery is fast — your activation details are sent shortly after your payment is confirmed, so you can usually start watching within minutes." },
+      { "q": "How many devices can I watch on at the same time?", "a": "Each Opplex subscription runs on one connection at a time. If you'd like to watch on more than one device at once, just message us and we'll arrange an extra connection." },
+      { "q": "Which plans are available and how much do they cost?", "a": "The subscription lengths we currently offer, with their live prices, are always shown on this page — so you see exactly what's available today. Longer plans give the best value." },
       { "q": "What if a channel stops working or I get buffering?", "a": "Your subscription is covered by our warranty — if you hit an issue we'll fix it or replace your line. Most buffering is solved with a wired or faster connection, and our team is on WhatsApp whenever you need help." },
-      { "q": "Which payment methods can I use?", "a": "You can pay with the local wallets and bank-transfer options shown at checkout. Once your payment is confirmed, your subscription is delivered automatically." }
+      { "q": "How fast will I get my subscription after paying?", "a": "Delivery is fast — your activation details are sent shortly after your payment is confirmed, so you can usually start watching within minutes." }
     ]
   },
   {
     "id": 58, "slug": "netflix-premium",
-    "short": "Netflix Premium — stream movies, series & Netflix Originals in stunning 4K Ultra HD, ad-free, on every device with multiple profiles.",
-    "long": "Netflix Premium gives you the complete Netflix experience at the highest quality. Watch thousands of movies, binge-worthy TV series, documentaries and award-winning Netflix Originals in crisp 4K Ultra HD with HDR, on any screen — Smart TV, phone, tablet, laptop, Firestick, Apple TV and games consoles. The Premium plan unlocks the best resolution and lets the household stream on separate profiles, each with its own recommendations and watchlist. Download titles to watch offline, skip the ads, and enjoy new releases every week.",
+    "short": "Netflix Premium accounts — movies, series & Netflix Originals in up to 4K Ultra HD, ad-free, on every device. Choose the plan that fits how you watch.",
+    "long": "Get Netflix on a premium account and enjoy the complete library — thousands of movies, binge-worthy series, documentaries and award-winning Netflix Originals — in crisp quality up to 4K Ultra HD with HDR. Watch on Smart TVs, phones, tablets, laptops, Firestick, Apple TV and games consoles, download titles to watch offline, and enjoy it completely ad-free.\n\nWe offer flexible options — from a single private profile to a full account, for Pakistan or Global regions. The plans available right now, and the live price of each, are shown on this page, so you can pick the one that fits how you watch.",
     "faqs": [
-      { "q": "Does Netflix Premium support 4K Ultra HD?", "a": "Yes — Premium is Netflix's highest tier and streams in 4K UHD with HDR on supported titles and devices, for the sharpest picture Netflix offers." },
-      { "q": "Can the household use different profiles?", "a": "Yes. You get multiple profiles, each with its own recommendations, watch history and watchlist, so everyone gets their own Netflix." },
-      { "q": "Which devices can I watch on?", "a": "Netflix works on Smart TVs, Amazon Firestick & Fire TV, Android & iPhone, tablets, laptops, Apple TV, Chromecast and games consoles — just sign in and watch." },
-      { "q": "Can I download shows to watch offline?", "a": "Yes — you can download movies and series to your phone or tablet and watch them offline, perfect for travel." },
-      { "q": "Is Netflix Premium ad-free?", "a": "Yes, the Premium plan is completely ad-free — no interruptions, just your movies and shows." },
+      { "q": "What's the difference between a profile plan and a full account?", "a": "A single-profile plan gives you your own private Netflix profile; a full account gives you the entire account with all of its profiles — ideal for a household. The exact plans available right now, and what each includes, are shown live on this page." },
+      { "q": "Does it support 4K Ultra HD?", "a": "Yes — these are Premium accounts, which support up to 4K UHD with HDR on compatible titles and devices, for the sharpest picture Netflix offers." },
+      { "q": "Which devices can I watch on?", "a": "Netflix works on Smart TVs, Firestick & Fire TV, Android & iPhone, tablets, laptops, Apple TV, Chromecast and consoles — just sign in and watch." },
+      { "q": "Can I download shows to watch offline?", "a": "Yes — download movies and series to your phone or tablet and watch them offline, perfect for travel." },
+      { "q": "Is it ad-free?", "a": "Yes, these are ad-free Premium accounts — no interruptions, just your movies and shows." },
       { "q": "How fast is delivery after I pay?", "a": "Your access details are delivered shortly after payment is confirmed, so you can start watching within minutes." }
     ]
   },
   {
     "id": 38, "slug": "nord-vpn",
-    "short": "NordVPN Premium — hide your IP and browse privately at blazing speeds. Unblock streaming, stay safe on public Wi-Fi, block ads & malware.",
-    "long": "NordVPN keeps you private and secure online. Hide your real IP address, encrypt your connection, and stop websites, advertisers and your ISP from tracking what you do. Connect to thousands of fast servers worldwide to unblock streaming libraries, websites and apps, beat censorship, and get a safe connection on public Wi-Fi. Enjoy lightning-fast speeds for 4K streaming and large downloads, with Threat Protection that blocks ads, trackers and malware. Works on Windows, macOS, Android, iPhone, iPad, Android TV and routers.",
+    "short": "NordVPN — hide your IP and browse privately at blazing speeds. Unblock streaming, block ads & malware, and stay safe on public Wi-Fi.",
+    "long": "NordVPN keeps you private and secure online. Hide your real IP address, encrypt your connection, and stop websites, advertisers and your ISP from tracking what you do. Connect to thousands of fast servers worldwide to unblock streaming libraries, websites and apps, beat censorship, and get a safe connection on public Wi-Fi, with Threat Protection that blocks ads, trackers and malware.\n\nNordVPN works on Windows, macOS, Android, iPhone, iPad, Android TV and routers, with fast NordLynx speeds for 4K streaming and downloads. Choose the plan that suits you from the options shown on this page.",
     "faqs": [
+      { "q": "How many devices does my plan cover?", "a": "It depends on the plan you choose — some cover a single device, while others cover a full account. The current options, and exactly what each includes, are shown live on this page." },
       { "q": "Does NordVPN hide my IP and keep me private?", "a": "Yes — NordVPN masks your real IP address and encrypts your traffic, so your browsing stays private from websites, advertisers and your internet provider." },
       { "q": "Can I use it to unblock streaming and websites?", "a": "Yes. Connect to a server in another country to access streaming libraries, websites and apps that are blocked or restricted in your region." },
       { "q": "Is it fast enough for 4K streaming and gaming?", "a": "Yes — NordVPN uses high-speed servers and the NordLynx protocol for fast, stable connections suitable for 4K streaming, downloads and gaming." },
-      { "q": "How many devices can I protect?", "a": "One account protects several of your devices at the same time — phone, laptop, tablet and more. Message us if you'd like the exact device count for your plan." },
-      { "q": "Which platforms does it work on?", "a": "NordVPN works on Windows, macOS, Android, iPhone & iPad, Android TV and routers, with easy apps for each." },
+      { "q": "Which platforms does it work on?", "a": "NordVPN works on Windows, macOS, Android, iPhone & iPad, Android TV and routers, with an easy app for each." },
       { "q": "How soon do I get access after paying?", "a": "Your login details are delivered shortly after payment is confirmed, so you can connect within minutes." }
     ]
   },
   {
     "id": 46, "slug": "canva",
     "short": "Canva Pro — design anything in minutes. Unlock premium templates, 100M+ photos & elements, Magic AI tools, Brand Kit and Background Remover.",
-    "long": "Canva Pro is the easiest way to create professional designs — social media posts, presentations, logos, flyers, invitations, videos and more — with no design experience needed. Unlock the full Pro library: over 100 million premium stock photos, videos, graphics and audio, thousands of premium templates, the one-click Background Remover, Magic AI tools (Magic Write, Magic Design and Magic Eraser), your own Brand Kit for consistent colours and fonts, and Resize to turn one design into any format. Work right in your browser or the Canva app on phone, tablet and desktop.",
+    "long": "Canva Pro is the easiest way to create professional designs — social media posts, presentations, logos, flyers, invitations, videos and more — with no design experience needed. Unlock the full Pro library: over 100 million premium stock photos, videos, graphics and audio, thousands of premium templates, the one-click Background Remover, Magic AI tools (Magic Write, Magic Design and Magic Eraser), your own Brand Kit for consistent colours and fonts, and Resize to reformat a design in one click.\n\nCanva Pro is delivered as an invite to your email — accept it and Pro unlocks on your own Canva account, in your browser and in the Canva app on phone, tablet and desktop. The plan details and price are shown on this page.",
     "faqs": [
-      { "q": "What do I get with Canva Pro?", "a": "Canva Pro unlocks 100M+ premium photos, videos and elements, thousands of premium templates, the Background Remover, Magic AI tools, Brand Kit, Resize and much more — everything you need to design like a pro." },
+      { "q": "How is Canva Pro delivered and how long does it last?", "a": "You receive a Canva Pro invite to your email that unlocks Pro on your own Canva account. The length of access matches the plan you choose, which is shown with its price on this page." },
+      { "q": "What do I get with Canva Pro?", "a": "Pro unlocks 100M+ premium photos, videos and elements, thousands of premium templates, the Background Remover, Magic AI tools, Brand Kit, Resize and much more — everything you need to design like a pro." },
       { "q": "Does it include the AI design tools?", "a": "Yes — Pro includes Canva's Magic AI tools such as Magic Write, Magic Design and Magic Eraser to help you create and edit faster." },
       { "q": "Can I use it on my phone and computer?", "a": "Yes. Canva works in any web browser and in the Canva app on Android, iPhone, iPad and desktop, and your designs sync across all of them." },
-      { "q": "Does the Background Remover come included?", "a": "Yes — the one-click Background Remover is part of Canva Pro, so you can cut out any image background instantly." },
-      { "q": "How is it delivered and how fast?", "a": "Access is set up and delivered shortly after your payment is confirmed, so you can start designing right away." }
+      { "q": "Does the Background Remover come included?", "a": "Yes — the one-click Background Remover is part of Canva Pro, so you can cut out any image background instantly." }
     ]
   }
 ]

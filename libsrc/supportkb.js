@@ -9,7 +9,10 @@
 let storefront = null; try { storefront = require('./storefront'); } catch (e) { /* settings optional */ }
 
 let _cache = null, _at = 0;
-const TTL = 5 * 60 * 1000; // 5 min; invalidate() forces a rebuild immediately
+const TTL = 2 * 60 * 1000; // 2 min auto-refresh; invalidate() forces a rebuild immediately
+
+// fast content fingerprint so the engines re-index only when something actually changed
+function fnv(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 16777619) >>> 0; } return h.toString(36); }
 
 function tokenize(s) {
   return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter(Boolean);
@@ -90,8 +93,16 @@ async function build(pool) {
     rating: settings.rating || null
   };
 
+  // signature over everything the bot/SEO care about — changes when any product/plan/price/FAQ/category changes
+  const sig = fnv(JSON.stringify({
+    p: products.map(p => [p.id, p.name, p.short_desc, p.long_desc, p.cat_slug,
+      p.plans.map(x => [x.label, x.price_pkr, x.price_usd]), p.faqs.map(f => [f.q, f.a])]),
+    c: cats.map(c => [c.slug, c.name])
+  }));
+
   return {
     builtAt: Date.now(),
+    sig,
     site,
     categories: cats.map(c => ({ name: c.name, slug: c.slug, tag: c.tag || '' })),
     products,
