@@ -167,6 +167,13 @@ function answer(bk, message, ctx) {
     const detailIntent = ['price', 'plans', 'warranty', 'stock', 'delivery'].indexOf(det.intent) >= 0;
     if (cue || (detailIntent && wc <= 4)) { p = ctx.lastProduct; prods = [p]; }
   }
+
+  // semantic product resolution — a confident meaning-match when keywords found nothing
+  // (thresholds from live calibration: strong score AND a clear margin over the runner-up)
+  if (!p && !namedCat && ctx.sem && ctx.sem.product && ctx.sem.product.score >= 0.45 && ctx.sem.product.margin >= 0.12) {
+    const sp = bk.products.find(x => x.id === ctx.sem.product.id);
+    if (sp) { p = sp; prods = [p]; }
+  }
   out.productId = p ? p.id : null;
 
   // conversational
@@ -233,9 +240,13 @@ function answer(bk, message, ctx) {
     }
   }
 
-  // a strongly-matching real FAQ beats a generic templated answer
-  const faq = bestFaq(bk, msg, p ? p.id : null);
-  if (faq && !namedCat && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
+  // best FAQ — semantic meaning-match preferred (handles paraphrases), keyword FAQ as backup
+  let faq = null;
+  if (ctx.sem && ctx.sem.faq && (ctx.sem.faq.margin >= 0.10 || ctx.sem.faq.score >= 0.40)) {
+    faq = { a: ctx.sem.faq.a, q: ctx.sem.faq.q, product: ctx.sem.faq.productId ? (bk.products.find(x => x.id === ctx.sem.faq.productId) || null) : null };
+  }
+  if (!faq) faq = bestFaq(bk, msg, p ? p.id : null);
+  if (faq && faq.a && !namedCat && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
     out.text = faq.a;
     if (faq.product) { out.products = [pcard(faq.product)]; out.productId = faq.product.id; }
     return out;

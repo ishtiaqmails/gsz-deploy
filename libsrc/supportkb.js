@@ -110,4 +110,35 @@ async function get(pool, opts) {
 }
 function invalidate() { _cache = null; _at = 0; }
 
-module.exports = { get, build, invalidate, tokenize, expand };
+// Intent example phrases (seed the semantic intent index; kept small and generic).
+const INTENT_EXAMPLES = [
+  ['price', 'how much does it cost'], ['price', 'what is the price'], ['price', 'is it expensive'],
+  ['plans', 'what plans are available'], ['plans', 'what durations do you have'],
+  ['delivery', 'how long until i get it'], ['delivery', 'when will it be delivered'], ['delivery', 'is it instant'],
+  ['payment', 'how can i pay'], ['payment', 'what payment methods do you accept'], ['payment', 'do you accept easypaisa'],
+  ['warranty', 'is there a warranty'], ['warranty', 'what if it stops working'], ['warranty', 'can i get a replacement'],
+  ['stock', 'is it available'], ['stock', 'do you have it in stock'],
+  ['recommend', 'suggest a good one'], ['recommend', 'which is best'], ['recommend', 'what do you recommend'],
+  ['catalog', 'what do you sell'], ['catalog', 'what categories do you have'],
+  ['order_status', 'where is my order'], ['order_status', 'track my order'],
+  ['renew', 'i want to renew'], ['renew', 'extend my subscription'],
+  ['trial', 'can i get a free trial'], ['trial', 'i want to try it first'],
+  ['resend', 'resend my code'], ['resend', 'i did not get my login'],
+  ['complaint', 'it is not working'], ['complaint', 'i have a problem'],
+  ['human', 'i want to talk to a person'], ['human', 'connect me to support'],
+  ['greeting', 'hello there'], ['offers', 'any discounts or deals']
+].map(x => ({ intent: x[0], phrase: x[1] }));
+
+// Build the corpus the semantic sidecar embeds: product texts, flattened FAQs, categories, intents.
+function corpus(kb) {
+  const products = kb.products.map(p => ({
+    id: p.id, name: p.name, cat_slug: p.cat_slug,
+    text: [p.name, p.category, p.short_desc, p.long_desc].filter(Boolean).join('. ').replace(/\s+/g, ' ').slice(0, 480)
+  }));
+  const faqs = [];
+  kb.products.forEach(p => (p.faqs || []).forEach((f, i) => { if (f.q || f.a) faqs.push({ id: p.id * 1000 + i, productId: p.id, q: f.q || '', a: f.a || '' }); }));
+  const categories = kb.categories.map(c => ({ slug: c.slug, name: c.name }));
+  return { products, faqs, categories, intents: INTENT_EXAMPLES };
+}
+
+module.exports = { get, build, invalidate, tokenize, expand, corpus };

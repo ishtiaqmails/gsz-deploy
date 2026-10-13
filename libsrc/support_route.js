@@ -7,6 +7,7 @@
 const express = require('express');
 const kb = require('../lib/supportkb');
 const bot = require('../lib/supportbot');
+const sem = require('../lib/semclient');
 
 function fmtDate(d) {
   try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return ''; }
@@ -25,6 +26,9 @@ function friendlyStatus(s) {
 
 module.exports = function (pool) {
   const router = express.Router();
+
+  // push the catalog+FAQ corpus to the semantic sidecar shortly after start (best-effort)
+  setTimeout(() => { sem.ensureIndexed(pool).catch(() => {}); }, 4000);
 
   // light per-session rate limit (chat abuse guard)
   const WINDOW = 60 * 1000, MAX = 30;
@@ -47,6 +51,10 @@ module.exports = function (pool) {
       const k = await kb.get(pool);
       const customer = (req.session && req.session.customer) || null;
 
+      sem.ensureIndexed(pool).catch(() => {});          // keep the sidecar index warm (cached)
+      let semMatch = null;
+      try { semMatch = await sem.match(message); } catch (e) {}
+
       // short conversation memory: last product discussed (per session, 20-min window)
       let lastProduct = null;
       try {
@@ -54,7 +62,7 @@ module.exports = function (pool) {
         if (cx && cx.id && (Date.now() - (cx.ts || 0) < 20 * 60 * 1000)) lastProduct = k.products.find(x => x.id === cx.id) || null;
       } catch (e) {}
 
-      const a = bot.answer(k, message, { customer, lastProduct });
+      const a = bot.answer(k, message, { customer, lastProduct, sem: semMatch });
 
       // remember the product this turn settled on (for follow-ups); clear it when we showed a list
       try {
