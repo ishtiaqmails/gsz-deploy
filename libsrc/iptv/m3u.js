@@ -32,12 +32,18 @@ const ATTR = /([a-zA-Z0-9_-]+)="([^"]*)"/g;
 
 function parseExtinf(line) {
   const out = { attrs: {}, name: '' };
-  const comma = line.indexOf(',');
+  // The display name is after the comma that FOLLOWS the attribute block. A base64 data-URI logo
+  // (tvg-logo="data:image/jpeg;base64,…") contains its own comma, so splitting on the first comma
+  // grabs the blob. Split on the first comma AFTER the last attribute quote instead.
+  const lastQuote = line.lastIndexOf('"');
+  const comma = line.indexOf(',', lastQuote >= 0 ? lastQuote + 1 : 0);
   const head = comma >= 0 ? line.slice(0, comma) : line;
   out.name = comma >= 0 ? line.slice(comma + 1).trim() : '';
   let m;
   ATTR.lastIndex = 0;
   while ((m = ATTR.exec(head)) !== null) out.attrs[m[1].toLowerCase()] = m[2];
+  // guard: if a name still looks like a base64 blob, fall back to tvg-name
+  if (/^[A-Za-z0-9+/]{40,}={0,2}$/.test(out.name.replace(/\s+/g, '')) && out.attrs['tvg-name']) out.name = out.attrs['tvg-name'];
   return out;
 }
 
