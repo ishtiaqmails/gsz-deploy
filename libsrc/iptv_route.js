@@ -168,16 +168,17 @@ module.exports = function (pool) {
   router.get('/library', async (req, res) => {
     try {
       const rows = (await pool.query(
-        `SELECT server_key,name,live_count,vod_count,series_count,episode_count
+        `SELECT server_key,name,live_count,vod_count,series_count,episode_count,raw_live,raw_vod,raw_series
            FROM iptv_library WHERE status='ok' AND (live_count+vod_count+series_count)>0
-          ORDER BY (live_count+vod_count+series_count) DESC`)).rows;
+          ORDER BY (raw_live+raw_vod+raw_series) DESC`)).rows;
       res.type('html').send(pages.libraryIndexHtml(rows, ''));
     } catch (e) { res.status(500).send('error'); }
   });
   router.get('/library/:server', async (req, res) => {
     try {
       const r = (await pool.query(
-        `SELECT server_key,name,live_count,vod_count,series_count,episode_count,categories,updated_at
+        `SELECT server_key,name,live_count,vod_count,series_count,episode_count,
+                raw_live,raw_vod,raw_series,categories,updated_at
            FROM iptv_library WHERE server_key=$1`, [req.params.server])).rows[0];
       if (!r) return res.status(404).send('<p style="font:16px system-ui;padding:40px">This server is still importing — check back soon.</p>');
       res.type('html').send(pages.serverExplorerHtml(r, ''));

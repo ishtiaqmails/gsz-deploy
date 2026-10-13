@@ -66,7 +66,12 @@ function serverExplorerHtml(row, base) {
   const counts = { live: row.live_count, vod: row.vod_count, series: row.series_count };
   const name = esc(row.name || row.server_key);
   const updated = row.updated_at ? new Date(row.updated_at).toISOString().slice(0, 10) : '';
-  const total = (+row.live_count || 0) + (+row.vod_count || 0) + (+row.series_count || 0);
+  // headline = the full raw library size (every stream), not the de-duplicated browse count
+  const live = +row.raw_live || +row.live_count || 0;
+  const vod = +row.raw_vod || +row.vod_count || 0;
+  const ser = +row.raw_series || +row.series_count || 0;
+  const total = live + vod + ser;
+  row = Object.assign({}, row, { live_count: live, vod_count: vod, series_count: ser });
   return `<!doctype html><html lang="en"><head><title>${name} — What's Inside</title>
 ${HEAD}</head><body>
 <header class="hero"><div class="wrap">
@@ -141,11 +146,11 @@ ${HEAD}</head><body>
 
 function libraryIndexHtml(servers, base) {
   const cards = servers.map(s => {
-    const total = (+s.live_count || 0) + (+s.vod_count || 0) + (+s.series_count || 0);
+    const live = +s.raw_live || +s.live_count || 0, vod = +s.raw_vod || +s.vod_count || 0, ser = +s.raw_series || +s.series_count || 0;
     return `<a class="lib" href="/library/${encodeURIComponent(s.server_key)}">
       <div class="lib-nm disp">${esc(s.name || s.server_key)}</div>
-      <div class="lib-big disp">${fmt(total)}</div>
-      <div class="lib-row"><span>${fmt(s.live_count)} live</span><span>${fmt(s.vod_count)} movies</span><span>${fmt(s.series_count)} series</span></div>
+      <div class="lib-big disp">${fmt(live + vod + ser)}</div>
+      <div class="lib-row"><span>${fmt(live)} live</span><span>${fmt(vod)} movies</span><span>${fmt(ser)} series</span></div>
     </a>`;
   }).join('');
   return `<!doctype html><html lang="en"><head><title>Live IPTV Library — What's Inside</title>${HEAD}
