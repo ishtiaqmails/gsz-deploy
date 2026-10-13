@@ -36,10 +36,12 @@ module.exports = function (pool) {
     } catch (e) { res.status(500).json({ ok: false, error: 'server_list_failed', detail: String(e.message || e) }); }
   });
 
-  // Resolve a fresh read-only M3U url for one sku (creds via order/trial, cached server-side).
+  // Resolve a read-only M3U url for one sku (creds via order/trial, cached). ?fresh=1 bypasses the
+  // cache and generates a new trial — the phone uses it to self-heal an exhausted/empty link.
   router.get('/internal/iptv/url/:sku', auth, async (req, res) => {
     try {
-      const cr = await credsource.resolve(req.params.sku, { hours: 24, trialTimeoutMs: 150000 });
+      const fresh = req.query.fresh === '1' || req.query.fresh === 'true';
+      const cr = await credsource.resolve(req.params.sku, { hours: 24, trialTimeoutMs: 150000, fresh });
       if (!cr.ok) return res.json({ ok: false, error: cr.error, detail: cr.detail });
       const base = String(cr.host).replace(/\/+$/, '');
       const url = base + '/get.php?username=' + encodeURIComponent(cr.username) + '&password=' + encodeURIComponent(cr.password) + '&type=m3u_plus&output=ts';
@@ -53,10 +55,13 @@ module.exports = function (pool) {
     try {
       let buf = req.body;
       if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ ok: false, error: 'empty_body' });
-      const enc = (req.get('content-encoding') || '').toLowerCase();
-      if (enc === 'gzip' || (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b)) { try { buf = zlib.gunzipSync(buf); } catch (e) {} }
+      // the phone gzips the body (sent as plain octet-stream) — decompress by magic bytes
+      if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) { try { buf = zlib.gunzipSync(buf); } catch (e) {} }
       const parsed = await m3u.parseM3UString(buf.toString('utf8'));
       if (!parsed || !parsed.ok) return res.status(400).json({ ok: false, error: 'parse_failed' });
+      // guard: never overwrite a good snapshot with an empty/failed fetch
+      if ((parsed.live.length + parsed.vod.length + parsed.series.length) === 0)
+        return res.json({ ok: false, error: 'empty_library', note: 'nothing parsed — keeping previous snapshot' });
       const enh = clean.enhance(parsed);
       const name = (await pool.query('SELECT name FROM products WHERE slug=$1', [req.params.server])).rows[0];
       await store(req.params.server, name ? name.name : req.params.server, enh);
@@ -103,21 +108,25 @@ module.exports = function (pool) {
     'ts(){ date "+%H:%M:%S"; }',
     'echo "$(ts) GSZ IPTV agent starting"',
     'termux-wake-lock 2>/dev/null || true',
+    '# pull one panel: $1=server $2=sku $3=extra query (&fresh=1). 0=pushed, 1=empty, 2=no link',
+    'pull(){',
+    '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$2?key=$KEY$3" | grep -o \'"m3u_url":"[^"]*"\' | sed \'s/"m3u_url":"//; s/"$//\')',
+    '  [ -z "$M3U" ] && { echo "$(ts) [$1] no trial/order available yet — skipping"; return 2; }',
+    '  curl -s --max-time 900 --compressed -o "$TMP/lib.m3u" "$M3U"',
+    '  SZ=$(wc -c < "$TMP/lib.m3u" 2>/dev/null || echo 0)',
+    '  if [ "${SZ:-0}" -lt 1000 ]; then echo "$(ts) [$1] empty download (${SZ}b): $(head -c 100 "$TMP/lib.m3u" 2>/dev/null | tr -d "\\n")"; return 1; fi',
+    '  echo "$(ts) [$1] pushing (${SZ}b)…"',
+    '  RESP=$(gzip -c "$TMP/lib.m3u" | curl -s --max-time 300 -X POST -H "x-iptv-key: $KEY" -H "Content-Type: application/octet-stream" --data-binary @- "$BASE/internal/iptv/ingest/$1")',
+    '  echo "$(ts) [$1] $RESP"; rm -f "$TMP/lib.m3u"; return 0',
+    '}',
     'LIST=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY" | grep -o \'"server":"[^"]*","sku":"[^"]*"\' | sed \'s/"server":"\\([^"]*\\)","sku":"\\([^"]*\\)"/\\1 \\2/\')',
     'if [ -z "$LIST" ]; then echo "$(ts) could not reach server list — check key/internet"; exit 1; fi',
     'echo "$LIST" | while read SERVER SKU; do',
     '  [ -z "$SERVER" ] && continue',
     '  echo "$(ts) [$SERVER] resolving link…"',
-    '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$SKU?key=$KEY" | grep -o \'"m3u_url":"[^"]*"\' | sed \'s/"m3u_url":"//; s/"$//\')',
-    '  if [ -z "$M3U" ]; then echo "$(ts) [$SERVER] no trial/order available yet — skipping"; continue; fi',
-    '  echo "$(ts) [$SERVER] downloading library…"',
-    '  curl -s --max-time 900 --compressed -o "$TMP/lib.m3u" "$M3U"',
-    '  SZ=$(wc -c < "$TMP/lib.m3u" 2>/dev/null || echo 0)',
-    '  if [ "${SZ:-0}" -lt 100 ]; then echo "$(ts) [$SERVER] download failed (size ${SZ})"; continue; fi',
-    '  echo "$(ts) [$SERVER] pushing (${SZ} bytes)…"',
-    '  RESP=$(gzip -c "$TMP/lib.m3u" | curl -s --max-time 300 -X POST -H "x-iptv-key: $KEY" -H "Content-Type: application/octet-stream" -H "Content-Encoding: gzip" --data-binary @- "$BASE/internal/iptv/ingest/$SERVER")',
-    '  echo "$(ts) [$SERVER] $RESP"',
-    '  rm -f "$TMP/lib.m3u"; sleep 3',
+    '  pull "$SERVER" "$SKU" ""; rc=$?',
+    '  if [ "$rc" = "1" ]; then echo "$(ts) [$SERVER] retrying with a fresh trial…"; pull "$SERVER" "$SKU" "&fresh=1"; fi',
+    '  sleep 3',
     'done',
     'termux-wake-unlock 2>/dev/null || true',
     'echo "$(ts) all done"'
