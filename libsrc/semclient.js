@@ -36,6 +36,7 @@ async function ensureIndexed(pool, opts) {
     if (!opts.force && kb.sig === _lastSig) return;              // nothing changed since last push
     const h = await req('/health', null, 800);
     if (!h || !h.ready) return;                                  // sidecar not up yet
+    if (h.sig && h.sig === kb.sig) { _lastSig = kb.sig; return; } // sidecar already holds this exact content — no push
     const r = await req('/reindex', kbmod.corpus(kb), 90000);    // generous: let the embed finish so we mark success (no retry spiral)
     if (r && r.ok) _lastSig = kb.sig;
   } catch (e) { /* ignore */ } finally { _indexing = false; }

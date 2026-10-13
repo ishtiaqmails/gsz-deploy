@@ -149,7 +149,7 @@ function corpus(kb) {
   const faqs = [];
   kb.products.forEach(p => (p.faqs || []).forEach((f, i) => { if (f.q || f.a) faqs.push({ id: p.id * 1000 + i, productId: p.id, q: f.q || '', a: f.a || '' }); }));
   const categories = kb.categories.map(c => ({ slug: c.slug, name: c.name }));
-  return { products, faqs, categories, intents: INTENT_EXAMPLES };
+  return { products, faqs, categories, intents: INTENT_EXAMPLES, sig: kb.sig };
 }
 
 module.exports = { get, build, invalidate, tokenize, expand, corpus };

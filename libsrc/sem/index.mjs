@@ -9,7 +9,7 @@ env.allowLocalModels = false;
 
 const PORT = Number(process.env.SEM_PORT || 3910);
 let extractor = null, ready = false;
-let IDX = { products: [], faqs: [], categories: [], intents: [], builtAt: 0 };
+let IDX = { products: [], faqs: [], categories: [], intents: [], builtAt: 0, sig: null };
 
 async function load() {
   const t0 = Date.now();
@@ -27,7 +27,7 @@ function topN(vec, arr, n) { return arr.map(it => ({ it, s: cos_sim(vec, it.vec)
 const app = express();
 app.use(express.json({ limit: '4mb' }));
 
-app.get('/health', (req, res) => res.json({ ok: true, ready, builtAt: IDX.builtAt,
+app.get('/health', (req, res) => res.json({ ok: true, ready, builtAt: IDX.builtAt, sig: IDX.sig,
   counts: { products: IDX.products.length, faqs: IDX.faqs.length, categories: IDX.categories.length, intents: IDX.intents.length } }));
 
 // Replace the whole index from the corpus the main app sends.
@@ -35,7 +35,7 @@ app.post('/reindex', async (req, res) => {
   try {
     if (!ready) return res.json({ ok: false, error: 'not_ready' });
     const b = req.body || {};
-    const next = { products: [], faqs: [], categories: [], intents: [], builtAt: Date.now() };
+    const next = { products: [], faqs: [], categories: [], intents: [], builtAt: Date.now(), sig: (b.sig || null) };
     for (const p of (b.products || [])) next.products.push({ id: p.id, name: p.name, cat_slug: p.cat_slug, vec: await embed(p.text || p.name) });
     for (const f of (b.faqs || [])) next.faqs.push({ id: f.id, productId: f.productId || null, q: f.q, a: f.a, vec: await embed((f.q || '') + '. ' + (f.a || '')) });
     for (const c of (b.categories || [])) next.categories.push({ slug: c.slug, name: c.name, vec: await embed(c.name) });
