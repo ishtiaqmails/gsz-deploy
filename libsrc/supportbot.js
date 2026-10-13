@@ -168,10 +168,15 @@ function answer(bk, message, ctx) {
     if (cue || (detailIntent && wc <= 4)) { p = ctx.lastProduct; prods = [p]; }
   }
 
-  // semantic product resolution — a confident meaning-match when keywords found nothing
-  // (thresholds from live calibration: strong score AND a clear margin over the runner-up)
-  if (!p && !namedCat && ctx.sem && ctx.sem.product && ctx.sem.product.score >= 0.45 && ctx.sem.product.margin >= 0.12) {
-    const sp = bk.products.find(x => x.id === ctx.sem.product.id);
+  // --- semantic layer: arbitrate product vs FAQ by confidence (calibrated on live scores) ---
+  const semP = (ctx.sem && ctx.sem.product) ? ctx.sem.product : null;
+  const semF = (ctx.sem && ctx.sem.faq && ctx.sem.faq.a) ? ctx.sem.faq : null;
+  const pStrong = !!(semP && semP.score >= 0.45 && semP.margin >= 0.12);
+  const fStrong = !!(semF && (semF.margin >= 0.10 || semF.score >= 0.40));
+
+  // adopt a strong semantic product when keywords found none — unless a stronger FAQ wins
+  if (!p && !namedCat && pStrong && !(fStrong && semF.score > semP.score)) {
+    const sp = bk.products.find(x => x.id === semP.id);
     if (sp) { p = sp; prods = [p]; }
   }
   out.productId = p ? p.id : null;
@@ -240,16 +245,23 @@ function answer(bk, message, ctx) {
     }
   }
 
-  // best FAQ — semantic meaning-match preferred (handles paraphrases), keyword FAQ as backup
+  // best FAQ — use the semantic FAQ only when it's the strongest signal (a strong product wins)
   let faq = null;
-  if (ctx.sem && ctx.sem.faq && (ctx.sem.faq.margin >= 0.10 || ctx.sem.faq.score >= 0.40)) {
-    faq = { a: ctx.sem.faq.a, q: ctx.sem.faq.q, product: ctx.sem.faq.productId ? (bk.products.find(x => x.id === ctx.sem.faq.productId) || null) : null };
+  if (fStrong && !(pStrong && semP.score >= semF.score)) {
+    faq = { a: semF.a, q: semF.q, product: semF.productId ? (bk.products.find(x => x.id === semF.productId) || null) : null };
   }
   if (!faq) faq = bestFaq(bk, msg, p ? p.id : null);
   if (faq && faq.a && !namedCat && (det.intent === 'fallback' || det.intent === 'delivery' || det.intent === 'warranty' || det.intent === 'payment')) {
     out.text = faq.a;
     if (faq.product) { out.products = [pcard(faq.product)]; out.productId = faq.product.id; }
     return out;
+  }
+
+  // soft semantic suggestion: a moderately-close product answers an otherwise-fallback query
+  // ("something to watch movies in 4k" -> Netflix)
+  if (!p && !namedCat && det.intent === 'fallback' && semP && semP.score >= 0.35) {
+    const sp = bk.products.find(x => x.id === semP.id);
+    if (sp) { p = sp; prods = [sp]; out.productId = sp.id; }
   }
 
   // catalog intents
