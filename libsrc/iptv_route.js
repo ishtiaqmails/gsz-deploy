@@ -93,6 +93,8 @@ module.exports = function (pool) {
   // The phone agent script (served with BASE + KEY baked in, so the phone setup is a 3-line paste
    // and updates never need re-pasting on the device). One cycle: list servers → per server resolve
    // the M3U link, download it on the phone's residential connection, gzip, push it back.
+  // Pure curl + grep/sed (no jq) so it runs on a bare Termux. One cycle: list servers → per server
+  // resolve the M3U link, download it on the phone's residential connection, gzip, push it back.
   const AGENT = [
     '#!/data/data/com.termux/files/usr/bin/env sh',
     '# GSZ IPTV agent — pulls each panel library on this phone and pushes it to GSZ. Free, automatic.',
@@ -101,12 +103,12 @@ module.exports = function (pool) {
     'ts(){ date "+%H:%M:%S"; }',
     'echo "$(ts) GSZ IPTV agent starting"',
     'termux-wake-lock 2>/dev/null || true',
-    'SERVERS=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY" | jq -r ".servers[] | \\"\\(.server) \\(.sku)\\"")',
-    'if [ -z "$SERVERS" ]; then echo "$(ts) could not reach server list — check key/internet"; exit 1; fi',
-    'echo "$SERVERS" | while read SERVER SKU; do',
+    'LIST=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY" | grep -o \'"server":"[^"]*","sku":"[^"]*"\' | sed \'s/"server":"\\([^"]*\\)","sku":"\\([^"]*\\)"/\\1 \\2/\')',
+    'if [ -z "$LIST" ]; then echo "$(ts) could not reach server list — check key/internet"; exit 1; fi',
+    'echo "$LIST" | while read SERVER SKU; do',
     '  [ -z "$SERVER" ] && continue',
     '  echo "$(ts) [$SERVER] resolving link…"',
-    '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$SKU?key=$KEY" | jq -r ".m3u_url // empty")',
+    '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$SKU?key=$KEY" | grep -o \'"m3u_url":"[^"]*"\' | sed \'s/"m3u_url":"//; s/"$//\')',
     '  if [ -z "$M3U" ]; then echo "$(ts) [$SERVER] no trial/order available yet — skipping"; continue; fi',
     '  echo "$(ts) [$SERVER] downloading library…"',
     '  curl -s --max-time 900 --compressed -o "$TMP/lib.m3u" "$M3U"',
