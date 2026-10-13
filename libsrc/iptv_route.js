@@ -90,6 +90,41 @@ module.exports = function (pool) {
     } catch (e) { res.status(500).json({ ok: false }); }
   });
 
+  // The phone agent script (served with BASE + KEY baked in, so the phone setup is a 3-line paste
+   // and updates never need re-pasting on the device). One cycle: list servers → per server resolve
+   // the M3U link, download it on the phone's residential connection, gzip, push it back.
+  const AGENT = [
+    '#!/data/data/com.termux/files/usr/bin/env sh',
+    '# GSZ IPTV agent — pulls each panel library on this phone and pushes it to GSZ. Free, automatic.',
+    'BASE="__BASE__"', 'KEY="__KEY__"',
+    'TMP="$HOME/.gsz-iptv"; mkdir -p "$TMP"',
+    'ts(){ date "+%H:%M:%S"; }',
+    'echo "$(ts) GSZ IPTV agent starting"',
+    'termux-wake-lock 2>/dev/null || true',
+    'SERVERS=$(curl -s --max-time 30 "$BASE/internal/iptv/servers?key=$KEY" | jq -r ".servers[] | \\"\\(.server) \\(.sku)\\"")',
+    'if [ -z "$SERVERS" ]; then echo "$(ts) could not reach server list — check key/internet"; exit 1; fi',
+    'echo "$SERVERS" | while read SERVER SKU; do',
+    '  [ -z "$SERVER" ] && continue',
+    '  echo "$(ts) [$SERVER] resolving link…"',
+    '  M3U=$(curl -s --max-time 200 "$BASE/internal/iptv/url/$SKU?key=$KEY" | jq -r ".m3u_url // empty")',
+    '  if [ -z "$M3U" ]; then echo "$(ts) [$SERVER] no trial/order available yet — skipping"; continue; fi',
+    '  echo "$(ts) [$SERVER] downloading library…"',
+    '  curl -s --max-time 900 --compressed -o "$TMP/lib.m3u" "$M3U"',
+    '  SZ=$(wc -c < "$TMP/lib.m3u" 2>/dev/null || echo 0)',
+    '  if [ "${SZ:-0}" -lt 100 ]; then echo "$(ts) [$SERVER] download failed (size ${SZ})"; continue; fi',
+    '  echo "$(ts) [$SERVER] pushing (${SZ} bytes)…"',
+    '  RESP=$(gzip -c "$TMP/lib.m3u" | curl -s --max-time 300 -X POST -H "x-iptv-key: $KEY" -H "Content-Type: application/octet-stream" -H "Content-Encoding: gzip" --data-binary @- "$BASE/internal/iptv/ingest/$SERVER")',
+    '  echo "$(ts) [$SERVER] $RESP"',
+    '  rm -f "$TMP/lib.m3u"; sleep 3',
+    'done',
+    'termux-wake-unlock 2>/dev/null || true',
+    'echo "$(ts) all done"'
+  ].join('\n');
+  router.get('/internal/iptv/agent.sh', auth, (req, res) => {
+    const base = (process.env.SITE_BASE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '');
+    res.type('text/plain').send(AGENT.replace(/__BASE__/g, base).replace(/__KEY__/g, KEY) + '\n');
+  });
+
   // Overall library status (for the admin + the phone to see what's fresh).
   router.get('/internal/iptv/status', auth, async (req, res) => {
     try {
