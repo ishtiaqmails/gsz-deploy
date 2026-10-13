@@ -161,6 +161,16 @@ function cleanUrl(u) {
 
 const BTN_DEST = ['product', 'plan', 'category', 'article', 'guide', 'tutorial', 'checkout', 'internal', 'external', 'whatsapp', 'download', 'custom'];
 const BTN_STYLE = ['primary', 'dark', 'ghost', 'wa'];
+// Only allow safe CSS colour values from JSON (no ';', no url(), no injection):
+// #rgb / #rrggbb, rgb()/rgba(), or a plain colour word.
+function safeColor(v) {
+  v = String(v == null ? '' : v).trim();
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) return v;
+  if (/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/.test(v)) return v;
+  if (/^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)$/.test(v)) return v;
+  if (/^[a-zA-Z]{3,20}$/.test(v)) return v.toLowerCase();
+  return '';
+}
 function normButton(b) {
   const d = (b.destination && typeof b.destination === 'object') ? b.destination : {};
   const dtype = BTN_DEST.indexOf(String(d.type || b.destType || '').toLowerCase()) >= 0 ? String(d.type || b.destType).toLowerCase() : 'internal';
@@ -178,7 +188,11 @@ function normButton(b) {
     newTab: !!b.newTab || !!b.open_in_new_tab,
     rel: [b.nofollow ? 'nofollow' : '', b.sponsored ? 'sponsored' : ''].filter(Boolean).join(' '),
     track: b.trackingId ? String(b.trackingId).slice(0, 80).replace(/[^A-Za-z0-9_\-]/g, '') : '',
-    utm: (b.utm && typeof b.utm === 'object') ? b.utm : null
+    utm: (b.utm && typeof b.utm === 'object') ? b.utm : null,
+    // JSON-controllable colours — background (optional second colour makes a gradient) + text colour.
+    bg: safeColor(b.bg || b.background || b.bgColor || b.buttonColor || b.color),
+    bg2: safeColor(b.bg2 || b.background2 || b.gradientTo),
+    fg: safeColor(b.textColor || b.text_color || b.labelColor || b.fg)
   };
 }
 

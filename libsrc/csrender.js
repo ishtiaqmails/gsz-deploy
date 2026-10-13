@@ -38,10 +38,16 @@ function btnHref(btn, opts) {
 
 function renderButton(btn, opts) {
   const h = btnHref(btn, opts);
-  const cls = { primary: 'btn btn-primary', dark: 'btn btn-dark', ghost: 'btn btn-ghost', wa: 'btn btn-wa' }[btn.style] || 'btn btn-primary';
-  const size = btn.size === 'lg' ? ' btn-lg' : '';
+  // scoped .cs-btn classes (not the global store .btn) so the article link styles never leak in
+  const cls = { primary: 'cs-btn cs-btn-primary', dark: 'cs-btn cs-btn-dark', ghost: 'cs-btn cs-btn-ghost', wa: 'cs-btn cs-btn-wa' }[btn.style] || 'cs-btn cs-btn-primary';
+  const size = btn.size === 'lg' ? ' cs-btn-lg' : (btn.size === 'sm' ? ' cs-btn-sm' : '');
   const dt = btn.track ? (' data-cs-cta="' + esc(btn.track) + '"') : '';
-  return '<a class="' + cls + size + '"' + ' href="' + esc(h.href) + '"' + h.target + h.rel + dt + '>' + esc(btn.label) + '</a>';
+  // JSON colour overrides, applied inline (values already sanitised by normButton/safeColor)
+  let st = '';
+  if (btn.bg) st += 'background:' + (btn.bg2 ? ('linear-gradient(135deg,' + btn.bg + ',' + btn.bg2 + ')') : btn.bg) + ';border-color:transparent;box-shadow:none;';
+  if (btn.fg) st += 'color:' + btn.fg + ';';
+  const style = st ? (' style="' + st + '"') : '';
+  return '<a class="' + cls + size + '"' + ' href="' + esc(h.href) + '"' + h.target + h.rel + dt + style + '>' + esc(btn.label) + '</a>';
 }
 
 function productCard(p) {
