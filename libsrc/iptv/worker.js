@@ -33,7 +33,9 @@ async function store(server, name, enh) {
 }
 
 async function pullOne(server, name, sku) {
-  const cr = await credsource.resolve(sku, { hours: 24, trialTimeoutMs: 150000 });
+  // orders-only on the server side: a real delivered line is fast + full. No slow trial polling here —
+  // panels with no order are left to the phone agent (which does trials). Keeps the sweep moving.
+  const cr = await credsource.resolve(sku, { allowTrial: false });
   if (!cr.ok) return { server, skip: cr.error };
   const url = String(cr.host).replace(/\/+$/, '') + '/get.php?username=' + enc(cr.username) + '&password=' + enc(cr.password) + '&type=m3u_plus&output=ts';
   const lib = await m3u.fetchM3U(url, 30 * 60 * 1000); // direct server-side download, 30-min cap
@@ -72,9 +74,11 @@ async function sweep() {
     if (!list.length) { console.log(ts(), 'all servers fresh'); return; }
     console.log(ts(), 'sweep: ' + list.length + ' stale — ' + list.map(s => s.server).join(', '));
     for (const s of list) {
-      try { console.log(ts(), JSON.stringify(await pullOne(s.server, s.name, s.sku))); }
+      // hard per-panel cap so one slow/hanging panel never stalls the whole sweep
+      const guard = new Promise(r => setTimeout(() => r({ server: s.server, timeout: true }), 12 * 60 * 1000));
+      try { console.log(ts(), JSON.stringify(await Promise.race([pullOne(s.server, s.name, s.sku), guard]))); }
       catch (e) { console.log(ts(), 'ERR ' + s.server + ' ' + (e.message || e)); }
-      await sleep(5000);
+      await sleep(3000);
     }
   } catch (e) { console.log(ts(), 'SWEEP ERR ' + (e.message || e)); }
   finally { running = false; }
