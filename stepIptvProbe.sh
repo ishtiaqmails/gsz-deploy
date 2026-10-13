@@ -5,19 +5,20 @@
 set -euo pipefail
 cd "$(dirname "$0")/libsrc/iptv"
 
-for f in fetch.js m3u.js clean.js test.js; do
+for f in fetch.js m3u.js clean.js credsource.js test.js; do
   [ -f "$f" ] || { echo "MISSING $f — run: cd /opt/gsz-deploy && git pull"; exit 1; }
 done
-node -e "require('./fetch');require('./m3u');require('./clean');console.log('engine files OK')"
+node -e "require('./fetch');require('./m3u');require('./clean');require('./credsource');console.log('engine files OK')"
 
 echo
-echo "Run the probe with ONE of these (your creds stay on this box):"
+echo "FULLY AUTOMATIC (recommended) — the engine sources a read-only login itself via gsz-api"
+echo "(orders-first, free-trial fallback); you type NO credentials and no credit is spent:"
 echo
-echo "  Xtream login:"
+echo "    node libsrc/iptv/test.js  --auto  SKU-00030        # Opplex TV (any IPTV product's SKU)"
+echo
+echo "Manual sources also work if you want to point it at a specific line (creds stay on this box):"
 echo "    node libsrc/iptv/test.js  'http://PANEL-HOST:PORT'  'USERNAME'  'PASSWORD'"
-echo
-echo "  M3U playlist:"
 echo "    node libsrc/iptv/test.js  --m3u  'http://PANEL-HOST/get.php?username=U&password=P&type=m3u_plus'"
 echo
-echo "(from /opt/gsz-deploy). It prints raw-vs-clean counts, categories, samples,"
+echo "(run from /opt/gsz-deploy). It prints raw-vs-clean counts, categories, samples,"
 echo "and the gzipped snapshot size — that tells us exactly how to store it."
