@@ -11,6 +11,19 @@ const zlib = require('zlib');
 const m3u = require(ROOT + '/lib/iptv/m3u');
 const clean = require(ROOT + '/lib/iptv/clean');
 const credsource = require(ROOT + '/lib/iptv/credsource');
+const fetch = require(ROOT + '/lib/iptv/fetch');
+
+// Convert an Xtream player_api pull (fetch.fetchAll) into the shape clean.enhance expects,
+// resolving category ids to names. Used as a fallback for panels whose get.php M3U 404s.
+function fromXtream(x) {
+  const map = (arr, cats) => (arr || []).map(r => ({ name: r.name || r.title || '', category_name: cats[String(r.category_id)] || '', stream_icon: r.stream_icon || r.cover || '' }));
+  return {
+    ok: true,
+    live: map(x.live, x.liveCats || {}),
+    vod: map(x.vod, x.vodCats || {}),
+    series: (x.series || []).map(r => ({ name: r.name || r.title || '', category_name: (x.seriesCats || {})[String(r.category_id)] || '', cover: r.cover || '', episode_count: 0 }))
+  };
+}
 
 const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASS });
 const REFRESH_HOURS = 12;
@@ -38,13 +51,20 @@ async function pullOne(server, name, sku) {
   const cr = await credsource.resolve(sku, { allowTrial: false });
   if (!cr.ok) return { server, skip: cr.error };
   const url = String(cr.host).replace(/\/+$/, '') + '/get.php?username=' + enc(cr.username) + '&password=' + enc(cr.password) + '&type=m3u_plus&output=ts';
-  const lib = await m3u.fetchM3U(url, 30 * 60 * 1000); // direct server-side download, 30-min cap
-  if (!lib.ok) return { server, blocked: lib.error, source: cr.source }; // CF/datacenter block → phone handles
+  let lib = await m3u.fetchM3U(url, 30 * 60 * 1000); // direct server-side download, 30-min cap
+  let via = 'm3u';
+  if (!lib.ok || (lib.live.length + lib.vod.length + lib.series.length) === 0) {
+    // get.php failed/empty — fall back to the Xtream player_api (some panels only serve this)
+    const x = await fetch.fetchAll(cr.host, cr.username, cr.password);
+    const tot = (x.live || []).length + (x.vod || []).length + (x.series || []).length;
+    if (tot > 0) { lib = fromXtream(x); via = 'player_api'; }
+    else return { server, blocked: (lib.error || 'empty'), api: x.errors, source: cr.source };
+  }
   const total = (lib.live || []).length + (lib.vod || []).length + (lib.series || []).length;
   if (total === 0) return { server, empty: true };
   const enh = clean.enhance(lib);
   await store(server, name, enh);
-  return { server, source: cr.source, counts: enh.counts };
+  return { server, source: cr.source, via, counts: enh.counts };
 }
 
 async function staleServers() {
