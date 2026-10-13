@@ -8,6 +8,7 @@ const zlib = require('zlib');
 const m3u = require('../lib/iptv/m3u');
 const clean = require('../lib/iptv/clean');
 const credsource = require('../lib/iptv/credsource');
+const pages = require('../lib/iptv/pages');
 
 module.exports = function (pool) {
   const router = express.Router();
@@ -134,6 +135,53 @@ module.exports = function (pool) {
   router.get('/internal/iptv/agent.sh', auth, (req, res) => {
     const base = (process.env.SITE_BASE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '');
     res.type('text/plain').send(AGENT.replace(/__BASE__/g, base).replace(/__KEY__/g, KEY) + '\n');
+  });
+
+  // ---- "What's Inside" display: decompressed-items cache + browse API + premium pages ----
+  const _items = {};
+  async function loadItems(server) {
+    const c = _items[server];
+    if (c && (Date.now() - c.at) < 5 * 60 * 1000) return c.data;
+    const r = (await pool.query('SELECT items FROM iptv_library WHERE server_key=$1', [server])).rows[0];
+    if (!r || !r.items) return null;
+    let data; try { data = JSON.parse(zlib.gunzipSync(r.items).toString()); } catch (e) { return null; }
+    _items[server] = { data, at: Date.now() };
+    return data;
+  }
+  router.get('/iptv/:server/browse.json', async (req, res) => {
+    try {
+      const type = ['live', 'vod', 'series'].includes(req.query.type) ? req.query.type : 'live';
+      const data = await loadItems(req.params.server);
+      if (!data) return res.status(404).json({ ok: false, error: 'not_ready' });
+      const q = String(req.query.q || '').trim().toLowerCase();
+      const cat = String(req.query.cat || '').trim();
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const size = Math.min(100, Math.max(10, parseInt(req.query.size, 10) || 48));
+      let rows = data[type] || []; // [name, quality, category, variants, episodes]
+      if (cat) rows = rows.filter(r => r[2] === cat);
+      if (q) rows = rows.filter(r => String(r[0]).toLowerCase().indexOf(q) >= 0);
+      const total = rows.length;
+      const items = rows.slice((page - 1) * size, page * size).map(r => ({ name: r[0], quality: r[1], category: r[2], variants: r[3], episodes: r[4] }));
+      res.json({ ok: true, type, total, page, size, pages: Math.ceil(total / size), items });
+    } catch (e) { res.status(500).json({ ok: false }); }
+  });
+  router.get('/library', async (req, res) => {
+    try {
+      const rows = (await pool.query(
+        `SELECT server_key,name,live_count,vod_count,series_count,episode_count
+           FROM iptv_library WHERE status='ok' AND (live_count+vod_count+series_count)>0
+          ORDER BY (live_count+vod_count+series_count) DESC`)).rows;
+      res.type('html').send(pages.libraryIndexHtml(rows, ''));
+    } catch (e) { res.status(500).send('error'); }
+  });
+  router.get('/library/:server', async (req, res) => {
+    try {
+      const r = (await pool.query(
+        `SELECT server_key,name,live_count,vod_count,series_count,episode_count,categories,updated_at
+           FROM iptv_library WHERE server_key=$1`, [req.params.server])).rows[0];
+      if (!r) return res.status(404).send('<p style="font:16px system-ui;padding:40px">This server is still importing — check back soon.</p>');
+      res.type('html').send(pages.serverExplorerHtml(r, ''));
+    } catch (e) { res.status(500).send('error'); }
   });
 
   // Overall library status (for the admin + the phone to see what's fresh).

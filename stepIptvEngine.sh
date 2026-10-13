@@ -12,7 +12,7 @@ trap 'restore' ERR
 
 # 1) engine libraries
 mkdir -p "$GSZ/lib/iptv"
-for f in fetch.js m3u.js clean.js credsource.js proxy.js; do
+for f in fetch.js m3u.js clean.js credsource.js proxy.js pages.js; do
   cp -f "$SRC/iptv/$f" "$GSZ/lib/iptv/$f"; node --check "$GSZ/lib/iptv/$f"
 done
 # 2) route
