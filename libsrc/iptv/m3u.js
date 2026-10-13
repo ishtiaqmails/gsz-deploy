@@ -128,7 +128,16 @@ async function fetchM3U(source, ms) {
     if (!fs.existsSync(p)) return { ok: false, error: 'file_not_found' };
     input = fs.createReadStream(p);
   }
+  return parseFromInput(input);
+}
 
+// Parse an M3U already in memory (the phone POSTs the raw playlist text to the ingest endpoint).
+async function parseM3UString(text) {
+  const { Readable } = require('stream');
+  return parseFromInput(Readable.from([String(text || '')]));
+}
+
+async function parseFromInput(input) {
   const live = [], vod = [];
   const seriesMap = new Map(); // title -> { name, category, episodes:Set("s-e"), logo }
   const liveCats = {}, vodCats = {}, seriesCats = {};
@@ -175,4 +184,4 @@ async function fetchM3U(source, ms) {
   };
 }
 
-module.exports = { fetchM3U, parseExtinf, classify, seriesParts, setProxy };
+module.exports = { fetchM3U, parseM3UString, parseExtinf, classify, seriesParts, setProxy };
