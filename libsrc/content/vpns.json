@@ -1,0 +1,38 @@
+[
+  {
+    "id": 39, "slug": "surfshark-vpn",
+    "short": "Surfshark VPN — browse privately at high speed. Hide your IP, unblock streaming, block ads & malware, and stay safe on public Wi-Fi.",
+    "long": "Surfshark is a fast, easy-to-use VPN that keeps you private online. Hide your real IP address, encrypt your traffic, and stop websites, advertisers and your ISP from tracking what you do. Connect to high-speed servers worldwide to unblock streaming libraries and websites, and switch on CleanWeb to block ads, trackers and malware. With fast WireGuard speeds, it's great for 4K streaming and downloads.\n\nSurfshark works on Windows, macOS, Android, iPhone & iPad, Fire TV and more. Choose the plan that suits you from the options shown on this page.",
+    "faqs": [
+      { "q": "Does Surfshark hide my IP and keep me private?", "a": "Yes — Surfshark masks your IP address and encrypts your connection, keeping your browsing private from websites, advertisers and your internet provider." },
+      { "q": "Can I unblock streaming and websites with it?", "a": "Yes. Connect to a server in another country to access streaming libraries, sites and apps that are restricted in your region." },
+      { "q": "Does it block ads and malware?", "a": "Yes — the built-in CleanWeb feature blocks ads, trackers and known malicious sites for a cleaner, safer browse." },
+      { "q": "How many devices does my plan cover?", "a": "The device coverage depends on the plan you choose — the current options and exactly what each includes are shown live on this page." },
+      { "q": "How fast do I get access after paying?", "a": "Your login details are delivered shortly after payment is confirmed, so you can connect within minutes." }
+    ]
+  },
+  {
+    "id": 40, "slug": "mysterium-vpn",
+    "short": "Mysterium VPN — a decentralized VPN with real residential IPs. Extra-private browsing that's harder to detect or block, with reliable access.",
+    "long": "Mysterium is a decentralized VPN that routes your connection through a global network of nodes, including real residential IP addresses. That makes your traffic blend in like an ordinary home connection — harder to detect, throttle or block than a typical datacentre VPN. Hide your real IP, encrypt your browsing, reach region-locked content and stay private on public Wi-Fi.\n\nMysterium is a great choice when you need residential-grade IPs for privacy and reliable access. It works on Windows, macOS and Android. Choose the plan that suits you from the options on this page.",
+    "faqs": [
+      { "q": "What makes Mysterium different from a normal VPN?", "a": "Mysterium is decentralized and can route through real residential IP addresses, so your traffic looks like a regular home connection — harder to detect or block than standard datacentre VPNs." },
+      { "q": "Does it hide my IP and keep me private?", "a": "Yes — Mysterium masks your real IP and encrypts your connection, keeping your activity private from trackers and your ISP." },
+      { "q": "Can I access region-locked sites and content?", "a": "Yes. By connecting through nodes in other regions you can reach websites and content that are restricted where you are." },
+      { "q": "Which devices does it support?", "a": "Mysterium works on Windows, macOS and Android, with an easy app for each." },
+      { "q": "What plan and price is available, and how fast is delivery?", "a": "The current plan and its live price are shown on this page, and your access details are delivered shortly after payment is confirmed." }
+    ]
+  },
+  {
+    "id": 41, "slug": "vypr-vpn",
+    "short": "VyprVPN — private, no-log browsing on servers VyprVPN fully owns. The Chameleon protocol defeats VPN blocks and censorship. Unblock & stay secure.",
+    "long": "VyprVPN gives you strong privacy with a difference — it owns and runs 100% of its own servers, so no third parties ever handle your data, backed by an independently audited no-log policy. Its unique Chameleon protocol scrambles VPN traffic to get past VPN blocking, deep packet inspection and censorship, making it ideal for restrictive networks and regions. Hide your IP, encrypt your connection, unblock streaming and websites, and stay safe on public Wi-Fi.\n\nVyprVPN works on Windows, macOS, Android, iPhone & iPad, Android TV and routers. Choose the plan that suits you from the options on this page.",
+    "faqs": [
+      { "q": "What is the Chameleon protocol?", "a": "Chameleon scrambles your VPN traffic so it isn't recognised as a VPN, helping you get past VPN blocks, throttling and censorship on restrictive networks." },
+      { "q": "Is VyprVPN really no-log?", "a": "Yes — VyprVPN follows an independently audited no-log policy and owns all of its own servers, so your data isn't handed to third parties." },
+      { "q": "Can I unblock streaming and websites?", "a": "Yes. Connect to a server abroad to access streaming libraries, websites and apps that are blocked or restricted in your region." },
+      { "q": "Which devices does it work on?", "a": "VyprVPN works on Windows, macOS, Android, iPhone & iPad, Android TV and routers." },
+      { "q": "How fast is delivery after I pay?", "a": "Your login details are delivered shortly after payment is confirmed, so you can connect within minutes." }
+    ]
+  }
+]

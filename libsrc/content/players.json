@@ -1,0 +1,26 @@
+[
+  {
+    "id": 53, "slug": "hot-player",
+    "short": "Hot Player activation — unlock the Hot Player IPTV app on your device (Firestick, Android & Smart TV). One-time activation, load any playlist, no monthly app fee.",
+    "long": "Hot Player is a popular IPTV player app, and this is its official device activation. Activate the app on your device once and it's ready to use — just add your own IPTV playlist (M3U or Xtream Codes login from your provider) and start watching. It's a clean, ad-light player with a tidy interface, EPG support, favourites and multi-playlist support.\n\nActivation works on Amazon Firestick & Fire TV, Android phones, TV boxes and Android TV, and other supported devices. You provide your device's MAC or device key at checkout and we activate it for you. Note: Hot Player is the player app only — you'll still need an IPTV subscription or playlist to watch. Choose the plan that suits you from the options on this page.",
+    "faqs": [
+      { "q": "What exactly am I buying — a subscription or the player?", "a": "This is the Hot Player app activation, not an IPTV subscription. It unlocks the player on your device so you can load your own IPTV playlist (M3U or Xtream Codes). You'll still need an IPTV subscription to watch — we sell those too." },
+      { "q": "Which devices can I activate?", "a": "Hot Player activation works on Amazon Firestick & Fire TV, Android phones, TV boxes and Android TV, and other supported devices. Just share your device's MAC or key at checkout." },
+      { "q": "How do I activate it?", "a": "Install the Hot Player app, send us the MAC address or device key it shows, and we activate it for you. Then add your playlist and you're ready to watch." },
+      { "q": "How long does the activation last?", "a": "The activation length and its price are shown on this page — pick the option that suits you." },
+      { "q": "How fast is activation after I pay?", "a": "Activation is done shortly after your payment is confirmed, so you can usually start watching within minutes." }
+    ]
+  },
+  {
+    "id": 54, "slug": "ibo-player",
+    "short": "IBO Player activation — unlock the IBO Player IPTV app on your device (Firestick, Android & Smart TV). One-time activation, load any playlist, no monthly app fee.",
+    "long": "IBO Player is one of the most widely used IPTV player apps, and this is its official device activation. Activate the app once on your device, then add your own IPTV playlist (M3U URL or Xtream Codes login from your provider) and start watching. IBO Player offers a clean interface with EPG, favourites, multi-playlist support and easy playlist management from its online portal.\n\nActivation works on Amazon Firestick & Fire TV, Android phones, TV boxes and Android TV, Smart TVs and other supported devices. You provide your device's MAC address at checkout and we activate it. Note: IBO Player is the player app only — you'll still need an IPTV subscription or playlist to watch. Choose the plan that suits you from the options on this page.",
+    "faqs": [
+      { "q": "Is this a subscription or just the player app?", "a": "This is the IBO Player app activation, not an IPTV subscription. It unlocks the player on your device so you can load your own IPTV playlist. You'll still need an IPTV subscription to watch — we offer those too." },
+      { "q": "Which devices can I activate?", "a": "IBO Player activation works on Amazon Firestick & Fire TV, Android phones, TV boxes and Android TV, supported Smart TVs and more. Share your device's MAC address at checkout." },
+      { "q": "How do I activate and add my playlist?", "a": "Install IBO Player, send us the MAC address it shows, and we activate it. You can then add your M3U or Xtream Codes playlist through the IBO portal and start watching." },
+      { "q": "How long does the activation last?", "a": "The activation length and its price are shown on this page — choose the option that suits you." },
+      { "q": "How soon is it activated after payment?", "a": "Activation is completed shortly after your payment is confirmed, so you can usually start watching within minutes." }
+    ]
+  }
+]
