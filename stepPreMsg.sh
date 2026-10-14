@@ -35,7 +35,7 @@ const CRED = [
   '{{credentials}}',
   '━━━━━━━━━━━━━━',
   '',
-  '💬 Need help? Message us: wa.me/{{support_number}}',
+  '💬 Need help? Message us: wa.me/{{sales_number}}',
   'Thank you for choosing us.'
 ].join('\n');
 const INSTR = [
@@ -44,7 +44,7 @@ const INSTR = [
   '_Instructions & Warranty_',
   '━━━━━━━━━━━━━━',
   '',
-  '{{instructions_section}}{{warranty_section}}💬 Any issue? Message us: wa.me/{{support_number}}'
+  '{{instructions_section}}{{warranty_section}}💬 Any issue? Message us: wa.me/{{sales_number}}'
 ].join('\n');
 (async () => {
   const bk = {};

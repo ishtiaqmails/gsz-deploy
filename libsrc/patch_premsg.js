@@ -43,7 +43,7 @@ once('pr-warranty', 'instructions, warranty FROM products',
   "SELECT instructions, warranty FROM products WHERE id=$1");
 
 // 4) follow-up carries Instructions + Warranty, only when either exists
-span('instr-warranty-block', 'instructions_section:',
+span('instr-warranty-block', 'warranty_section: _wSec, sales_number',
   "const instr = (pr && pr.instructions)",
   "idempotency_key: 'ord-' + o.id + '-instructions', delay_seconds: 4 });",
   "const instr = (pr && pr.instructions) ? String(pr.instructions).trim() : '';\n" +
@@ -51,7 +51,7 @@ span('instr-warranty-block', 'instructions_section:',
   "        const _warr = ((_plw && _plw.warranty) ? String(_plw.warranty).trim() : ((pr && pr.warranty) ? String(pr.warranty).trim() : ''));\n" +
   "        const _iSec = instr ? ('*How to use*\\n' + instr + '\\n\\n') : '';\n" +
   "        const _wSec = _warr ? ('\\ud83d\\udee1\\ufe0f *Warranty*\\n' + _warr + '\\n\\n') : '';\n" +
-  "        if (_iSec || _wSec) await wanotify.enqueue({ customer_id: o.customer_id, order_id: o.id, destination_identity_id: link.whatsapp_identity_id, template_key: 'whatsapp.instructions', vars: { site_name: SITE, product_name: o.product_name || '', instructions_section: _iSec, warranty_section: _wSec, support_number: _support }, idempotency_key: 'ord-' + o.id + '-instructions', delay_seconds: 4 });");
+  "        if (_iSec || _wSec) await wanotify.enqueue({ customer_id: o.customer_id, order_id: o.id, destination_identity_id: link.whatsapp_identity_id, template_key: 'whatsapp.instructions', vars: { site_name: SITE, product_name: o.product_name || '', instructions_section: _iSec, warranty_section: _wSec, sales_number: _sales }, idempotency_key: 'ord-' + o.id + '-instructions', delay_seconds: 4 });");
 
 fs.writeFileSync(file, s);
 console.log('PREMSG PATCH OK');
