@@ -47,7 +47,7 @@ module.exports = function (pool) {
           const r = await nfMail.listForAccount(acc.account_email, req.query.refresh === '1');
           const emails = (r && r.emails) || [];
           const filtered = gate.filterEmails(emails, o.plan_label) || [];
-          filtered.forEach(function (e) { const t = e.rtype || 'other'; (panel.groups[t] = panel.groups[t] || []).push({ code: e.code || '', link: e.link || '', subject: e.subject || '', date: e.date || '' }); });
+          filtered.forEach(function (e) { const t = e.rtype || 'other'; (panel.groups[t] = panel.groups[t] || []).push({ code: e.code || '', link: e.link || '', subject: e.subject || '', date: e.date || '', type: t }); });
           panel.mailOk = !!(r && r.ok);
         } catch (e) { /* Portal hiccup — show creds + empty sections */ }
       }
