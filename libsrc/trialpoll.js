@@ -37,10 +37,11 @@ module.exports = function (pool) {
       if (fields) {
         const sales = (await setting('wa_sales_number')) || (await setting('wa_support_number')) || '';
         const site = (await setting('site_name')) || 'Galaxy Subz × Zayron';
+        const siteUrl = base ? base.replace(/\/+$/, '') : '';
         const msg = deliveryMsg.compose(
           { product_name: t.server_name || t.trial_type, plan_label: dl, created_at: Date.now() },
           fields,
-          { siteName: site, salesNumber: sales, trial: true, durationLabel: dl, trialLink: link }
+          { siteName: site, salesNumber: sales, trial: true, durationLabel: dl, siteUrl: siteUrl }
         );
         if (msg && msg.main) {
           await wanotify.enqueue({

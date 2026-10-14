@@ -30,7 +30,6 @@ function compose(order, fields, opts) {
   const isInvite = dt === 'vendor_invite';
   const isTrial = !!opts.trial;
   const durationLabel = esc(opts.durationLabel);
-  const trialLink = esc(opts.trialLink);
 
   // header
   const L = [];
@@ -91,11 +90,14 @@ function compose(order, fields, opts) {
   // footer
   L.push('');
   if (isTrial) {
-    if (trialLink) L.push('▶️ Open anytime: ' + trialLink);
-    L.push('Enjoying it? Reply to upgrade to a full plan. 🚀');
+    const up = esc(opts.siteUrl);
+    if (up) L.push('🚀 Upgrade to full access: ' + up);
+    if (sales) L.push('💬 Questions? wa.me/' + sales);
+    L.push('Thank you for trying us.');
+  } else {
+    if (sales) L.push('💬 Need help? wa.me/' + sales);
+    L.push('Thank you for choosing us.');
   }
-  if (sales) L.push('💬 Need help? wa.me/' + sales);
-  if (!isTrial) L.push('Thank you for choosing us.');
   const main = L.join('\n');
 
   // follow-up: How-to-Use + Warranty — ALWAYS from the website admin (opts), never the bot.
