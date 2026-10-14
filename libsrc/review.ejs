@@ -1,0 +1,74 @@
+<%- include('partials/store_top') %>
+<style>
+  .rvp{max-width:600px;margin:0 auto;padding:44px 16px 90px}
+  .rvp-head{text-align:center;margin-bottom:22px}
+  .rvp-head h1{font-size:clamp(26px,5vw,34px);font-weight:800;letter-spacing:-.02em;margin:0 0 6px;color:var(--ink,#0f1836)}
+  .rvp-head p{color:var(--muted,#737e9c);font-size:15px;margin:0}
+  .rvp-card{background:#fff;border:1px solid #eaf0ff;border-radius:18px;padding:26px 24px;box-shadow:0 20px 50px -34px rgba(15,24,54,.4)}
+  .rvp-card label.fld{display:block;font-size:12.5px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:#8b93bb;margin:16px 0 7px}
+  .rvp-card select,.rvp-card input[type=text],.rvp-card textarea{width:100%;box-sizing:border-box;border:1px solid #dfe5f2;border-radius:11px;padding:12px 13px;font:inherit;color:#0f1836;background:#fff}
+  .rvp-card select:focus,.rvp-card input:focus,.rvp-card textarea:focus{outline:none;border-color:#8a2bff;box-shadow:0 0 0 3px rgba(138,43,255,.12)}
+  .star-input{display:inline-flex;flex-direction:row-reverse;justify-content:flex-start}
+  .star-input input{position:absolute;opacity:0;width:0;height:0}
+  .star-input label{color:#e3e8f3;font-size:38px;line-height:1;padding:0 3px;cursor:pointer;transition:color .1s,transform .1s}
+  .star-input label:hover{transform:scale(1.08)}
+  .star-input label:hover,.star-input label:hover ~ label{color:#f5a524}
+  .star-input input:checked ~ label{color:#f5a524}
+  .rvp-sub{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;margin-top:22px;background:linear-gradient(135deg,#8a2bff,#2a7bff);color:#fff;border:0;border-radius:13px;font-weight:800;font-size:16px;padding:15px;cursor:pointer}
+  .rvp-sub:hover{filter:brightness(1.05)}
+  .rvp-note{color:#8b93bb;font-size:12.5px;text-align:center;margin:14px 0 0}
+  .rvp-err{background:#fdecec;border:1px solid #f6c5c5;color:#b42318;border-radius:11px;padding:11px 14px;font-size:14px;margin:0 0 6px}
+  .rvp-ok{text-align:center;background:#fff;border:1px solid #eaf0ff;border-radius:18px;padding:40px 26px;box-shadow:0 20px 50px -34px rgba(15,24,54,.4)}
+  .rvp-ok .tick{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16b765,#50d48f);color:#fff;font-size:34px;line-height:64px;margin:0 auto 14px}
+  .rvp-ok h2{font-size:22px;font-weight:800;margin:0 0 6px;color:#0f1836}
+  .rvp-ok p{color:#737e9c;margin:0 0 18px}
+</style>
+<main class="rvp">
+  <% if (msg === 'thanks') { %>
+    <div class="rvp-ok">
+      <div class="tick">&#10003;</div>
+      <h2>Thank you!</h2>
+      <p>Your review has been submitted. We check every review before it goes live &mdash; it&rsquo;ll appear shortly.</p>
+      <a class="btn btn-p" href="/">Back to store</a>
+    </div>
+  <% } else { %>
+    <div class="rvp-head">
+      <h1>Leave a review</h1>
+      <p>Tell others about your experience with <%= siteName %>. It only takes a minute.</p>
+    </div>
+    <form class="rvp-card" method="post" action="/review">
+      <% if (msg === 'empty') { %><p class="rvp-err">Please add your name and your review.</p><% } else if (msg === 'err') { %><p class="rvp-err">Something went wrong &mdash; please try again.</p><% } %>
+
+      <label class="fld">Your rating</label>
+      <div class="star-input">
+        <input type="radio" name="stars" id="rs5" value="5" checked><label for="rs5" title="5 stars">&#9733;</label>
+        <input type="radio" name="stars" id="rs4" value="4"><label for="rs4" title="4 stars">&#9733;</label>
+        <input type="radio" name="stars" id="rs3" value="3"><label for="rs3" title="3 stars">&#9733;</label>
+        <input type="radio" name="stars" id="rs2" value="2"><label for="rs2" title="2 stars">&#9733;</label>
+        <input type="radio" name="stars" id="rs1" value="1"><label for="rs1" title="1 star">&#9733;</label>
+      </div>
+
+      <label class="fld">Which product?</label>
+      <select name="product">
+        <option value="">Overall experience (no specific product)</option>
+        <% (prods || []).forEach(function (pr) { %><option value="<%= pr.slug %>" <%= pr.slug === preslug ? 'selected' : '' %>><%= pr.name %></option><% }); %>
+      </select>
+
+      <label class="fld">Your name</label>
+      <input type="text" name="author" maxlength="80" placeholder="e.g. Ahsan R." required>
+
+      <label class="fld">Country <span style="text-transform:none;font-weight:600;color:#b4bace">(optional)</span></label>
+      <input type="text" name="location" maxlength="60" placeholder="e.g. Pakistan">
+
+      <label class="fld">Title <span style="text-transform:none;font-weight:600;color:#b4bace">(optional)</span></label>
+      <input type="text" name="title" maxlength="120" placeholder="Sum it up in a few words">
+
+      <label class="fld">Your review</label>
+      <textarea name="body" rows="4" maxlength="1500" placeholder="How was the product, delivery and support?" required></textarea>
+
+      <button class="rvp-sub" type="submit">Submit review</button>
+      <p class="rvp-note">We check every review before it appears. Thanks for helping other customers!</p>
+    </form>
+  <% } %>
+</main>
+<%- include('partials/store_bottom') %>
