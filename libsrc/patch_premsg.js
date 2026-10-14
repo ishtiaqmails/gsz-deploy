@@ -30,12 +30,12 @@ function span(name, guard, startStr, endStr, replace) {
 // 1) compute purchase date + plan line
 once('date-plan-vars', 'const _odate',
   "let tplKey, secLink = '';",
-  "let tplKey, secLink = '';\n      const _odate = (function(){ try { return new Date(o.created_at || Date.now()).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); } catch (e) { return ''; } })();\n      const _pline = o.plan_label ? ('\\u23f3 Plan  \\u00b7  ' + o.plan_label) : '';");
+  "let tplKey, secLink = '';\n      const _odate = (function(){ try { return new Date(o.created_at || Date.now()).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); } catch (e) { return ''; } })();\n      const _pline = o.plan_label ? ('\\u23f3 Plan  \\u00b7  ' + o.plan_label) : '';\n      const _nums = await pool.query(\"SELECT key,value FROM wa_settings WHERE key IN ('wa_support_number','wa_sales_number')\").then(function(r){ var m={}; (r.rows||[]).forEach(function(x){ m[x.key]=x.value; }); return m; }).catch(function(){ return {}; });\n      const _support = String(_nums.wa_support_number || _nums.wa_sales_number || '').replace(/[^0-9]/g, '');\n      const _sales = String(_nums.wa_sales_number || _nums.wa_support_number || '').replace(/[^0-9]/g, '');");
 
 // 2) pass them into the credentials message
 once('credentials-vars', 'order_date: _odate',
   "credentials: o.delivered_credentials || '' }",
-  "credentials: o.delivered_credentials || '', order_date: _odate, plan_line: _pline }");
+  "credentials: o.delivered_credentials || '', order_date: _odate, plan_line: _pline, support_number: _support, sales_number: _sales }");
 
 // 3) fetch warranty alongside instructions
 once('pr-warranty', 'instructions, warranty FROM products',
@@ -51,7 +51,7 @@ span('instr-warranty-block', 'instructions_section:',
   "        const _warr = ((_plw && _plw.warranty) ? String(_plw.warranty).trim() : ((pr && pr.warranty) ? String(pr.warranty).trim() : ''));\n" +
   "        const _iSec = instr ? ('*How to use*\\n' + instr + '\\n\\n') : '';\n" +
   "        const _wSec = _warr ? ('\\ud83d\\udee1\\ufe0f *Warranty*\\n' + _warr + '\\n\\n') : '';\n" +
-  "        if (_iSec || _wSec) await wanotify.enqueue({ customer_id: o.customer_id, order_id: o.id, destination_identity_id: link.whatsapp_identity_id, template_key: 'whatsapp.instructions', vars: { site_name: SITE, product_name: o.product_name || '', instructions_section: _iSec, warranty_section: _wSec }, idempotency_key: 'ord-' + o.id + '-instructions', delay_seconds: 4 });");
+  "        if (_iSec || _wSec) await wanotify.enqueue({ customer_id: o.customer_id, order_id: o.id, destination_identity_id: link.whatsapp_identity_id, template_key: 'whatsapp.instructions', vars: { site_name: SITE, product_name: o.product_name || '', instructions_section: _iSec, warranty_section: _wSec, support_number: _support }, idempotency_key: 'ord-' + o.id + '-instructions', delay_seconds: 4 });");
 
 fs.writeFileSync(file, s);
 console.log('PREMSG PATCH OK');
