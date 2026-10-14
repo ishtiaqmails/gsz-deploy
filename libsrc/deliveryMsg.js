@@ -28,19 +28,27 @@ function compose(order, fields, opts) {
   const expiry = esc(fields.expiry);
   const orderNo = esc(order.order_no);
   const isInvite = dt === 'vendor_invite';
+  const isTrial = !!opts.trial;
+  const durationLabel = esc(opts.durationLabel);
+  const trialLink = esc(opts.trialLink);
 
   // header
   const L = [];
   L.push(RULE);
-  L.push(isInvite ? '✅ *INVITE SENT*' : '✅ *ORDER DELIVERED*');
+  L.push(isTrial ? '🎁 *FREE TRIAL READY*' : (isInvite ? '✅ *INVITE SENT*' : '✅ *ORDER DELIVERED*'));
   L.push('_' + site + '_');
   L.push(RULE);
   L.push('');
   if (product) L.push('📦 *' + product + '*');
-  if (orderNo) L.push('🧾 Order  ·  ' + orderNo);
-  L.push('📅 ' + (isInvite ? 'Sent' : 'Purchased') + '  ·  ' + fmtDate(order.created_at));
-  if (plan) L.push('⏳ Plan  ·  ' + plan);
-  if (expiry) L.push('📆 Expires  ·  ' + expiry);
+  if (isTrial) {
+    L.push('🎯 Trial  ·  ' + (durationLabel || plan || 'Trial'));
+    if (expiry) L.push('📆 Expires  ·  ' + expiry);
+  } else {
+    if (orderNo) L.push('🧾 Order  ·  ' + orderNo);
+    L.push('📅 ' + (isInvite ? 'Sent' : 'Purchased') + '  ·  ' + fmtDate(order.created_at));
+    if (plan) L.push('⏳ Plan  ·  ' + plan);
+    if (expiry) L.push('📆 Expires  ·  ' + expiry);
+  }
   L.push('');
 
   // body by type
@@ -82,8 +90,12 @@ function compose(order, fields, opts) {
 
   // footer
   L.push('');
+  if (isTrial) {
+    if (trialLink) L.push('▶️ Open anytime: ' + trialLink);
+    L.push('Enjoying it? Reply to upgrade to a full plan. 🚀');
+  }
   if (sales) L.push('💬 Need help? wa.me/' + sales);
-  L.push('Thank you for choosing us.');
+  if (!isTrial) L.push('Thank you for choosing us.');
   const main = L.join('\n');
 
   // follow-up: How-to-Use + Warranty — ALWAYS from the website admin (opts), never the bot.

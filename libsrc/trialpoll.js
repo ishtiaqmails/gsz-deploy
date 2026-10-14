@@ -3,8 +3,14 @@
    'pending' trial_claims (two-step generation), stores credentials when ready,
    and delivers them via the WhatsApp outbox + email. Self-healing: if the
    status GET fails, it re-POSTs generate-trial (idempotent on request_id).
-   Never crashes the app. */
+   Never crashes the app.
+
+   Delivery is MASKED in our own premium per-type format via lib/deliveryMsg:
+   when structured `fields` are present (from the bot) the trial is composed
+   exactly like a paid order (IPTV -> Your line + DNS + Watch on players);
+   when fields are absent it falls back to the whatsapp.trial_ready template. */
 const botapi = require('./botapi');
+const deliveryMsg = require('./deliveryMsg');
 let mailer = null; try { mailer = require('./mailer'); } catch (e) { mailer = { configured: () => false, send: async () => ({}) }; }
 
 module.exports = function (pool) {
@@ -18,10 +24,38 @@ module.exports = function (pool) {
       // UNIQUE_TRIAL_IDEMPOTENCY_v1: key off the globally-unique bot_ref (TRIAL-<id>-<hex>),
       // not the claim id — so a reused id (after a reset/clear) can never collide with an
       // old outbox row and get silently suppressed as "already sent".
+      const idk = 'trial-' + (t.bot_ref || t.id);
+      const dl = t.duration_label || (t.duration_hours ? (t.duration_hours + ' Hours') : 'Trial');
+
+      // Prefer structured fields (bot's trial-status, else order-status by ref) so we mask in
+      // our own premium format instead of dumping the raw credentials blob.
+      let fields = (t && t.fields && t.fields.delivery_type) ? t.fields : null;
+      if (!fields && botapi.orderStatus && t.bot_ref) {
+        try { const os = await botapi.orderStatus(t.bot_ref); if (os && os.fields && os.fields.delivery_type) fields = os.fields; } catch (e2) {}
+      }
+
+      if (fields) {
+        const sales = (await setting('wa_sales_number')) || (await setting('wa_support_number')) || '';
+        const site = (await setting('site_name')) || 'Galaxy Subz × Zayron';
+        const msg = deliveryMsg.compose(
+          { product_name: t.server_name || t.trial_type, plan_label: dl, created_at: Date.now() },
+          fields,
+          { siteName: site, salesNumber: sales, trial: true, durationLabel: dl, trialLink: link }
+        );
+        if (msg && msg.main) {
+          await wanotify.enqueue({
+            customer_id: t.customer_id, destination_identity_id: t.whatsapp_identity_id,
+            template_key: 'whatsapp.raw', vars: { body: msg.main }, idempotency_key: idk
+          });
+          return;
+        }
+      }
+
+      // Fallback: no structured fields -> premium trial_ready template (raw credentials inside).
       await wanotify.enqueue({
         customer_id: t.customer_id, destination_identity_id: t.whatsapp_identity_id, template_key: 'whatsapp.trial_ready',
-        vars: { server_name: t.server_name || t.trial_type, duration_label: t.duration_label || (t.duration_hours ? (t.duration_hours + 'h') : 'trial'), secure_link: link, credentials: String(t.credentials || '') },
-        idempotency_key: 'trial-' + (t.bot_ref || t.id)
+        vars: { server_name: t.server_name || t.trial_type, duration_label: dl, secure_link: link, credentials: String(t.credentials || '') },
+        idempotency_key: idk
       });
     } catch (e) {}
     // Email delivery intentionally disabled — trials are delivered via WhatsApp only.
@@ -52,7 +86,7 @@ module.exports = function (pool) {
           const exp = st.expires_at ? new Date(st.expires_at) : (t.duration_hours ? new Date(Date.now() + t.duration_hours * 3600 * 1000) : null);
           await pool.query("UPDATE trial_claims SET status='active', credentials=$1, expires_at=$2, bot_ref=$3 WHERE id=$4 AND status='pending'",
             [String(st.credentials), exp, String(st.trial_ref || t.bot_ref), t.id]);
-          await deliver(Object.assign({}, t, { credentials: st.credentials }));
+          await deliver(Object.assign({}, t, { credentials: st.credentials, fields: st.fields || null }));
         } else if (st.status === 'failed') {
           await pool.query("UPDATE trial_claims SET status='failed', bot_ref=$1 WHERE id=$2 AND status='pending'", [String(st.error || 'failed').slice(0, 140), t.id]);
         }
