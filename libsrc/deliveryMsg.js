@@ -15,7 +15,9 @@ function fmtDate(d) {
 
 // compose(order, fields, opts) -> { main, followup }
 // order: { order_no, created_at, product_name, plan_label }
-// opts:  { siteName, salesNumber }
+// opts:  { siteName, salesNumber, instructions, warranty }
+//   instructions/warranty come from the WEBSITE admin (per product/plan) — NOT from the bot.
+//   The bot's own instructions/warranty are ignored (they are written for the bot's customers).
 function compose(order, fields, opts) {
   order = order || {}; fields = fields || {}; opts = opts || {};
   const dt = esc(fields.delivery_type) || 'credentials';
@@ -84,9 +86,11 @@ function compose(order, fields, opts) {
   L.push('Thank you for choosing us.');
   const main = L.join('\n');
 
-  // follow-up: instructions + warranty (only if present)
-  const instr = Array.isArray(fields.instructions) ? fields.instructions.map(esc).filter(Boolean) : [];
-  const warr = esc(fields.warranty);
+  // follow-up: How-to-Use + Warranty — ALWAYS from the website admin (opts), never the bot.
+  let instr = opts.instructions;
+  if (typeof instr === 'string') instr = instr.split(/\r?\n/);
+  instr = Array.isArray(instr) ? instr.map(esc).filter(Boolean) : [];
+  const warr = esc(opts.warranty);
   let followup = '';
   if (instr.length || warr) {
     const F = [];
