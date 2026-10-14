@@ -85,8 +85,14 @@ module.exports = function (pool) {
         }
         if (st.status === 'done' && st.credentials) {
           const exp = st.expires_at ? new Date(st.expires_at) : (t.duration_hours ? new Date(Date.now() + t.duration_hours * 3600 * 1000) : null);
-          await pool.query("UPDATE trial_claims SET status='active', credentials=$1, expires_at=$2, bot_ref=$3 WHERE id=$4 AND status='pending'",
-            [String(st.credentials), exp, String(st.trial_ref || t.bot_ref), t.id]);
+          // persist the bot's structured fields into metadata so the My Trials page renders per-type
+          const fj = (st.fields && st.fields.delivery_type) ? JSON.stringify({ fields: st.fields }) : null;
+          await pool.query(
+            "UPDATE trial_claims SET status='active', credentials=$1, expires_at=$2, bot_ref=$3" +
+            (fj ? ", metadata = COALESCE(metadata,'{}'::jsonb) || $5::jsonb" : "") +
+            " WHERE id=$4 AND status='pending'",
+            fj ? [String(st.credentials), exp, String(st.trial_ref || t.bot_ref), t.id, fj]
+               : [String(st.credentials), exp, String(st.trial_ref || t.bot_ref), t.id]);
           await deliver(Object.assign({}, t, { credentials: st.credentials, fields: st.fields || null }));
         } else if (st.status === 'failed') {
           await pool.query("UPDATE trial_claims SET status='failed', bot_ref=$1 WHERE id=$2 AND status='pending'", [String(st.error || 'failed').slice(0, 140), t.id]);

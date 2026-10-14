@@ -1,0 +1,120 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<%
+  function stCls(s){ s=String(s||'').toLowerCase(); if(s==='active') return 'ok'; if(s==='rejected'||s==='expired'||s==='failed') return 'bad'; return 'wait'; }
+  function stLabel(s){ s=String(s||'').toLowerCase(); if(s==='active') return 'Active'; if(s==='pending') return 'Preparing'; if(s==='expired') return 'Ended'; if(s==='rejected') return 'Rejected'; if(s==='failed') return 'Failed'; return (s?s.charAt(0).toUpperCase()+s.slice(1):'—'); }
+  function leftLabel(t){
+    var claimed = t.claimed_at ? new Date(t.claimed_at).getTime() : 0;
+    var durH = Number(t.duration_hours)||0;
+    var dbExp = t.expires_at ? new Date(t.expires_at).getTime() : 0;
+    var exp = (claimed && durH) ? (claimed + durH*3600000) : dbExp;
+    if(!exp) return '';
+    var ms = exp - Date.now();
+    if(ms <= 0) return 'Ended';
+    var h = Math.ceil(ms/3600000);
+    return h>=24 ? (Math.round(h/24)+'d left') : (h+'h left');
+  }
+  function fieldsOf(t){ try{ return (t.metadata && t.metadata.fields && t.metadata.fields.delivery_type) ? t.metadata.fields : null; }catch(e){ return null; } }
+%>
+<style>
+  .tr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .tr-card{background:var(--surface,#111322);border:1px solid var(--line-2,rgba(255,255,255,.12));border-radius:16px;padding:0;overflow:hidden}
+  .tr-top{height:4px;background:linear-gradient(90deg,#8b45ff,#3b82ff,#17cbf0)}
+  .tr-body{padding:18px 18px 20px}
+  .tr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+  .tr-title{font-family:var(--display,inherit);font-weight:800;font-size:17px;letter-spacing:-.01em;color:var(--ink,#eef1ff);line-height:1.25}
+  .tr-sub{color:var(--muted,#8b93bb);font-size:12.5px;margin-top:3px}
+  .tr-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+  .tr-pill{font-size:11.5px;font-weight:800;letter-spacing:.3px;padding:4px 10px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+  .tr-pill.ok{background:rgba(22,183,101,.16);color:#38d98a;border:1px solid rgba(22,183,101,.35)}
+  .tr-pill.wait{background:rgba(242,178,74,.14);color:#f2b24a;border:1px solid rgba(242,178,74,.35)}
+  .tr-pill.bad{background:rgba(255,90,90,.14);color:#ff8585;border:1px solid rgba(255,90,90,.32)}
+  .tr-chip{font-size:11.5px;font-weight:700;color:var(--muted,#8b93bb)}
+  .tr-sec{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted,#8b93bb);margin:16px 0 8px}
+  .tr-tbl{width:100%;border-collapse:collapse}
+  .tr-tbl td{padding:9px 0;border-top:1px solid var(--line-2,rgba(255,255,255,.08));font-size:14px;vertical-align:top}
+  .tr-tbl td.k{color:var(--muted,#8b93bb);white-space:nowrap;padding-right:14px;width:1%}
+  .tr-tbl td.v{color:var(--ink,#eef1ff);font-family:Consolas,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all}
+  .tr-players{display:flex;flex-wrap:wrap;gap:8px}
+  .tr-players a{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,255,.14);border:1px solid rgba(59,130,255,.3);color:#9cc2ff;text-decoration:none;font-weight:700;font-size:13px;padding:8px 13px;border-radius:10px}
+  .tr-players a:hover{background:rgba(59,130,255,.22)}
+  .tr-raw{background:var(--bg0,#0b0e1a);border:1px solid var(--line-2,rgba(255,255,255,.12));border-radius:12px;padding:14px 15px;color:var(--ink,#eef1ff);font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;font-family:Consolas,Menlo,monospace}
+  .tr-exp{margin-top:10px;font-size:12.5px;color:var(--muted,#8b93bb)}
+  .tr-note{color:var(--muted,#8b93bb);font-size:14px;line-height:1.6;margin:6px 0 0}
+  .tr-up{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:16px;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#8b45ff,#3b82ff);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 18px;border-radius:12px}
+  .tr-up:hover{filter:brightness(1.05)}
+  @media(max-width:560px){
+    .tr-grid{grid-template-columns:1fr}
+    .tr-head{flex-direction:column;align-items:stretch}
+    .tr-meta{flex-direction:row;align-items:center;justify-content:space-between}
+    .tr-players a{flex:1;justify-content:center}
+  }
+</style>
+<main class="dash">
+  <div class="wrap">
+    <div class="dash-head">
+      <div>
+        <h1>My trials</h1>
+        <p class="sub">Your free trials and their details.</p>
+      </div>
+      <a class="btn btn-g" href="/trials">Get another</a>
+    </div>
+
+    <% if (!rows.length) { %>
+      <div class="dash-card"><p class="soon">You haven't claimed any trials yet. <a href="/trials" style="color:var(--b);font-weight:600">Browse free trials →</a></p></div>
+    <% } else { %>
+      <div class="tr-grid">
+        <% rows.forEach(function(t){
+             var f = fieldsOf(t);
+             var st = String(t.status||'').toLowerCase();
+             var active = (st === 'active');
+             var details = f ? (f.details||[]).filter(function(d){ return d && d.value && String(d.label||'').toLowerCase() !== 'support'; }) : [];
+             var players = (f && f.delivery_type === 'iptv') ? (f.players||[]) : [];
+             var left = leftLabel(t);
+        %>
+          <div class="tr-card">
+            <div class="tr-top"></div>
+            <div class="tr-body">
+              <div class="tr-head">
+                <div>
+                  <div class="tr-title"><%= t.server_name || t.trial_type %></div>
+                  <div class="tr-sub">Free trial<%= t.duration_hours ? (' · ' + t.duration_hours + 'h') : '' %></div>
+                </div>
+                <div class="tr-meta">
+                  <span class="tr-pill <%= stCls(t.status) %>"><%= stLabel(t.status) %></span>
+                  <% if (active && left) { %><span class="tr-chip"><%= left %></span><% } %>
+                </div>
+              </div>
+
+              <% if (active && f) { %>
+                <div class="tr-sec"><%= f.delivery_type === 'iptv' ? 'Your line' : 'Your login' %></div>
+                <table class="tr-tbl">
+                  <% details.forEach(function(d){ %><tr><td class="k"><%= d.label %></td><td class="v"><%= d.value %></td></tr><% }); %>
+                </table>
+                <% if (players.length) { %>
+                  <div class="tr-sec">Watch on</div>
+                  <div class="tr-players">
+                    <% players.forEach(function(p){ %><a href="<%= p.url || '#' %>" target="_blank" rel="noopener"><%= p.platform || 'App' %></a><% }); %>
+                  </div>
+                <% } %>
+                <% if (f.expiry) { %><div class="tr-exp">Expires: <%= f.expiry %></div><% } %>
+              <% } else if (active && t.credentials) { %>
+                <div class="tr-sec">Your trial details</div>
+                <div class="tr-raw"><%= t.credentials %></div>
+              <% } else if (st === 'pending') { %>
+                <p class="tr-note">Your trial is being prepared — we'll send it to your WhatsApp as soon as it's ready.</p>
+              <% } else if (st === 'expired') { %>
+                <p class="tr-note">This trial has ended.</p>
+              <% } else { %>
+                <p class="tr-note"><%= stLabel(t.status) %>.</p>
+              <% } %>
+
+              <% if (active) { %><a class="tr-up" href="/">🚀 Upgrade to full access</a><% } %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</main>
+<%- include('../partials/store_bottom') %>
