@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
-# stepNfFulfillProbe.sh — READ-ONLY. Map lib/deliver.js (delivery flow), plan resolution,
-# source branches, and any Portal provisioning client — enough to build Netflix auto-assign.
+# stepNfFulfillProbe.sh — READ-ONLY. Dump the two files I must edit to finish Netflix auto-assign:
+# lib/deliver.js (full, 116 lines) and lib/nfPortal.js (full). Plus confirm products.nf_enabled.
 set -u
 GSZ=/opt/gsz; cd "$GSZ"
 
-D=lib/deliver.js
-echo "=== lib/deliver.js (lines: $( [ -f "$D" ] && wc -l < "$D" || echo '?' )) ==="
-echo "--- exports / main entry ---"
-grep -nE "module.exports|exports\.|async function|function deliver|deliverOrder" "$D" 2>/dev/null | head
-echo "--- source / type branches (inventory/bot/portal) ---"
-grep -nE "source|'inventory'|'portal'|'bot'|'manual'|delivery_type|nf_enabled|netflix" "$D" 2>/dev/null | head -25
-echo "--- plan resolution (product_plans) + duration/expiry ---"
-grep -nE "product_plans|plan_label|plan_id|duration_value|duration_unit|expires|interval|nf_portal_product_id|plan_tier" "$D" 2>/dev/null | head -20
-echo "--- where it sets credentials / marks delivered / stock pick ---"
-grep -nE "credentials|delivered|stock|nf_account|UPDATE orders|status=|assign" "$D" 2>/dev/null | head -20
+echo "=== products: nf_enabled + relevant cols ==="
+node -e "
+const R='$GSZ';require(R+'/node_modules/dotenv').config({path:R+'/.env'});
+const{Pool}=require(R+'/node_modules/pg');
+const p=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:process.env.DB_NAME,user:process.env.DB_USER,password:process.env.DB_PASS});
+(async()=>{
+  const c=(await p.query(\"SELECT column_name FROM information_schema.columns WHERE table_name='products' AND column_name IN ('nf_enabled','req_otp','has_link','renewable')\")).rows.map(x=>x.column_name);
+  console.log('products flags present:', c.join(', ')||'(none)');
+  const pd=(await p.query(\"SELECT column_name FROM information_schema.columns WHERE table_name='product_plans' AND column_name IN ('duration_value','duration_unit')\")).rows.map(x=>x.column_name);
+  console.log('plan duration cols:', pd.join(', ')||'(none)');
+  const inv=(await p.query(\"SELECT column_name FROM information_schema.columns WHERE table_name='inventory_items' ORDER BY ordinal_position\").catch(()=>({rows:[]}))).rows.map(x=>x.column_name);
+  console.log('inventory_items cols:', inv.join(', ')||'(table missing)');
+  await p.end();
+})().catch(e=>{console.error(e.message);process.exit(1);});
+"
 
 echo ""
-echo "=== Portal provisioning client (for Full accounts) ==="
-grep -rlE "portalProducts|nf_portal_product_id|internal/.*account|portal.*create|provision|NF_READ_KEY|3100" --include=*.js lib routes 2>/dev/null | grep -v node_modules | grep -v '\.bak' | head
-echo "--- portal endpoints referenced ---"
-grep -rnE "internal/[a-z-]+|3100|portalProducts|provision|create-account|NF_PORTAL" --include=*.js lib routes 2>/dev/null | grep -v node_modules | grep -v '\.bak' | head -15
-
+echo "########## lib/deliver.js ##########"
+cat -n lib/deliver.js
 echo ""
-echo "=== where deliver.js is invoked (post-payment hook) ==="
-grep -rnE "require\(.*deliver|deliver\(|deliverOrder\(" --include=*.js routes lib 2>/dev/null | grep -v node_modules | grep -v '\.bak' | head
+echo "########## lib/nfPortal.js ##########"
+cat -n lib/nfPortal.js
