@@ -112,10 +112,9 @@ function compose(order, fields, opts) {
     F.push('📋 *' + (product || 'Your order') + '*');
     F.push('_Instructions & Warranty_');
     F.push(RULE);
-    F.push('');
-    if (instr.length) { F.push('*How to use*'); instr.forEach(function (x) { F.push('• ' + x); }); F.push(''); }
-    if (warr) { F.push('🛡️ *Warranty*'); F.push(warr); F.push(''); }
-    if (sales) F.push('💬 Any issue? wa.me/' + sales);
+    if (instr.length) { instr.forEach(function (x) { F.push('• ' + x); }); }
+    if (warr) { F.push(''); F.push('🛡️ *Warranty:* ' + warr); }
+    if (sales) { F.push(''); F.push('💬 Any issue? wa.me/' + sales); }
     followup = F.join('\n');
   }
 
