@@ -83,8 +83,8 @@ patch('lib/deliver.js', [
   {
     name: 'nf-branch+inventory-guard',
     guard: 'let nfHandled = false;',
-    find: "      // Full-account Netflix (portal): auto-assign a free account when no creds were typed.\n      // inventory: pop a free unit for an own-stock plan\n      if (!creds && !wasDelivered) {",
-    replace: "      // Netflix (nf_enabled): own the whole fulfilment — grab a free profile unit (inventory)\n      // or provision a full account from the Portal, and create the code-panel nf_assignment.\n      let nfHandled = false;\n      if (!creds && !wasDelivered) {\n        try {\n          const _nf = (await pool.query('SELECT nf_enabled FROM products WHERE id=$1', [cur.product_id])).rows[0];\n          if (_nf && _nf.nf_enabled) { nfHandled = true; creds = (await nfAssign(cur, orderId)) || ''; }\n        } catch (e) {}\n      }\n      // inventory: pop a free unit for an own-stock (non-Netflix) plan\n      if (!nfHandled && !creds && !wasDelivered) {"
+    find: "      if (!creds && !wasDelivered) {",
+    replace: "      let nfHandled = false;\n      if (!creds && !wasDelivered) {\n        try {\n          const _nf = (await pool.query('SELECT nf_enabled FROM products WHERE id=$1', [cur.product_id])).rows[0];\n          if (_nf && _nf.nf_enabled) { nfHandled = true; creds = (await nfAssign(cur, orderId)) || ''; }\n        } catch (e) {}\n      }\n      // inventory: pop a free unit for an own-stock (non-Netflix) plan\n      if (!nfHandled && !creds && !wasDelivered) {"
   },
   {
     name: 'portal-guard',
