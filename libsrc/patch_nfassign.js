@@ -1,26 +1,25 @@
 'use strict';
-/* Netflix auto-assign at delivery (lib/deliver.js).
-   When an nf_enabled order is marked delivered with no typed creds:
+/* Netflix auto-assign at delivery (lib/deliver.js) — whitespace/line-ending robust.
+   On an nf_enabled order marked delivered with no typed creds:
      - Profile plan (source=inventory): atomically claim a free nf_account for the plan and
        create its nf_assignment (tier from plan nf_tier/derived, expiry from plan duration).
-     - Full plan (source=portal): nfPortal.assign() provisions from the Accounts Portal, then
-       store that account locally as nf_account + nf_assignment so the code panel lights up.
-   Non-Netflix delivery (generic inventory_items / portal) is untouched (guarded by nfHandled).
-   Idempotent (guards), anchored, unique-checked. */
+     - Full plan (source=portal): nfPortal.assign() provisions from the Portal; store it locally
+       as nf_account + nf_assignment so the code panel lights up.
+   Generic (non-Netflix) delivery is untouched (guarded by nfHandled).
+   Matches are anchored on content that is independent of indentation. Idempotent. */
 const fs = require('fs'), path = require('path');
 const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_nfassign.js <ROOT>'); process.exit(1); }
+const file = path.join(ROOT, 'lib/deliver.js');
+let s = fs.readFileSync(file, 'utf8');
 
-function patch(rel, edits) {
-  const file = path.join(ROOT, rel); let s = fs.readFileSync(file, 'utf8');
-  for (const e of edits) {
-    if (s.indexOf(e.guard) >= 0) { console.log('skip (already): ' + rel + ' :: ' + e.name); continue; }
-    const first = s.indexOf(e.find);
-    if (first < 0) throw new Error('ANCHOR MISS: ' + rel + ' :: ' + e.name);
-    if (s.indexOf(e.find, first + 1) >= 0) throw new Error('ANCHOR NOT UNIQUE: ' + rel + ' :: ' + e.name);
-    s = s.slice(0, first) + e.replace + s.slice(first + e.find.length);
-    console.log('patched: ' + rel + ' :: ' + e.name);
-  }
-  fs.writeFileSync(file, s);
+// exact single replace with guard + uniqueness
+function once(name, guard, find, replace) {
+  if (s.indexOf(guard) >= 0) { console.log('skip (already): ' + name); return; }
+  const i = s.indexOf(find);
+  if (i < 0) throw new Error('ANCHOR MISS: ' + name);
+  if (s.indexOf(find, i + 1) >= 0) throw new Error('ANCHOR NOT UNIQUE: ' + name);
+  s = s.slice(0, i) + replace + s.slice(i + find.length);
+  console.log('patched: ' + name);
 }
 
 const HELPERS =
@@ -61,36 +60,52 @@ const HELPERS =
 "    return lines.join('\\n');\n" +
 "  }\n\n";
 
-patch('lib/deliver.js', [
-  {
-    name: 'require-netflixGate',
-    guard: "require('./netflixGate')",
-    find: "let nfPortal = null; try { nfPortal = require('./nfPortal'); } catch (e) { nfPortal = { configured: () => false, assign: async () => ({ ok: false }) }; }",
-    replace: "let nfPortal = null; try { nfPortal = require('./nfPortal'); } catch (e) { nfPortal = { configured: () => false, assign: async () => ({ ok: false }) }; }\nlet nfGate = null; try { nfGate = require('./netflixGate'); } catch (e) { nfGate = null; }"
-  },
-  {
-    name: 'helpers',
-    guard: 'async function nfAssign(cur, orderId)',
-    find: "  async function markDelivered(orderId, opts) {",
-    replace: HELPERS + "  async function markDelivered(orderId, opts) {"
-  },
-  {
-    name: 'cur-customer_id',
-    guard: "whatsapp, order_no, customer_id FROM orders",
-    find: "const cur = (await pool.query('SELECT status, product_id, plan_label, email, whatsapp, order_no FROM orders WHERE id=$1', [orderId])).rows[0];",
-    replace: "const cur = (await pool.query('SELECT status, product_id, plan_label, email, whatsapp, order_no, customer_id FROM orders WHERE id=$1', [orderId])).rows[0];"
-  },
-  {
-    name: 'nf-branch+inventory-guard',
-    guard: 'let nfHandled = false;',
-    find: "      if (!creds && !wasDelivered) {",
-    replace: "      let nfHandled = false;\n      if (!creds && !wasDelivered) {\n        try {\n          const _nf = (await pool.query('SELECT nf_enabled FROM products WHERE id=$1', [cur.product_id])).rows[0];\n          if (_nf && _nf.nf_enabled) { nfHandled = true; creds = (await nfAssign(cur, orderId)) || ''; }\n        } catch (e) {}\n      }\n      // inventory: pop a free unit for an own-stock (non-Netflix) plan\n      if (!nfHandled && !creds && !wasDelivered) {"
-  },
-  {
-    name: 'portal-guard',
-    guard: "if (!nfHandled && !creds && !wasDelivered && nfPortal.configured())",
-    find: "      if (!creds && !wasDelivered && nfPortal.configured()) {",
-    replace: "      if (!nfHandled && !creds && !wasDelivered && nfPortal.configured()) {"
-  }
-]);
+// 1) require netflixGate
+once('require-netflixGate', "require('./netflixGate')",
+  "let nfPortal = null; try { nfPortal = require('./nfPortal'); } catch (e) { nfPortal = { configured: () => false, assign: async () => ({ ok: false }) }; }",
+  "let nfPortal = null; try { nfPortal = require('./nfPortal'); } catch (e) { nfPortal = { configured: () => false, assign: async () => ({ ok: false }) }; }\nlet nfGate = null; try { nfGate = require('./netflixGate'); } catch (e) { nfGate = null; }");
+
+// 2) helpers before markDelivered
+once('helpers', 'async function nfAssign(cur, orderId)',
+  "  async function markDelivered(orderId, opts) {",
+  HELPERS + "  async function markDelivered(orderId, opts) {");
+
+// 3) order SELECT: add customer_id
+once('cur-customer_id', "whatsapp, order_no, customer_id FROM orders",
+  "SELECT status, product_id, plan_label, email, whatsapp, order_no FROM orders WHERE id=$1",
+  "SELECT status, product_id, plan_label, email, whatsapp, order_no, customer_id FROM orders WHERE id=$1");
+
+// 4) guard BOTH existing delivery branches on the condition text (indentation-independent)
+if (s.indexOf('!nfHandled && !creds') >= 0) {
+  console.log('skip (already): nfHandled guard');
+} else {
+  const parts = s.split('(!creds && !wasDelivered');
+  const n = parts.length - 1;
+  if (n < 2) throw new Error('GUARD: expected >=2 "(!creds && !wasDelivered" sites, found ' + n);
+  s = parts.join('(!nfHandled && !creds && !wasDelivered');
+  console.log('patched: nfHandled guard (' + n + ' sites)');
+}
+
+// 5) declare nfHandled + the Netflix branch, right after the wasDelivered line
+if (s.indexOf('let nfHandled = false;') >= 0) {
+  console.log('skip (already): nf-branch');
+} else {
+  const anchor = "const wasDelivered = cur.status === 'delivered';";
+  const i = s.indexOf(anchor);
+  if (i < 0) throw new Error('ANCHOR MISS: nf-branch (wasDelivered line)');
+  if (s.indexOf(anchor, i + 1) >= 0) throw new Error('ANCHOR NOT UNIQUE: nf-branch');
+  const NFBRANCH =
+    "\n    let nfHandled = false;\n" +
+    "    if (!creds && !wasDelivered) {\n" +
+    "      try {\n" +
+    "        const _nf = (await pool.query('SELECT nf_enabled FROM products WHERE id=$1', [cur.product_id])).rows[0];\n" +
+    "        if (_nf && _nf.nf_enabled) { nfHandled = true; creds = (await nfAssign(cur, orderId)) || ''; }\n" +
+    "      } catch (e) {}\n" +
+    "    }";
+  const at = i + anchor.length;
+  s = s.slice(0, at) + NFBRANCH + s.slice(at);
+  console.log('patched: nf-branch');
+}
+
+fs.writeFileSync(file, s);
 console.log('NFASSIGN PATCH OK');
