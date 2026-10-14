@@ -19,8 +19,8 @@ const pool=new Pool({host:process.env.DB_HOST,port:process.env.DB_PORT,database:
     let f=null; try{ const st=await botapi.orderStatus(o.order_no); f=st&&st.fields; }catch(e){}
     console.log('\\n==================== '+o.order_no+'  ('+o.product_name+') ====================');
     if(!f||!f.delivery_type){ console.log('(no fields -> would FALL BACK to raw bot text)'); continue; }
-    const pr=(await pool.query('SELECT instructions, warranty FROM products WHERE id=$1',[o.product_id])).rows[0]||{};
-    const plw=(await pool.query('SELECT warranty, delivery_instructions FROM product_plans WHERE product_id=$1 AND label=$2 ORDER BY sort,id LIMIT 1',[o.product_id,o.plan_label])).rows[0]||{};
+    const pr=(await pool.query('SELECT instructions, warranty FROM products WHERE id=\$1',[o.product_id])).rows[0]||{};
+    const plw=(await pool.query('SELECT warranty, delivery_instructions FROM product_plans WHERE product_id=\$1 AND label=\$2 ORDER BY sort,id LIMIT 1',[o.product_id,o.plan_label])).rows[0]||{};
     const instr=((plw.delivery_instructions||'').trim())||(pr.instructions||'');
     const warr=((plw.warranty||'').trim())||(pr.warranty||'');
     const m=deliveryMsg.compose(o,f,{siteName:'Galaxy Subz × Zayron',salesNumber:sales,instructions:instr,warranty:warr});
