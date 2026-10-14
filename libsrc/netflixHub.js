@@ -18,7 +18,7 @@ module.exports = function (pool) {
       if (!gate) return res.json({ ok: true, isNetflix: false });
       const c = req.session.customer; const no = String(req.params.no || '');
       const o = (await pool.query(
-        "SELECT id, order_no, plan_label FROM orders WHERE order_no=$1 AND (customer_id=$2 OR (customer_id IS NULL AND email IS NOT NULL AND lower(email)=lower($3))) LIMIT 1",
+        "SELECT id, order_no, plan_label, product_id FROM orders WHERE order_no=$1 AND (customer_id=$2 OR (customer_id IS NULL AND email IS NOT NULL AND lower(email)=lower($3))) LIMIT 1",
         [no, c.id, c.email])).rows[0];
       if (!o) return res.json({ ok: true, isNetflix: false });
       const a = (await pool.query(
@@ -27,7 +27,14 @@ module.exports = function (pool) {
       if (!a) return res.json({ ok: true, isNetflix: false });
       const acc = (await pool.query("SELECT account_email, credentials FROM nf_accounts WHERE id=$1", [a.nf_account_id])).rows[0];
       let creds = (acc && acc.credentials) || {}; if (typeof creds === 'string') { try { creds = JSON.parse(creds); } catch (e) { creds = {}; } }
-      const tier = a.plan_tier || gate.tierForPlan(o.plan_label);
+      // Prefer the explicit per-plan tier set in admin; fall back to the assignment's
+      // stored tier, then to deriving it from the plan label.
+      let explicitTier = null;
+      try {
+        const pr = (await pool.query("SELECT nf_tier FROM product_plans WHERE product_id=$1 AND label=$2 LIMIT 1", [o.product_id, o.plan_label])).rows[0];
+        if (pr && ['phone', 'tv', 'full'].indexOf(pr.nf_tier) >= 0) explicitTier = pr.nf_tier;
+      } catch (e) { /* no explicit tier — fall back below */ }
+      const tier = explicitTier || a.plan_tier || gate.tierForPlan(o.plan_label);
       const expired = !!(a.expires_at && new Date(a.expires_at) < new Date());
       const allowed = gate.PLAN_ALLOW[tier] || gate.PLAN_ALLOW.phone;
       const panel = {

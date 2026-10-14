@@ -3,7 +3,6 @@
 <%
   var pp = (typeof portalProducts!=='undefined' && portalProducts) ? portalProducts : [];
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function tierBadge(t){ var c=t==='full'?['#efe6ff','#6c23c9']:(t==='tv'?['#e8f0ff','#1b6fd6']:['#e7f8ee','#0b7a42']); return '<span class="spill" style="background:'+c[0]+';color:'+c[1]+'">'+t.toUpperCase()+'</span>'; }
   var freeTot=0, asgTot=0;
   data.forEach(function(g){ g.plans.forEach(function(pl){ if(pl.full){ freeTot+=(pl.portalFree||0); } else { freeTot+=(pl.free||0); asgTot+=(pl.assigned||0); } }); });
 %>
@@ -25,7 +24,14 @@
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
         <h2 style="margin:0;font-size:15px"><%= pl.label %></h2>
-        <%- tierBadge(pl.tier) %>
+        <form method="post" action="/admin/netflix/plan/<%= pl.id %>/tier" style="display:inline-flex;align-items:center;gap:6px;margin:0">
+          <select name="tier" style="margin:0;padding:5px 9px;font-size:12.5px;width:auto;border-radius:8px">
+            <option value="phone" <%= pl.tier==='phone'?'selected':'' %>>Phone / Laptop</option>
+            <option value="tv" <%= pl.tier==='tv'?'selected':'' %>>TV</option>
+            <option value="full" <%= pl.tier==='full'?'selected':'' %>>Full</option>
+          </select>
+          <button class="btn btn-g" type="submit" style="padding:5px 11px;font-size:12.5px">Set tier</button>
+        </form>
         <% if (pl.full) { %>
           <span style="margin-left:auto;color:var(--muted);font-size:13px">Fulfilled from portal<% if (pl.portalFree!=null) { %> · <b style="color:var(--ink)"><%= pl.portalFree %></b> free<% } %></span>
         <% } else { %>
