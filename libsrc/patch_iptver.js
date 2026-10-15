@@ -21,24 +21,23 @@ function sub(file, name, guard, find, replace) {
   console.log('patched: ' + name);
 }
 
-// Shared snippets (identical in both files; indentation is irrelevant to JS).
-const SEL_FIND = "const _plw = (await pool.query('SELECT warranty, delivery_instructions FROM product_plans WHERE product_id=$1 AND label=$2 ORDER BY sort, id LIMIT 1', [o.product_id, o.plan_label])).rows[0] || {};";
-const SEL_REPL = "const _plw = (await pool.query('SELECT warranty, delivery_instructions, bot_sku, version_labels FROM product_plans WHERE product_id=$1 AND label=$2 ORDER BY sort, id LIMIT 1', [o.product_id, o.plan_label])).rows[0] || {};";
-
+// Warranty line is the unique, safe anchor in both files (the other `_warr`/SELECT lines differ).
+// We do NOT touch the ambiguous SELECT line; instead we fetch bot_sku/version_labels in a
+// self-contained query inside the injected resolver, so there is nothing non-unique to match.
 const WARR_FIND = "const _warr = ((_plw.warranty || '').trim()) || (_pr.warranty || '');";
 const WARR_REPL = "const _warr = ((_plw.warranty || '').trim()) || (_pr.warranty || '') || ((_f && _f.warranty) || '');"
   + " let _vlabel='';"
   + " try{ const _vk=String(o.bot_type||'').trim();"
-  + " if(_vk){ const _btl=(await pool.query(\"SELECT label FROM bot_type_labels WHERE sku=$1 AND type_key=$2 LIMIT 1\",[_plw.bot_sku,_vk])).rows[0];"
+  + " if(_vk){ const _vp=(await pool.query(\"SELECT bot_sku, version_labels FROM product_plans WHERE product_id=$1 AND label=$2 ORDER BY sort, id LIMIT 1\",[o.product_id,o.plan_label])).rows[0]||{};"
+  + " const _btl=(await pool.query(\"SELECT label FROM bot_type_labels WHERE sku=$1 AND type_key=$2 LIMIT 1\",[_vp.bot_sku,_vk])).rows[0];"
   + " if(_btl&&_btl.label){ _vlabel=_btl.label; }"
-  + " else { let _vls=_plw.version_labels; if(typeof _vls==='string'){ try{_vls=JSON.parse(_vls);}catch(e){_vls=null;} }"
+  + " else { let _vls=_vp.version_labels; if(typeof _vls==='string'){ try{_vls=JSON.parse(_vls);}catch(e){_vls=null;} }"
   + " if(Array.isArray(_vls)){ const _mm=_vls.find(function(v){return v&&v.key===_vk;}); if(_mm&&_mm.label){ _vlabel=_mm.label; } } } } }catch(e){}";
 
 const CRED_SAVE = " if (_m.credentials) { try { await pool.query(\"UPDATE orders SET delivered_credentials=$1 WHERE id=$2\", [_m.credentials, o.id]); } catch(e){} }";
 
 // ---- routes/checkout.js ----
 const CO = path.join(ROOT, 'routes/checkout.js');
-sub(CO, 'co:select', 'delivery_instructions, bot_sku, version_labels', SEL_FIND, SEL_REPL);
 sub(CO, 'co:resolve', 'let _vlabel=', WARR_FIND, WARR_REPL);
 sub(CO, 'co:compose', 'versionLabel: _vlabel',
   "const _m = deliveryMsg.compose(o, _f, { siteName: 'Galaxy Subz \\u00d7 Zayron', salesNumber: _sales, instructions: _instr, warranty: _warr });",
@@ -49,7 +48,6 @@ sub(CO, 'co:credsave', 'UPDATE orders SET delivered_credentials=$1 WHERE id=$2',
 
 // ---- lib/deliver.js ----
 const DV = path.join(ROOT, 'lib/deliver.js');
-sub(DV, 'dv:select', 'delivery_instructions, bot_sku, version_labels', SEL_FIND, SEL_REPL);
 sub(DV, 'dv:resolve', 'let _vlabel=', WARR_FIND, WARR_REPL);
 sub(DV, 'dv:compose', 'versionLabel: _vlabel',
   "const _m = deliveryMsg.compose(o, _f, { siteName: SITE, salesNumber: _sales, instructions: _instr, warranty: _warr });",
