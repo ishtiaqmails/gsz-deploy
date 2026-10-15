@@ -30,6 +30,7 @@ function compose(order, fields, opts) {
   const isInvite = dt === 'vendor_invite';
   const isTrial = !!opts.trial;
   const durationLabel = esc(opts.durationLabel);
+  const versionLabel = esc(opts.versionLabel);
 
   // header
   const L = [];
@@ -45,7 +46,8 @@ function compose(order, fields, opts) {
   } else {
     if (orderNo) L.push('🧾 Order  ·  ' + orderNo);
     L.push('📅 ' + (isInvite ? 'Sent' : 'Purchased') + '  ·  ' + fmtDate(order.created_at));
-    if (plan) L.push('⏳ Plan  ·  ' + plan);
+    if (plan) L.push('⏳ Plan  ·  ' + plan + (versionLabel ? ' — ' + versionLabel : ''));
+    else if (versionLabel) L.push('⏳ Plan  ·  ' + versionLabel);
     if (expiry) L.push('📆 Expires  ·  ' + expiry);
   }
   L.push('');
@@ -100,6 +102,16 @@ function compose(order, fields, opts) {
   }
   const main = L.join('\n');
 
+  // Clean credentials block for the website admin (mirrors what the customer received).
+  let credentials = '';
+  if (details.length) {
+    const credLines = [];
+    if (versionLabel) credLines.push('Version: ' + versionLabel);
+    details.forEach(function (d) { credLines.push(esc(d.label) + ': ' + esc(d.value)); });
+    if (expiry) credLines.push('Expiry: ' + expiry);
+    credentials = credLines.join('\n');
+  }
+
   // follow-up: How-to-Use + Warranty — ALWAYS from the website admin (opts), never the bot.
   let instr = opts.instructions;
   if (typeof instr === 'string') instr = instr.split(/\r?\n/);
@@ -118,7 +130,7 @@ function compose(order, fields, opts) {
     followup = F.join('\n');
   }
 
-  return { main: main, followup: followup };
+  return { main: main, followup: followup, credentials: credentials };
 }
 
 module.exports = { compose };
