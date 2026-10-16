@@ -3,11 +3,12 @@
   var panelsList = (typeof panels !== 'undefined' && Array.isArray(panels)) ? panels : [];
   var waNum = (typeof waNumber !== 'undefined' && waNumber) ? String(waNumber).replace(/[^0-9]/g,'') : '';
   var waGeneric = waNum ? ('https://wa.me/'+waNum+'?text='+encodeURIComponent('Hi! I want an IPTV reseller panel.')) : '#';
+  var _rbm = (typeof bannerMap !== 'undefined' && bannerMap) ? (bannerMap['resellers'] || {}) : {};
   function feats(f){ try{ return Array.isArray(f)?f:JSON.parse(f||'[]'); }catch(e){ return []; } }
   function tiersOf(t){ try{ var a = Array.isArray(t)?t:JSON.parse(t||'[]'); return a.filter(function(x){return x&&x.credits;}); }catch(e){ return []; } }
 %>
 <style>
-  .rp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .rp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:18px}
   .rp-card{background:var(--surface,#111322);border:1px solid var(--line-2,rgba(255,255,255,.14));border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px -40px rgba(0,0,0,.7)}
   .rp-media{aspect-ratio:16/8;background:#0b1020 center/cover no-repeat;border-bottom:1px solid var(--line,rgba(255,255,255,.08))}
   .rp-body{padding:20px;display:flex;flex-direction:column;gap:12px;flex:1}
@@ -32,6 +33,19 @@
   .rp-cta{display:flex;flex-direction:column;gap:9px;margin-top:14px}
   .rp-empty{background:var(--surface,#111322);border:1px solid var(--line-2,rgba(255,255,255,.14));border-radius:18px;padding:34px 22px;text-align:center;max-width:460px;margin:0 auto}
 </style>
+
+<% if (_rbm.desktop || _rbm.mobile) { %>
+<section class="hero">
+  <div class="hero-stage">
+    <div class="hslide on">
+      <picture>
+        <% if (_rbm.mobile) { %><source media="(max-width:720px)" srcset="/static/img/<%= _rbm.mobile %>"><% } %>
+        <img src="/static/img/<%= _rbm.desktop || _rbm.mobile %>" alt="Reseller panels">
+      </picture>
+    </div>
+  </div>
+</section>
+<% } %>
 
 <section class="section">
   <div class="wrap">
