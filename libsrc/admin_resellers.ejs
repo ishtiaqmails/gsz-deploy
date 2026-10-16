@@ -8,7 +8,7 @@
 
 <div class="card">
   <h2 id="formTitle" style="margin-bottom:12px">Add a reseller panel</h2>
-  <form method="post" action="/admin/resellers/save" id="panelForm">
+  <form method="post" action="/admin/resellers/save" id="panelForm" enctype="multipart/form-data">
     <input type="hidden" name="id" id="f_id" value="">
     <div style="display:grid;grid-template-columns:2fr 1fr 90px 70px;gap:10px;align-items:end">
       <div><label class="fld">Panel name</label><input type="text" name="name" id="f_name" placeholder="e.g. Opplex TV Reseller Panel" required style="margin:0"></div>
@@ -17,7 +17,14 @@
       <div><label class="fld">Sort</label><input type="number" name="sort" id="f_sort" value="0" style="margin:0"></div>
     </div>
     <div style="margin-top:10px"><label class="fld">Tagline</label><input type="text" name="tagline" id="f_tagline" placeholder="Short line under the panel name" style="margin:0"></div>
-    <div style="margin-top:10px"><label class="fld">Image / logo URL (optional)</label><input type="text" name="image_url" id="f_image" placeholder="https://… (leave blank for none)" style="margin:0"></div>
+    <div style="margin-top:10px">
+      <label class="fld">Panel image (optional) — recommended <b>1200 × 600 px</b> (2:1) · JPG, PNG or WebP · up to 6 MB</label>
+      <div id="f_imgprev_wrap" style="display:none;align-items:center;gap:12px;margin:0 0 8px">
+        <img id="f_imgprev" src="" alt="" style="width:160px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--hair)">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><input type="checkbox" name="remove_image" id="f_removeimg" style="width:auto;margin:0"> Remove image</label>
+      </div>
+      <input type="file" name="image" id="f_image" accept="image/*" style="font-size:13px;width:100%">
+    </div>
     <div style="margin-top:10px"><label class="fld">Features — one per line (the ✓ points)</label><textarea name="features" id="f_features" rows="3" placeholder="Create, renew and manage your own lines&#10;Set your own retail prices&#10;Instant credit top-up and 24/7 support" style="margin:0"></textarea></div>
     <div style="margin-top:10px"><label class="fld">Custom WhatsApp message (optional — leave blank for default)</label><input type="text" name="wa_text" id="f_watext" placeholder="Hi! I want the {panel} reseller panel." style="margin:0"></div>
 
@@ -64,8 +71,8 @@ function tierRow(credits, price){
   var d = document.createElement('div');
   d.className = 'tier-row';
   d.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin-bottom:6px';
-  d.innerHTML = '<input type="number" name="tier_credits[]" placeholder="Credits (e.g. 50)" value="'+(credits!=null?credits:'')+'" style="margin:0">'
-    + '<input type="number" step="any" name="tier_price[]" placeholder="Price / credit" value="'+(price!=null?price:'')+'" style="margin:0">'
+  d.innerHTML = '<input type="number" name="tier_credits" placeholder="Credits (e.g. 50)" value="'+(credits!=null?credits:'')+'" style="margin:0">'
+    + '<input type="number" step="any" name="tier_price" placeholder="Price / credit" value="'+(price!=null?price:'')+'" style="margin:0">'
     + '<button type="button" class="btn btn-g" style="padding:6px 0" onclick="this.parentNode.remove()">✕</button>';
   return d;
 }
@@ -77,6 +84,9 @@ function resetForm(){
   document.getElementById('f_currency').value='PKR';
   document.getElementById('f_active').checked=true;
   document.getElementById('formTitle').textContent='Add a reseller panel';
+  var pw=document.getElementById('f_imgprev_wrap'); if(pw) pw.style.display='none';
+  var rm=document.getElementById('f_removeimg'); if(rm) rm.checked=false;
+  var fi=document.getElementById('f_image'); if(fi) fi.value='';
   clearTiers(); addTier(); addTier();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -88,7 +98,10 @@ function editPanel(id){
   document.getElementById('f_currency').value=p.currency||'PKR';
   document.getElementById('f_sort').value=(p.sort!=null?p.sort:0);
   document.getElementById('f_tagline').value=p.tagline||'';
-  document.getElementById('f_image').value=p.image_url||'';
+  var prevWrap=document.getElementById('f_imgprev_wrap'), prev=document.getElementById('f_imgprev'), rm=document.getElementById('f_removeimg'), fi=document.getElementById('f_image');
+  if(fi) fi.value='';
+  if(rm) rm.checked=false;
+  if(p.image_url){ prev.src=p.image_url; prevWrap.style.display='flex'; } else { prev.src=''; prevWrap.style.display='none'; }
   document.getElementById('f_watext').value=p.wa_text||'';
   var feats = p.features; if(typeof feats==='string'){ try{feats=JSON.parse(feats);}catch(e){feats=[];} }
   document.getElementById('f_features').value=(feats||[]).join('\n');
