@@ -1,0 +1,103 @@
+<%- include('_shell_top', { active:'resellers', title:'Reseller Panels' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<%
+  function tiersSummary(t){ try{ t = Array.isArray(t)?t:JSON.parse(t||'[]'); }catch(e){ t=[]; }
+    if(!t.length) return '<span style="color:var(--muted)">no tiers</span>';
+    return t.map(function(x){ return x.credits+' @ '+x.price; }).join(' · '); }
+%>
+
+<div class="card">
+  <h2 id="formTitle" style="margin-bottom:12px">Add a reseller panel</h2>
+  <form method="post" action="/admin/resellers/save" id="panelForm">
+    <input type="hidden" name="id" id="f_id" value="">
+    <div style="display:grid;grid-template-columns:2fr 1fr 90px 70px;gap:10px;align-items:end">
+      <div><label class="fld">Panel name</label><input type="text" name="name" id="f_name" placeholder="e.g. Opplex TV Reseller Panel" required style="margin:0"></div>
+      <div><label class="fld">Badge (optional)</label><input type="text" name="badge" id="f_badge" placeholder="e.g. Credit panel" style="margin:0"></div>
+      <div><label class="fld">Currency</label><input type="text" name="currency" id="f_currency" value="PKR" style="margin:0"></div>
+      <div><label class="fld">Sort</label><input type="number" name="sort" id="f_sort" value="0" style="margin:0"></div>
+    </div>
+    <div style="margin-top:10px"><label class="fld">Tagline</label><input type="text" name="tagline" id="f_tagline" placeholder="Short line under the panel name" style="margin:0"></div>
+    <div style="margin-top:10px"><label class="fld">Image / logo URL (optional)</label><input type="text" name="image_url" id="f_image" placeholder="https://… (leave blank for none)" style="margin:0"></div>
+    <div style="margin-top:10px"><label class="fld">Features — one per line (the ✓ points)</label><textarea name="features" id="f_features" rows="3" placeholder="Create, renew and manage your own lines&#10;Set your own retail prices&#10;Instant credit top-up and 24/7 support" style="margin:0"></textarea></div>
+    <div style="margin-top:10px"><label class="fld">Custom WhatsApp message (optional — leave blank for default)</label><input type="text" name="wa_text" id="f_watext" placeholder="Hi! I want the {panel} reseller panel." style="margin:0"></div>
+
+    <div style="margin-top:14px">
+      <label class="fld" style="display:flex;justify-content:space-between;align-items:center">Credit tiers <span style="font-weight:500;color:var(--muted);font-size:12px">slider stops — each with its own per-credit price</span></label>
+      <div id="tiers"></div>
+      <button type="button" class="btn btn-g" style="padding:6px 11px;margin-top:6px" onclick="addTier()">+ Add tier</button>
+    </div>
+
+    <div style="margin-top:14px;display:flex;align-items:center;gap:16px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600"><input type="checkbox" name="active" id="f_active" checked style="width:auto;margin:0"> Show on site</label>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button type="button" class="btn btn-g" onclick="resetForm()">Clear</button>
+        <button class="btn btn-p" type="submit">Save panel</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead><tr><th>Panel</th><th>Tiers (credits @ price/credit)</th><th style="width:70px">Active</th><th style="width:60px">Sort</th><th style="text-align:right">Actions</th></tr></thead>
+    <tbody>
+      <% if (!rows.length) { %><tr><td colspan="5" style="color:var(--muted);padding:22px 16px">No panels yet — add your first one above. The public page shows a “message us” card until a panel is added.</td></tr><% } %>
+      <% rows.forEach(function(r){ %>
+        <tr>
+          <td><b><%= r.name %></b><% if (r.badge) { %> <span class="spill" style="background:#eef2ff;color:#3b4fd0"><%= r.badge %></span><% } %><% if (r.tagline) { %><div style="color:var(--muted);font-size:12px;margin-top:4px"><%= r.tagline %></div><% } %></td>
+          <td style="font-size:13px"><%- tiersSummary(r.tiers) %></td>
+          <td><% if (r.active) { %><span class="spill" style="background:#e7f8ee;color:#0b7a42">Live</span><% } else { %><span class="spill" style="background:#eef1f6;color:#667">Hidden</span><% } %></td>
+          <td><%= r.sort %></td>
+          <td style="text-align:right;white-space:nowrap">
+            <button class="btn btn-g" style="padding:6px 11px" type="button" onclick="editPanel(<%= r.id %>)">Edit</button>
+            <form method="post" action="/admin/resellers/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this panel?')"><button class="btn btn-g" style="padding:6px 11px;color:#b42318" type="submit">Delete</button></form>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+var PANELS = <%- JSON.stringify(rows).replace(/</g,'\\u003c') %>;
+function tierRow(credits, price){
+  var d = document.createElement('div');
+  d.className = 'tier-row';
+  d.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;margin-bottom:6px';
+  d.innerHTML = '<input type="number" name="tier_credits[]" placeholder="Credits (e.g. 50)" value="'+(credits!=null?credits:'')+'" style="margin:0">'
+    + '<input type="number" step="any" name="tier_price[]" placeholder="Price / credit" value="'+(price!=null?price:'')+'" style="margin:0">'
+    + '<button type="button" class="btn btn-g" style="padding:6px 0" onclick="this.parentNode.remove()">✕</button>';
+  return d;
+}
+function addTier(credits, price){ document.getElementById('tiers').appendChild(tierRow(credits, price)); }
+function clearTiers(){ document.getElementById('tiers').innerHTML=''; }
+function resetForm(){
+  document.getElementById('panelForm').reset();
+  document.getElementById('f_id').value='';
+  document.getElementById('f_currency').value='PKR';
+  document.getElementById('f_active').checked=true;
+  document.getElementById('formTitle').textContent='Add a reseller panel';
+  clearTiers(); addTier(); addTier();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function editPanel(id){
+  var p = PANELS.filter(function(x){return x.id===id;})[0]; if(!p) return;
+  document.getElementById('f_id').value=p.id;
+  document.getElementById('f_name').value=p.name||'';
+  document.getElementById('f_badge').value=p.badge||'';
+  document.getElementById('f_currency').value=p.currency||'PKR';
+  document.getElementById('f_sort').value=(p.sort!=null?p.sort:0);
+  document.getElementById('f_tagline').value=p.tagline||'';
+  document.getElementById('f_image').value=p.image_url||'';
+  document.getElementById('f_watext').value=p.wa_text||'';
+  var feats = p.features; if(typeof feats==='string'){ try{feats=JSON.parse(feats);}catch(e){feats=[];} }
+  document.getElementById('f_features').value=(feats||[]).join('\n');
+  document.getElementById('f_active').checked=!!p.active;
+  var tiers = p.tiers; if(typeof tiers==='string'){ try{tiers=JSON.parse(tiers);}catch(e){tiers=[];} }
+  clearTiers(); (tiers||[]).forEach(function(t){ addTier(t.credits, t.price); }); if(!(tiers||[]).length){ addTier(); }
+  document.getElementById('formTitle').textContent='Edit panel — '+(p.name||'');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+addTier(); addTier();
+</script>
+<%- include('_shell_bottom') %>
