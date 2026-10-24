@@ -2,11 +2,15 @@
 /* Netflix plan -> tier gating. Phone < TV < Full. The NEW portal classifier is
    authoritative on `type`, so refineType maps the portal type set directly to our
    rtype vocabulary (with a legacy subject-based fallback for any unmapped type).
-   Default-deny: an email shows only if its refined type is allowed for the plan's tier. */
+   Default-deny: an email shows only if its refined type is allowed for the plan's tier.
+   SAFETY: password-change links (new_signin = "new device" change-password link,
+   password_reset) are Full-tier ONLY — on shared Phone/TV accounts a change-password
+   link would let one customer lock out the others. Phone/TV get only the numeric
+   sign-in/travel code; TV adds the household (device-confirm) link, which doesn't reset. */
 const PLAN_ALLOW = {
-  phone: ['signin_code', 'new_signin', 'travel_code'],
-  tv:    ['signin_code', 'new_signin', 'travel_code', 'household_update'],
-  full:  ['signin_code', 'new_signin', 'travel_code', 'household_update', 'password_reset', 'other']
+  phone: ['signin_code', 'travel_code'],
+  tv:    ['signin_code', 'travel_code', 'household_update'],
+  full:  ['signin_code', 'travel_code', 'household_update', 'new_signin', 'password_reset', 'other']
 };
 
 // New portal type -> our rtype vocabulary.
