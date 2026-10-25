@@ -453,7 +453,7 @@
       go.disabled=true; go.textContent='Creating…'; out.innerHTML='';
       var wc=/^\+|^00/.test(wa)?'':'PK';
       fetch('/signup',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'fetch'},credentials:'same-origin',body:new URLSearchParams({name:name,email:email,wa:wa,wa_country:wc,password:pw,password2:pw2}).toString()}).then(function(r){return r.json();}).then(function(j){
-        if(j&&j.ok){ location.reload(); return; }
+        if(j&&j.ok){ waVerify(function(){ location.reload(); }); return; }
         out.innerHTML=authErr((j&&j.error)||'Could not create account.'); go.disabled=false; go.textContent='Create Account';
       }).catch(function(){ out.innerHTML=authErr('Couldn’t sign up right now.'); go.disabled=false; go.textContent='Create Account'; });
     }
