@@ -1,32 +1,23 @@
 #!/usr/bin/env bash
-# dumpCheckoutGate.sh — bounded, line-numbered dump of the checkout order-creation
-#   handler + how deliver.js sends the delivery message. Read-only. Output kept small.
+# dumpCheckoutGate.sh v2 — LIVE files only (skip .bak dirs). Bounded, line-numbered.
 set -uo pipefail
 GSZ=/opt/gsz; cd "$GSZ"
-win(){ # file start end
-  awk -v s="$2" -v e="$3" 'NR>=s&&NR<=e{printf "%5d| %s\n",NR,$0}' "$1"
-}
+win(){ awk -v s="$2" -v e="$3" 'NR>=s&&NR<=e{printf "%5d| %s\n",NR,$0}' "$1"; }
 
-echo "###### 1) CHECKOUT ROUTE (order creation) ######"
-F=$(grep -rl --include=*.js "startStatus = isFree" "$GSZ" 2>/dev/null | grep -v node_modules | head -1)
-echo "FILE: $F"
-if [ -n "$F" ]; then
-  echo "--- identity / session / login refs in this file ---"
-  grep -nE "req\.session|requireLogin|customer_id|res\.redirect\(.?/(login|account)|guest|wa_verified|isLoggedIn|\.customer\b|loginRequired" "$F" | head -40
-  echo "--- order-insert window (real line numbers) ---"
-  N=$(grep -n "startStatus = isFree" "$F" | head -1 | cut -d: -f1)
-  S=$(( N>95 ? N-95 : 1 )); E=$(( N+45 ))
-  win "$F" "$S" "$E"
-fi
+F="$GSZ/routes/checkout.js"
+echo "###### LIVE checkout.js : $F ######"
+echo "--- SIGNIN_GATE + session.customer refs ---"
+grep -nE "SIGNIN_GATE|req\.session\s*&&\s*req\.session\.customer|redirect\('/login|wa_verified|router\.(get|post)\('"'"'/checkout" "$F" | head -30
+echo "--- POST /checkout handler: first 40 lines ---"
+N=$(grep -n "router.post('/checkout'" "$F" | head -1 | cut -d: -f1)
+[ -n "$N" ] && win "$F" "$N" "$((N+40))"
 
 echo
-echo "###### 2) DELIVER.JS — delivery message send ######"
-D=$(ls "$GSZ"/lib/deliver.js "$GSZ"/routes/deliver.js "$GSZ"/deliver.js 2>/dev/null | head -1)
-[ -z "$D" ] && D=$(grep -rl --include=*.js "deliveryMsg" "$GSZ" 2>/dev/null | grep -v node_modules | grep -i deliver | head -1)
-echo "FILE: $D"
-if [ -n "$D" ]; then
-  echo "--- compose / mail / whatsapp / credentials refs ---"
-  grep -nE "deliveryMsg|\.compose\(|wanotify|enqueue|sendMail|mailer|sendEmail|transporter|delivered_credentials|_m\.(main|followup|credentials)|customer_id|wa_number" "$D" | head -50
-fi
+echo "###### what is stored in req.session.customer (login/signup) ######"
+grep -rnE "req\.session\.customer\s*=" "$GSZ"/routes/*.js 2>/dev/null | grep -v '\.bak' | head -20
+
 echo
-echo "== END DUMP =="
+echo "###### bot / whatsapp health helpers available ######"
+grep -nE "botapi|\.configured\(\)|wabotOnline|wanotify|bot_status|whatsapp.*health|online" "$GSZ/routes/checkout.js" | head -15
+grep -rnE "module.exports|configured|online|health" "$GSZ"/lib/botapi.js 2>/dev/null | head -10
+echo "== END v2 =="
