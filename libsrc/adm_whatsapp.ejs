@@ -108,6 +108,21 @@
   </form>
 </div>
 
+<div class="card wa-card" style="margin-top:16px">
+  <div class="wa-head">
+    <span class="wa-logo" style="background:#eef7ee;color:#1a9d4b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div><div class="wa-htitle">Checkout policy</div><div class="wa-hsub">Require a verified WhatsApp before customers can order</div></div>
+  </div>
+  <form method="post" action="/admin/whatsapp/verify-policy" class="wa-nums">
+    <p class="wa-hint">When ON, a customer must sign in and verify their WhatsApp number before placing an order, so every order's login is delivered to both WhatsApp and email. Turn OFF only if the WhatsApp bot is down and you don't want to hold up sales — orders then deliver by email only.</p>
+    <label style="display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer;color:#1f2a44">
+      <input type="checkbox" name="require" value="on" <%= requireVerify ? 'checked' : '' %> style="width:18px;height:18px;accent-color:#1a9d4b">
+      Require WhatsApp verification before checkout
+    </label>
+    <div class="wa-nsave" style="margin-top:14px"><button class="btn btn-p" type="submit">Save policy</button></div>
+  </form>
+</div>
+
 <script>
 (function(){
   var poll=null, busy=false;

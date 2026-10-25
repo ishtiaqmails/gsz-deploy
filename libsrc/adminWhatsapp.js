@@ -53,8 +53,23 @@ module.exports = function (pool) {
       nums: {
         verify: c.wa_verify_number || '', owner: c.wa_owner_numbers || '',
         support: c.wa_support_number || '', sales: c.wa_sales_number || ''
-      }
+      },
+      requireVerify: c.require_wa_verify !== 'off'
     });
+  });
+
+  // Checkout policy: require a verified WhatsApp before customers can place an order.
+  // 'off' => sign-in still required, but unverified customers may order (email-only delivery).
+  router.post('/whatsapp/verify-policy', auth, body, async (req, res) => {
+    try {
+      const v = (req.body && req.body.require === 'on') ? 'on' : 'off';
+      await pool.query(
+        "INSERT INTO wa_settings(key,value) VALUES('require_wa_verify',$1) ON CONFLICT(key) DO UPDATE SET value=$1, updated_at=now()",
+        [v]);
+      res.redirect('/admin/whatsapp?ok=' + encodeURIComponent(v === 'on'
+        ? 'Saved — customers must verify WhatsApp before ordering'
+        : 'Saved — verification OFF (orders deliver by email only)'));
+    } catch (e) { res.redirect('/admin/whatsapp?ok=' + encodeURIComponent('Could not save policy')); }
   });
 
   // Save any of the system's WhatsApp numbers; everything reads wa_settings live, so a
