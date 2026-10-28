@@ -44,7 +44,7 @@ module.exports = function (pool) {
     try {
       const prods = await botapi.getProducts();
       const m = Object.create(null);
-      (Array.isArray(prods) ? prods : []).forEach(function (p) { if (p && p.sku && p.trial) m[p.sku] = p.trial; });
+      (Array.isArray(prods) ? prods : []).forEach(function (p) { if (!p || !p.trial) return; var k = (p.sku != null && String(p.sku).trim() !== '') ? String(p.sku).trim() : (p.code != null && String(p.code).trim() !== '') ? String(p.code).trim() : (p.id != null ? String(p.id) : null); if (k) m[k] = p.trial; /* BOT_TRIAL_GATE_v2: id-fallback key, matches botsync skuOf */ });
       return m;
     } catch (e) { return null; }
   }
