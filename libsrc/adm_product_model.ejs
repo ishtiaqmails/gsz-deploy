@@ -329,12 +329,19 @@
     var vbox=p.querySelector('.p_versions');var needsBox=p.querySelector('.p_needs');
     var versions=b?botVersions(b):[];var needs=b?botNeeds(b):[];
     if(versions.length){
-      vbox.innerHTML='<label class="fld" style="margin-top:12px">Version labels <span class="q">· rename the customer “Choose version”</span></label>'+
-        versions.map(function(v){var lbl=v.label;if(Array.isArray(savedLabels)){var f=savedLabels.filter(function(s){return (s.key||'')===v.key;})[0];if(f)lbl=f.label;}
-          return '<div class="mini"><input class="inp vk" value="'+esc(v.key)+'" readonly style="max-width:140px;background:#eef2fb"><span class="note" style="margin:0">→</span><input class="inp vl" value="'+esc(lbl)+'" placeholder="shown to customer"></div>';}).join('');
+      var curBt=(p.querySelector('.p_bt').value||'');
+      var vopts='<option value="">Let customer choose</option>'+versions.map(function(v){return '<option value="'+esc(v.key)+'"'+(curBt===v.key?' selected':'')+'>Single version — '+esc(v.label)+'</option>';}).join('');
+      vbox.innerHTML='<label class="fld" style="margin-top:12px">Versions <span class="q">· how customers get this product</span></label>'+
+        '<select class="inp p_vmode" onchange="pmVMode(\''+id+'\')">'+vopts+'</select>'+
+        '<div class="p_vlabels"'+(curBt?' style="display:none"':'')+'>'+
+          '<label class="fld" style="margin-top:12px">Version labels <span class="q">· rename the customer “Choose version”</span></label>'+
+          versions.map(function(v){var lbl=v.label;if(Array.isArray(savedLabels)){var f=savedLabels.filter(function(s){return (s.key||'')===v.key;})[0];if(f)lbl=f.label;}
+            return '<div class="mini"><input class="inp vk" value="'+esc(v.key)+'" readonly style="max-width:140px;background:#eef2fb"><span class="note" style="margin:0">→</span><input class="inp vl" value="'+esc(lbl)+'" placeholder="shown to customer"></div>';}).join('')+
+        '</div>';
     } else { vbox.innerHTML=''; }
     needsBox.innerHTML = needs.length ? needs.map(function(n){return '<span class="chip">'+esc(n)+'</span>';}).join('')+'<span class="chip gray">read-only</span>' : '<span class="chip gray">no extra fields</span>';
   };
+  window.pmVMode=function(id){var p=document.getElementById(id);var sel=p.querySelector('.p_vmode');if(!sel)return;var v=sel.value||'';var bt=p.querySelector('.p_bt');if(bt)bt.value=v;var lb=p.querySelector('.p_vlabels');if(lb)lb.style.display=v?'none':'';};
   /* ---------- auto-fill IPTV plans from a bot product (with your own version labels) ---------- */
   function _afParseDur(lab){ lab=String(lab||''); var m=lab.match(/(\d+(?:\.\d+)?)/); var n=m?parseFloat(m[1]):null; var l=lab.toLowerCase(); var u='';
     if(/life/.test(l)){u='Lifetime';n=null;}
