@@ -14,7 +14,7 @@ const GEO_BLOCK =
   "      var cc = String(req.headers['cf-ipcountry'] || '').toUpperCase();\n" +
   "      if (!/^[A-Z]{2}$/.test(cc) || cc === 'XX' || cc === 'T1') cc = '';\n" +
   "      res.locals.geoCountry = cc;\n" +
-  "      res.locals.geoCur = (cc === 'PK') ? 'PKR' : ((cc && _gszPricing) ? _gszPricing.curFor(cc) : 'USD');\n" +
+  "      res.locals.geoCur = (cc === 'PK') ? 'PKR' : ((cc && _gszPricing) ? (_gszPricing.curFor(cc) || 'USD') : 'PKR');\n" +
   "      if (Date.now() - __gszBuf.at > 60000) { __gszBuf.at = Date.now(); try { const _b = await pool.query(\"SELECT value FROM wa_settings WHERE key='price_buffer_pct'\"); __gszBuf.v = _b.rows[0] ? (parseFloat(_b.rows[0].value) || 0) : 0; } catch (e) {} }\n" +
   "      res.locals.priceBuffer = __gszBuf.v;\n" +
   "      res.setHeader('Vary', 'CF-IPCountry');\n" +
