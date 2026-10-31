@@ -1,0 +1,38 @@
+<%- include('_shell_top', { active:'', title:'Restock waitlist' }) %>
+<% if (flash) { %><div class="flash"><%= flash %></div><% } %>
+<div class="card">
+  <h2 style="margin:0 0 4px">Restock waitlist</h2>
+  <div class="sub" style="margin:0 0 14px"><b style="color:var(--ink)"><%= rows.length %></b> customer<%= rows.length==1?'':'s' %> waiting for out-of-stock plans. Each is auto-notified on WhatsApp the moment their plan is back in stock.</div>
+  <% if (!rows.length) { %>
+    <div class="dempty">No one is waiting right now ✓</div>
+  <% } else { %>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+      <thead><tr style="text-align:left;color:var(--muted);font-size:12px">
+        <th style="padding:8px 10px">Product</th>
+        <th style="padding:8px 10px">Plan</th>
+        <th style="padding:8px 10px">Customer</th>
+        <th style="padding:8px 10px">Contact</th>
+        <th style="padding:8px 10px"></th>
+      </tr></thead>
+      <tbody>
+      <% rows.forEach(function(w){ %>
+        <tr style="border-top:1px solid var(--hair)">
+          <td style="padding:9px 10px;font-weight:600;color:var(--ink)"><%= w.product_name || '—' %></td>
+          <td style="padding:9px 10px"><%= w.plan_label || '—' %></td>
+          <td style="padding:9px 10px"><%= w.customer_name || '—' %></td>
+          <td style="padding:9px 10px;color:var(--muted)"><%= w.email || '' %><%= w.whatsapp ? (' · ' + w.whatsapp) : '' %></td>
+          <td style="padding:9px 10px;text-align:right">
+            <form method="post" action="/admin/waitlist/remove" style="margin:0;display:inline" onsubmit="return confirm('Remove this customer from the waitlist?')">
+              <input type="hidden" name="id" value="<%= w.id %>">
+              <button class="btn" type="submit" style="font-size:12px">Remove</button>
+            </form>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    </div>
+  <% } %>
+</div>
+<%- include('_shell_bottom') %>
