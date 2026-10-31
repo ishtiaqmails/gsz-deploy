@@ -1,23 +1,20 @@
 'use strict';
 /* routes/geo.js — public Geo Page Engine route (SAFE FALL-THROUGH).
  *
- * MOUNT LAST, just before the 404 handler:
+ * MOUNT LAST, right after the review router and before app.get('/'):
  *     const geoRouter = require('./routes/geo')(pool);
- *     app.use('/', geoRouter);          // <-- after every other app.use/get, before 404
+ *     app.use('/', geoRouter);
  *
- * Why this cannot shadow or break an existing URL:
- *   - It only answers when the EXACT request path matches a geo_pages row whose
- *     status='PUBLISHED'. For anything else it calls next() -> your normal 404 /
- *     other handlers run unchanged.
- *   - Until a page is explicitly published, NO row is PUBLISHED, so the router is
- *     inert: every request falls through. Staging it changes nothing live.
- *   - It never registers a greedy pattern that matches first; mounted last, all
- *     real routes have already had their turn.
+ * Why it cannot shadow or break an existing URL:
+ *   - Answers ONLY when req.path exactly matches a geo_pages row with
+ *     status='PUBLISHED'. Everything else -> next() (your 404/other handlers run).
+ *   - Until a page is published, NO row is PUBLISHED, so the router is inert.
+ *   - Mounted last, every real route already had its turn.
+ *   - Any render error or exception -> next() (never 500s the site).
  *
- * On a hit it renders stored content_data, then RE-HYDRATES prices live through
- * gsz_pricing so figures are never stale, and sets X-Robots-Tag from the page's
- * indexing decision (defence-in-depth alongside the <meta robots> the template
- * emits via seo_meta).
+ * It reuses the SAME shell (partials/store_top + store_bottom) and the SAME
+ * live products (storefront.loadProducts) as the category page, so prices paint
+ * through the existing app.js and the page matches the site exactly.
  */
 const path = require('path');
 
@@ -25,13 +22,12 @@ module.exports = function (pool) {
   const express = require('express');
   const router = express.Router();
 
-  // lazy, defensive requires — a missing lib must never crash the app
-  const lib = (name) => { try { return require(path.join(__dirname, '..', 'lib', name)); } catch (e) { try { return require(path.join(__dirname, '..', 'libsrc', name)); } catch (e2) { return null; } } };
+  const lib = (name) => { try { return require(path.join(__dirname, '..', 'lib', name)); } catch (e) { return null; } };
+  const storefront = lib('storefront');
   const seoMeta = lib('seo_meta');
-  const pricing = lib('gsz_pricing');
+  const geoSvc = (function () { try { return require(path.join(__dirname, '..', 'lib', 'geo'))(pool); } catch (e) { return null; } })();
 
-  const SITE_URL = process.env.SITE_URL || 'https://galaxyzayron.store';
-  const SITE_NAME = process.env.SITE_NAME || 'Galaxy Zayron';
+  const SITE_URL = (process.env.SITE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '');
 
   function normPath(p) {
     if (!p) return '/';
@@ -39,9 +35,7 @@ module.exports = function (pool) {
     if (p.length > 1) p = p.replace(/\/+$/, '');
     return p.toLowerCase();
   }
-
-  // Only consider paths that look like a geo page: at least /{category}/{country}.
-  // Cheap guard so the DB isn't hit for every stray 404.
+  // cheap guard so the DB isn't hit on every stray request
   function looksGeo(p) {
     const seg = p.split('/').filter(Boolean);
     return seg.length >= 2 && seg.length <= 4 && seg.every(s => /^[a-z0-9-]+$/.test(s));
@@ -52,70 +46,99 @@ module.exports = function (pool) {
       const p = normPath(req.path);
       if (p === '/' || !looksGeo(p)) return next();
 
-      const row = (await pool.query(
+      const page = (await pool.query(
         "SELECT * FROM geo_pages WHERE lower(slug)=$1 AND status='PUBLISHED' LIMIT 1", [p])).rows[0];
-      if (!row) return next();                       // <-- the safety: unknown path, hand back to the app
+      if (!page) return next();                                    // the safety: unknown path -> back to the app
 
-      const data = row.content_data || {};
+      const data = page.content_data || {};
 
-      // Live price re-hydration (best-effort; display falls back to stored value).
-      let products = Array.isArray(data.products) ? data.products.slice() : [];
-      const cc = (data.locale && data.locale.countryCode) || null;
-      if (pricing && cc && products.length) {
-        for (const pr of products) {
-          try {
-            const base = { pkr: pr.price, usd: pr.priceUsd, price: pr.price };
-            const q = await pricing.resolve(base, cc, {});
-            if (q && q.display) { pr.priceDisplay = q.display; pr.priceCurrency = q.currency; pr.priceSymbol = q.symbol; }
-          } catch (e) { /* keep stored */ }
-        }
-      }
+      // ---- shell locals (same assembly as the category route) ----
+      const [cats, settings, bannerMap] = await Promise.all([
+        storefront.loadCats(pool).catch(() => []),
+        storefront.loadSettings(pool).catch(() => ({})),
+        storefront.loadBannerMap(pool).catch(() => ({}))
+      ]);
+      const siteName = settings.site_name || 'Galaxy Subz × Zayron';
+      const logoFile = settings.logo_file || 'logo.png';
+      const waNumber = settings.wa_number || process.env.WA_NUMBER || '';
 
-      const indexing = (row.indexing_status === 'AUTO') ? 'INDEX' : row.indexing_status; // AUTO resolved at publish
+      // ---- live products for this page's category, with geo rules applied ----
+      let products = [];
+      try {
+        products = await storefront.loadProducts(pool, page.category_id || null);
+        products = await applyGeoRules(products, page);
+      } catch (e) { products = []; }
+      const shellJson = storefront.shellJson(cats, products, settings, waNumber);
+
+      // category row (for breadcrumbs/hero fallback)
+      const cat = cats.find(c => c.id === page.category_id) ||
+        { name: (data.breadcrumbs && data.breadcrumbs[1] && data.breadcrumbs[1].name) || siteName, slug: catSlugFromPath(p) };
+
+      // ---- SEO head locals via the existing shell's own head slots ----
+      const indexing = (page.indexing_status === 'AUTO') ? 'INDEX' : page.indexing_status;
       if (indexing === 'NOINDEX') res.set('X-Robots-Tag', 'noindex, follow');
-
       const ctx = {
-        siteName: SITE_NAME, siteUrl: SITE_URL, path: p, lang: row.language || 'en',
-        indexing,
-        page: { seo_title: row.seo_title, seo_description: row.seo_description, canonical_url: row.canonical_url || (SITE_URL + p) },
-        categoryName: (data.breadcrumbs && data.breadcrumbs[1] && data.breadcrumbs[1].name) || null,
-        location: locFromData(data), country: null, region: null, city: null,
-        intent: null,
+        siteName, siteUrl: SITE_URL, path: p, lang: page.language || 'en', indexing,
+        page: { seo_title: page.seo_title, seo_description: page.seo_description, canonical_url: page.canonical_url || (SITE_URL + p) },
+        categoryName: cat.name,
+        location: locFromData(data), country: null, region: null, city: null, intent: null,
         breadcrumbs: data.breadcrumbs || [],
-        products: (data.products || []).map(mapMetaProduct),
+        products: (data.products || []).map(mp => ({ name: mp.name, url: mp.url, available: mp.available !== false, price: mp.price, priceUsd: mp.priceUsd, currency: mp.currency, description: mp.description })),
         faq: data.faq || []
       };
-      const headHtml = seoMeta ? seoMeta.renderHead(ctx) : '';
+      const seo = seoMeta ? seoMeta.storeTopLocals(ctx) : {};
 
-      return res.render('geo', {
-        page: row, data, products, headHtml, ctx,
-        h1: data.h1 || row.title || SITE_NAME,
-        intro: data.intro || [],
-        faq: data.faq || [],
-        internalLinks: data.internalLinks || [],
-        locale: data.locale || {},
-        breadcrumbs: data.breadcrumbs || [],
-        siteName: SITE_NAME, siteUrl: SITE_URL,
-        // pass-throughs the existing shell may expect; the template guards for undefined
-        assetVer: (req.app && req.app.locals && req.app.locals.assetVer) || function () { return ''; }
-      }, function (err, html) {
-        if (err) { console.error('[geo] render error for', p, err && err.message); return next(); } // never 500 the site
+      return res.render('geo', Object.assign({
+        // shell
+        siteName, logoFile, waNumber, cats, settings, shellJson, bannerMap, cat,
+        // SEO head
+        title: seo.title, metaDescription: seo.metaDescription, canonicalUrl: seo.canonicalUrl,
+        robotsMeta: seo.robotsMeta, ogTags: seo.ogTags, jsonLd: seo.jsonLd,
+        // geo content
+        geoPage: page, h1: data.h1 || page.title || cat.name, intro: data.intro || [],
+        faq: data.faq || [], internalLinks: data.internalLinks || [], products
+      }), function (err, html) {
+        if (err) { console.error('[geo] render error for', p, err && err.message); return next(); }
         res.send(html);
       });
     } catch (e) {
       console.error('[geo] route error:', e && e.message);
-      return next();                                  // any failure -> behave as if no geo page
+      return next();
     }
   });
 
+  // Apply geo_product_rules for this page's location chain to the live product list.
+  async function applyGeoRules(products, page) {
+    if (!products || !products.length) return products || [];
+    const locIds = [page.city_id, page.region_id, page.country_id].filter(Boolean);
+    if (!locIds.length) return products;
+    let rules = [];
+    try {
+      rules = (await pool.query(
+        'SELECT product_id, location_id, availability, recommended, featured, special_notice FROM geo_product_rules WHERE location_id = ANY($1) AND enabled', [locIds])).rows;
+    } catch (e) { return products; }
+    if (!rules.length) return products;
+    // depth: city(0) most specific
+    const depth = {}; locIds.forEach((id, i) => { depth[id] = i; });
+    const best = {};
+    for (const r of rules) { const d = depth[r.location_id] == null ? 9 : depth[r.location_id]; const k = r.product_id; if (k == null) continue; if (!best[k] || d < best[k]._d) { r._d = d; best[k] = r; } }
+    const out = [];
+    for (const p of products) {
+      const r = best[p.id];
+      if (r && r.availability === 'unavailable') continue;
+      if (r) { p._recommended = !!r.recommended; p._featured = !!r.featured; if (r.special_notice) p._notice = r.special_notice; }
+      out.push(p);
+    }
+    out.sort((a, b) => (Number(b._featured) - Number(a._featured)) || (Number(b._recommended) - Number(a._recommended)));
+    return out;
+  }
+
+  function catSlugFromPath(p) { const s = p.split('/').filter(Boolean); return s[0] || ''; }
   function locFromData(data) {
     const bc = data.breadcrumbs || [];
     const last = bc.length ? bc[bc.length - 1] : null;
     const L = data.locale || {};
     return last ? { name: last.name, type: L.locationType || 'city', demonym: L.demonym, languages: L.languages, country_code: L.countryCode } : {};
-  }
-  function mapMetaProduct(p) {
-    return { name: p.name, url: p.url, available: p.available !== false, price: p.price, priceUsd: p.priceUsd, currency: p.currency, description: p.description };
   }
 
   return router;

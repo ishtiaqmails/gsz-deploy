@@ -247,4 +247,26 @@ function jsonLdSafe(obj) {
   return JSON.stringify(obj).replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
 }
 
-module.exports = { buildMeta, buildJsonLd, hreflangLinks, renderHead, _fill: fill, _abs: abs, _esc: esc };
+/* storeTopLocals(ctx) — map a resolved context to the EXACT locals the existing
+ * partials/store_top.ejs head already consumes, so the geo page reuses the site's
+ * own <head> (no duplicate tags). Returns:
+ *   { title, metaDescription, canonicalUrl, robotsMeta, ogTags, jsonLd }
+ * ogTags carries OG + Twitter + hreflang as a single raw-HTML string (store_top
+ * prints it with <%- %>). jsonLd is one JSON string wrapping all schema in @graph,
+ * with < escaped the same way the home handler does. */
+function storeTopLocals(ctx) {
+  const m = buildMeta(ctx);
+  const L = [];
+  Object.keys(m.og).forEach(k => { if (m.og[k]) L.push('<meta property="' + attr(k) + '" content="' + attr(m.og[k]) + '">'); });
+  Object.keys(m.twitter).forEach(k => { if (m.twitter[k]) L.push('<meta name="' + attr(k) + '" content="' + attr(m.twitter[k]) + '">'); });
+  m.hreflang.forEach(h => L.push('<link rel="alternate" hreflang="' + attr(h.lang) + '" href="' + attr(h.url) + '">'));
+  const ld = buildJsonLd(ctx);
+  const graph = ld.length ? { '@context': 'https://schema.org', '@graph': ld.map(o => { const c = Object.assign({}, o); delete c['@context']; return c; }) } : null;
+  const jsonLd = graph ? JSON.stringify(graph).replace(/</g, '\\u003c') : '';
+  return {
+    title: m.title, metaDescription: m.description, canonicalUrl: m.canonical,
+    robotsMeta: m.robots, ogTags: L.join(''), jsonLd
+  };
+}
+
+module.exports = { buildMeta, buildJsonLd, hreflangLinks, renderHead, storeTopLocals, _fill: fill, _abs: abs, _esc: esc };

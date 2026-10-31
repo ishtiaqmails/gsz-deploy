@@ -1,0 +1,102 @@
+<%- include('partials/store_top') %>
+<%
+/* card() — identical markup to category.ejs so prices paint via the same app.js
+   and the cards look native. Live product fields: image,name,slug,descr,from,from_usd,plans. */
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function card(p){
+  var img=p.image
+    ? '<img class="pimg" loading="lazy" src="/static/img/'+esc(p.image)+'" alt="'+esc(p.name)+'">'
+    : '<div class="pfallback" style="--g1:'+((cat&&cat.g1)||'#2a6cff')+';--g2:'+((cat&&cat.g2)||'#19c6ee')+'"><span>'+esc(p.name)+'</span></div>';
+  var price = p.from>0
+    ? '<div class="pfoot">'+(p.plans>1?'<span class="pfrom">Starts from</span>':'')+'<span class="pprice" data-pkr="'+p.from+'" data-usd="'+(p.from_usd||'')+'"></span></div>'
+    : '<div class="pfoot"><span class="pfrom">Contact for price</span></div>';
+  var tag = p._featured ? '<span class="gbadge gbadge-feat">Most popular</span>' : (p._recommended ? '<span class="gbadge">Recommended</span>' : '');
+  return '<a class="pcard" href="/product/'+esc(p.slug)+'">'+img+'<div class="pbody"><div class="pname">'+esc(p.name)+tag+'</div><div class="pdesc">'+esc(p.descr)+'</div>'+price+'</div></a>';
+}
+var bc = (typeof breadcrumbs!=='undefined'&&breadcrumbs)?breadcrumbs:[];
+var introArr = (typeof intro!=='undefined'&&intro)?(Array.isArray(intro)?intro:[intro]):[];
+var faqArr = (typeof faq!=='undefined'&&faq)?faq:[];
+var links = (typeof internalLinks!=='undefined'&&internalLinks)?internalLinks:[];
+%>
+<style>/*geoPageCss — scoped, light, matches the store tokens; no new color system*/
+  .geo-head{padding:26px 0 6px}
+  .geo-bc{font-size:13px;color:var(--muted,#737e9c);margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 0;align-items:center}
+  .geo-bc a{color:inherit;text-decoration:none}
+  .geo-bc a:hover{color:var(--ink,#0f1836)}
+  .geo-bc .sep{opacity:.5;margin:0 8px}
+  .geo-h1{font-family:var(--display,inherit);font-weight:800;letter-spacing:-.02em;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0 0 12px;color:var(--ink,#0f1836)}
+  .geo-intro{max-width:760px;color:var(--ink-soft,#2b3350);font-size:15.5px;line-height:1.65}
+  .geo-intro p{margin:0 0 12px}
+  .gbadge{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;vertical-align:middle;padding:2px 8px;border-radius:999px;background:var(--bg0,#f3f5fb);color:var(--muted,#56608a);border:1px solid var(--line,#e7ebf6)}
+  .gbadge-feat{background:linear-gradient(118deg,#8a2bff,#2a7bff);color:#fff;border:0}
+  .geo-faq{max-width:820px;margin-top:8px}
+  .geo-faq details{border:1px solid var(--line,#e7ebf6);border-radius:12px;padding:0;margin:0 0 10px;background:var(--surface,#fff);overflow:hidden}
+  .geo-faq summary{list-style:none;cursor:pointer;padding:15px 18px;font-weight:700;color:var(--ink,#0f1836);font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .geo-faq summary::-webkit-details-marker{display:none}
+  .geo-faq summary .gq-ic{flex:none;width:20px;height:20px;transition:transform .2s;color:var(--muted,#737e9c)}
+  .geo-faq details[open] summary .gq-ic{transform:rotate(45deg)}
+  .geo-faq .gq-a{padding:0 18px 16px;color:var(--ink-soft,#2b3350);font-size:14.5px;line-height:1.6}
+  .geo-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+  .geo-links a{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--line,#e7ebf6);background:var(--surface,#fff);color:var(--ink,#0f1836);text-decoration:none;font-size:14px;font-weight:600}
+  .geo-links a:hover{background:var(--bg0,#f3f5fb)}
+</style>
+
+<!-- HEAD: breadcrumb + H1 + localized intro -->
+<section class="section geo-head">
+  <div class="wrap">
+    <% if (bc.length) { %>
+    <nav class="geo-bc" aria-label="Breadcrumb">
+      <% bc.forEach(function(b,i){ %><% if(i>0){ %><span class="sep">/</span><% } %><% if(b.url && i<bc.length-1){ %><a href="<%= b.url %>"><%= b.name %></a><% } else { %><span><%= b.name %></span><% } %><% }); %>
+    </nav>
+    <% } %>
+    <h1 class="geo-h1"><%= h1 %></h1>
+    <% if (introArr.length) { %>
+    <div class="geo-intro">
+      <% introArr.forEach(function(para){ %><p><%= para %></p><% }); %>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- PRODUCTS: live, geo-rule ordered, same cards as the category page -->
+<section class="section" style="padding-top:8px">
+  <div class="wrap">
+    <div class="sec-head"><div><h2>Available plans<% if (cat && cat.name) { %> — <%= cat.name %><% } %></h2></div></div>
+    <% if (products && products.length) { %>
+      <div class="pgrid"><%- products.map(card).join('') %></div>
+    <% } else { %>
+      <p style="color:var(--muted)">Plans for this area are being added. Message us on WhatsApp and we'll set you up.</p>
+    <% } %>
+  </div>
+</section>
+
+<!-- FAQ: native accordion, auto-fits any device, no script -->
+<% if (faqArr.length) { %>
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head"><div><h2>Questions</h2></div></div>
+    <div class="geo-faq">
+      <% faqArr.forEach(function(f){ %>
+      <details>
+        <summary><%= f.q %><svg class="gq-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <div class="gq-a"><%= f.a %></div>
+      </details>
+      <% }); %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- INTERNAL LINKS: keep the geo cluster connected (also helps crawlability) -->
+<% if (links.length) { %>
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head"><div><h2>Explore more</h2></div></div>
+    <nav class="geo-links" aria-label="Related">
+      <% links.forEach(function(l){ if(!l||!l.url) return; %><a href="<%= l.url %>"><%= l.name %></a><% }); %>
+    </nav>
+  </div>
+</section>
+<% } %>
+
+<%- include('partials/store_bottom') %>

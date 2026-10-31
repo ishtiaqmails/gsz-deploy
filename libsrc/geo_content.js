@@ -103,8 +103,9 @@ function buildIntro(ctx, L, products) {
     ? `Content is available in ${L.languages.slice(0, 3).map(l => LANG[l] || l.toUpperCase()).join(', ')}.` : '';
 
   const place = ctx.city ? `${where}${region ? ', ' + region : ''}` : where;
+  const brand = ctx.siteName || 'Galaxy Subz × Zayron';
   const p1 = sentence([
-    `Galaxy Zayron delivers ${cat} to ${demo}customers across ${place}${(country && country !== where) ? ' and the rest of ' + country : ''}.`,
+    `${brand} delivers ${cat} to ${demo}customers across ${place}${(country && country !== where) ? ' and the rest of ' + country : ''}.`,
     n ? `Choose from ${n} ${n === 1 ? 'plan' : 'plans'} with instant digital delivery — your login details arrive within minutes of payment, 24/7.` :
         `Every plan is delivered digitally within minutes of payment, any time of day.`
   ]);
@@ -148,7 +149,7 @@ function buildFaq(ctx, L, products) {
   if (key === 'TRIAL') faq.push({ q: `Is there a free trial in ${where}?`, a: `Selected plans include a trial. Where a trial is offered it is shown on the plan itself; otherwise our shortest paid plan lets you test the service at low cost.` });
   if (key === 'SPORTS') faq.push({ q: `Can I watch live sports in ${where}?`, a: `Yes — our packages carry major live sports and event channels available to ${where} viewers, subject to the plan you choose.` });
   faq.push({
-    q: `Does Galaxy Zayron support customers in ${where}?`,
+    q: `Do you support customers in ${where}?`,
     a: `Yes. We serve ${where} with local pricing, ${L.paymentLabel}, and 24/7 support before and after purchase.`
   });
   return faq;
