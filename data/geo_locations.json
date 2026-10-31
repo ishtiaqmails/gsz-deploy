@@ -1,0 +1,125 @@
+{
+  "_note": "Curated, real location dataset for the Geo Page Engine. Pakistan is covered deeply (home market); international entries focus on high-value IPTV markets (large South-Asian/Arab diaspora, Gulf, English-speaking). Display currency is informational — payment rail is decided by code (PK = PKR local, else USD/Binance). Loader: scripts/geo_locations_load.js.",
+  "countries": [
+    {
+      "name": "Pakistan", "slug": "pakistan", "code": "PK", "currency": "PKR", "symbol": "Rs ", "demonym": "Pakistani", "languages": ["en", "ur"], "population": 240000000, "priority": 1,
+      "regions": [
+        { "name": "Punjab", "slug": "punjab", "demonym": "Punjabi" },
+        { "name": "Sindh", "slug": "sindh", "demonym": "Sindhi" },
+        { "name": "Khyber Pakhtunkhwa", "slug": "khyber-pakhtunkhwa", "demonym": "Pakhtun" },
+        { "name": "Balochistan", "slug": "balochistan", "demonym": "Baloch" },
+        { "name": "Islamabad Capital Territory", "slug": "islamabad-capital-territory", "demonym": "Islamabadi" },
+        { "name": "Azad Kashmir", "slug": "azad-kashmir", "demonym": "Kashmiri" },
+        { "name": "Gilgit-Baltistan", "slug": "gilgit-baltistan", "demonym": "Gilgiti" }
+      ],
+      "cities": [
+        { "name": "Karachi", "slug": "karachi", "region": "sindh", "demonym": "Karachiite", "languages": ["en", "ur", "sd"], "population": 16000000, "priority": 2 },
+        { "name": "Lahore", "slug": "lahore", "region": "punjab", "demonym": "Lahori", "languages": ["en", "ur", "pa"], "population": 13000000, "priority": 2 },
+        { "name": "Islamabad", "slug": "islamabad", "region": "islamabad-capital-territory", "demonym": "Islamabadi", "languages": ["en", "ur"], "population": 1100000, "priority": 3 },
+        { "name": "Rawalpindi", "slug": "rawalpindi", "region": "punjab", "demonym": "Pindiite", "languages": ["en", "ur", "pa"], "population": 2100000, "priority": 4 },
+        { "name": "Faisalabad", "slug": "faisalabad", "region": "punjab", "demonym": "Faisalabadi", "languages": ["en", "ur", "pa"], "population": 3200000, "priority": 4 },
+        { "name": "Multan", "slug": "multan", "region": "punjab", "demonym": "Multani", "languages": ["en", "ur", "pa"], "population": 1900000, "priority": 5 },
+        { "name": "Peshawar", "slug": "peshawar", "region": "khyber-pakhtunkhwa", "demonym": "Peshawari", "languages": ["en", "ur", "ps"], "population": 2000000, "priority": 3 },
+        { "name": "Quetta", "slug": "quetta", "region": "balochistan", "demonym": "Quettan", "languages": ["en", "ur", "ps"], "population": 1000000, "priority": 6 },
+        { "name": "Hyderabad", "slug": "hyderabad-pk", "region": "sindh", "demonym": "Hyderabadi", "languages": ["en", "ur", "sd"], "population": 1700000, "priority": 6 },
+        { "name": "Gujranwala", "slug": "gujranwala", "region": "punjab", "demonym": "Gujranwalian", "languages": ["en", "ur", "pa"], "population": 2000000, "priority": 6 },
+        { "name": "Sialkot", "slug": "sialkot", "region": "punjab", "demonym": "Sialkoti", "languages": ["en", "ur", "pa"], "population": 650000, "priority": 7 },
+        { "name": "Bahawalpur", "slug": "bahawalpur", "region": "punjab", "demonym": "Bahawalpuri", "languages": ["en", "ur"], "population": 760000, "priority": 7 },
+        { "name": "Sargodha", "slug": "sargodha", "region": "punjab", "demonym": "Sargodhian", "languages": ["en", "ur", "pa"], "population": 660000, "priority": 7 },
+        { "name": "Abbottabad", "slug": "abbottabad", "region": "khyber-pakhtunkhwa", "demonym": "Abbottabadi", "languages": ["en", "ur", "hns"], "population": 230000, "priority": 7 },
+        { "name": "Mardan", "slug": "mardan", "region": "khyber-pakhtunkhwa", "demonym": "Mardani", "languages": ["en", "ur", "ps"], "population": 360000, "priority": 7 },
+        { "name": "Mirpur", "slug": "mirpur", "region": "azad-kashmir", "demonym": "Mirpuri", "languages": ["en", "ur", "pa"], "population": 150000, "priority": 7 }
+      ]
+    },
+    {
+      "name": "United Kingdom", "slug": "united-kingdom", "code": "GB", "currency": "GBP", "symbol": "£", "demonym": "British", "languages": ["en"], "population": 67000000, "priority": 2,
+      "cities": [
+        { "name": "London", "slug": "london", "demonym": "Londoner", "languages": ["en"], "population": 9000000, "priority": 3 },
+        { "name": "Birmingham", "slug": "birmingham", "demonym": "Brummie", "languages": ["en"], "population": 1100000, "priority": 5 },
+        { "name": "Manchester", "slug": "manchester", "demonym": "Mancunian", "languages": ["en"], "population": 550000, "priority": 5 },
+        { "name": "Bradford", "slug": "bradford", "demonym": "Bradfordian", "languages": ["en"], "population": 350000, "priority": 6 }
+      ]
+    },
+    {
+      "name": "United States", "slug": "united-states", "code": "US", "currency": "USD", "symbol": "$", "demonym": "American", "languages": ["en"], "population": 331000000, "priority": 2,
+      "cities": [
+        { "name": "New York", "slug": "new-york", "demonym": "New Yorker", "languages": ["en"], "population": 8300000, "priority": 3 },
+        { "name": "Houston", "slug": "houston", "demonym": "Houstonian", "languages": ["en"], "population": 2300000, "priority": 5 },
+        { "name": "Chicago", "slug": "chicago", "demonym": "Chicagoan", "languages": ["en"], "population": 2700000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Canada", "slug": "canada", "code": "CA", "currency": "CAD", "symbol": "C$", "demonym": "Canadian", "languages": ["en"], "population": 39000000, "priority": 3,
+      "cities": [
+        { "name": "Toronto", "slug": "toronto", "demonym": "Torontonian", "languages": ["en"], "population": 2900000, "priority": 4 },
+        { "name": "Mississauga", "slug": "mississauga", "demonym": "Mississaugan", "languages": ["en"], "population": 720000, "priority": 6 },
+        { "name": "Vancouver", "slug": "vancouver", "demonym": "Vancouverite", "languages": ["en"], "population": 675000, "priority": 6 }
+      ]
+    },
+    {
+      "name": "Australia", "slug": "australia", "code": "AU", "currency": "AUD", "symbol": "A$", "demonym": "Australian", "languages": ["en"], "population": 26000000, "priority": 3,
+      "cities": [
+        { "name": "Sydney", "slug": "sydney", "demonym": "Sydneysider", "languages": ["en"], "population": 5300000, "priority": 4 },
+        { "name": "Melbourne", "slug": "melbourne", "demonym": "Melburnian", "languages": ["en"], "population": 5000000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "United Arab Emirates", "slug": "united-arab-emirates", "code": "AE", "currency": "AED", "symbol": "AED ", "demonym": "Emirati", "languages": ["en", "ar"], "population": 9900000, "priority": 2,
+      "cities": [
+        { "name": "Dubai", "slug": "dubai", "demonym": "Dubaian", "languages": ["en", "ar", "ur"], "population": 3500000, "priority": 3 },
+        { "name": "Abu Dhabi", "slug": "abu-dhabi", "demonym": "Abu Dhabian", "languages": ["en", "ar", "ur"], "population": 1500000, "priority": 4 },
+        { "name": "Sharjah", "slug": "sharjah", "demonym": "Sharjan", "languages": ["en", "ar", "ur"], "population": 1800000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Saudi Arabia", "slug": "saudi-arabia", "code": "SA", "currency": "SAR", "symbol": "SAR ", "demonym": "Saudi", "languages": ["en", "ar"], "population": 36000000, "priority": 3,
+      "cities": [
+        { "name": "Riyadh", "slug": "riyadh", "demonym": "Riyadhi", "languages": ["en", "ar", "ur"], "population": 7600000, "priority": 4 },
+        { "name": "Jeddah", "slug": "jeddah", "demonym": "Jeddawi", "languages": ["en", "ar", "ur"], "population": 4700000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Qatar", "slug": "qatar", "code": "QA", "currency": "QAR", "symbol": "QAR ", "demonym": "Qatari", "languages": ["en", "ar"], "population": 2900000, "priority": 4,
+      "cities": [
+        { "name": "Doha", "slug": "doha", "demonym": "Dohan", "languages": ["en", "ar", "ur"], "population": 2400000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Kuwait", "slug": "kuwait", "code": "KW", "currency": "KWD", "symbol": "KWD ", "demonym": "Kuwaiti", "languages": ["en", "ar"], "population": 4300000, "priority": 4,
+      "cities": [
+        { "name": "Kuwait City", "slug": "kuwait-city", "demonym": "Kuwaiti", "languages": ["en", "ar", "ur"], "population": 3100000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Germany", "slug": "germany", "code": "DE", "currency": "EUR", "symbol": "€", "demonym": "German", "languages": ["en", "de"], "population": 83000000, "priority": 3,
+      "cities": [
+        { "name": "Berlin", "slug": "berlin", "demonym": "Berliner", "languages": ["en", "de"], "population": 3600000, "priority": 5 },
+        { "name": "Frankfurt", "slug": "frankfurt", "demonym": "Frankfurter", "languages": ["en", "de"], "population": 760000, "priority": 6 }
+      ]
+    },
+    {
+      "name": "Netherlands", "slug": "netherlands", "code": "NL", "currency": "EUR", "symbol": "€", "demonym": "Dutch", "languages": ["en", "nl"], "population": 17500000, "priority": 4,
+      "cities": [
+        { "name": "Amsterdam", "slug": "amsterdam", "demonym": "Amsterdammer", "languages": ["en", "nl"], "population": 920000, "priority": 6 }
+      ]
+    },
+    {
+      "name": "Ireland", "slug": "ireland", "code": "IE", "currency": "EUR", "symbol": "€", "demonym": "Irish", "languages": ["en"], "population": 5100000, "priority": 4,
+      "cities": [
+        { "name": "Dublin", "slug": "dublin", "demonym": "Dubliner", "languages": ["en"], "population": 1200000, "priority": 6 }
+      ]
+    },
+    {
+      "name": "France", "slug": "france", "code": "FR", "currency": "EUR", "symbol": "€", "demonym": "French", "languages": ["en", "fr"], "population": 68000000, "priority": 4,
+      "cities": [
+        { "name": "Paris", "slug": "paris", "demonym": "Parisian", "languages": ["en", "fr"], "population": 2100000, "priority": 5 }
+      ]
+    },
+    {
+      "name": "Sweden", "slug": "sweden", "code": "SE", "currency": "SEK", "symbol": "SEK ", "demonym": "Swedish", "languages": ["en", "sv"], "population": 10500000, "priority": 4,
+      "cities": [
+        { "name": "Stockholm", "slug": "stockholm", "demonym": "Stockholmer", "languages": ["en", "sv"], "population": 980000, "priority": 6 }
+      ]
+    }
+  ]
+}

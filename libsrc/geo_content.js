@@ -29,6 +29,12 @@ const PAYMENT = {
 };
 
 function cap(s) { return String(s || '').replace(/\b\w/g, c => c.toUpperCase()); }
+function popWords(n) {
+  n = Number(n) || 0;
+  if (n >= 1000000) { const m = n / 1000000; return (m >= 10 ? Math.round(m) : Math.round(m * 10) / 10) + ' million people'; }
+  if (n >= 1000) return Math.round(n / 1000) + ',000 people';
+  return n + ' people';
+}
 function uniq(a) { return Array.from(new Set(a.filter(Boolean))); }
 function sentence(parts) { return parts.filter(Boolean).join(' ').replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').trim(); }
 
@@ -106,7 +112,12 @@ function buildIntro(ctx, L, products) {
 
   const place = ctx.city ? `${where}${region ? ', ' + region : ''}` : where;
   const brand = ctx.siteName || 'Galaxy Subz × Zayron';
+  // genuine local context (city size + province) — real info that also keeps
+  // same-country city pages distinct from each other.
+  const cityCtx = (ctx.city && ctx.city.population)
+    ? `${where} is one of ${country || 'the country'}'s larger cities${region ? ' in ' + region : ''}, home to around ${popWords(ctx.city.population)}.` : '';
   const p1 = sentence([
+    cityCtx,
     `${brand} delivers ${cat} to ${demo}customers across ${place}${(country && country !== where) ? ' and the rest of ' + country : ''}.`,
     n ? `Choose from ${n} ${n === 1 ? 'plan' : 'plans'} with instant digital delivery — your login details arrive within minutes of payment, 24/7.` :
         `Every plan is delivered digitally within minutes of payment, any time of day.`

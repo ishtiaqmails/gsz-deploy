@@ -19,7 +19,9 @@ const crypto = require('crypto');
 
 const DEFAULTS = {
   qualityMin: 55,        // below this -> NOINDEX (still reachable, just not indexed)
-  duplicateMax: 82,      // at/above this similarity to an existing page -> NOINDEX
+  duplicateMax: 85,      // at/above this similarity to an existing page -> NOINDEX
+                         // (85: legitimate same-country city pages run ~78-84; true
+                         //  clones score 90+. Tune down if dup pages slip through.)
   minWords: 120,         // floor for a non-thin page
   minProducts: 2,        // a landing with <2 offers is weak
   shingle: 3             // word n-gram size for simhash
