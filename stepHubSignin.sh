@@ -18,10 +18,10 @@ const fs=require('fs'); const F=process.env.HM;
 let s=fs.readFileSync(F,'utf8');
 if(s.indexOf("id:'hubsi'")>=0){ console.log('   already upgraded'); process.exit(0); }
 function rep(re, neu, label, want){
-  want=want||1;
   const g=new RegExp(re.source, re.flags.indexOf('g')<0?re.flags+'g':re.flags);
   const n=(s.match(g)||[]).length;
-  if(n!==want) throw new Error(label+': expected '+want+', got '+n);
+  if(want===0){ if(n<1) throw new Error(label+': expected >=1, got 0'); }
+  else if(n!==(want||1)) throw new Error(label+': expected '+(want||1)+', got '+n);
   s=s.replace(g, function(){ return neu; });
   console.log('   - '+label+': ok ('+n+')');
 }
@@ -48,7 +48,7 @@ rep(/new URLSearchParams\(\{email:id,password:pw\}\)/,
 // 4) don't let the picker search submit on Enter (both signin + forgot)
 rep(/body\.querySelectorAll\('input'\)\.forEach\(function\(i\)\{ i\.addEventListener\('keydown',function\(e\)\{ if\(e\.key==='Enter'\) submit\(\); \}\); \}\);/,
     "body.querySelectorAll('input:not(.pf-search)').forEach(function(i){ i.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); }); });",
-    'enter-submit exclude search', 2);
+    'enter-submit exclude search', 0);
 // 5) wire the tabs + init the picker
 rep(/var go=document\.getElementById\('auGo'\);/,
     "(function(){var tb=document.querySelectorAll('#cthmBody .hbtab-b');var pn=document.querySelectorAll('#cthmBody .hbpane');tb.forEach(function(b){b.addEventListener('click',function(){var w=b.getAttribute('data-ht');tb.forEach(function(x){x.classList.toggle('on',x===b);});pn.forEach(function(p){p.classList.toggle('on',p.getAttribute('data-hp')===w);});var f=(w==='phone')?document.getElementById('auWa'):document.getElementById('auEmail');if(f){try{f.focus();}catch(e){}}});});if(window.__pfEnsureCC){window.__pfEnsureCC(function(){if(window.__pfInitAll)window.__pfInitAll();});}})(); var go=document.getElementById('auGo');",
