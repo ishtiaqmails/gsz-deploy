@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><%= title %> · Admin</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b16; --panel:#111a2e; --panelhi:#16203a; --line:rgba(255,255,255,.075); --line2:rgba(255,255,255,.12);
+    --ink:#eef2fb; --ink2:#9aa6c0; --ink3:#6b7488; --muted:#8d98b4;
+    --brand:#2f7bff; --brand2:#29d3ff; --grad:linear-gradient(135deg,#2f7bff,#29d3ff);
+    --ok:#33d98a; --okbg:rgba(51,217,138,.14); --warn:#f4b64c; --warnbg:rgba(244,182,76,.15);
+    --bad:#f0554e; --badbg:rgba(240,85,78,.14); --radius:16px; --sh:0 10px 30px -14px rgba(0,0,0,.6);
+    --display:'Plus Jakarta Sans',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;max-width:100%;overflow-x:hidden}
+  body{background:radial-gradient(1200px 600px at 82% -8%,rgba(47,123,255,.10),transparent 60%),var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1200px;margin:0 auto;padding:clamp(16px,3vw,28px)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+  .tb-title{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.01em}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--ink2);font-size:13.5px;font-weight:600}
+  .back:hover{color:var(--ink)}
+  .flash{border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:14px;font-weight:600}
+  .flash.ok{background:var(--okbg);color:var(--ok);border:1px solid rgba(51,217,138,.35)}
+  .flash.err{background:var(--badbg);color:var(--bad);border:1px solid rgba(240,85,78,.35)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--sh)}
+  .stat .n{font-family:var(--display);font-weight:800;font-size:28px;line-height:1}
+  .stat .l{color:var(--ink2);font-size:12.5px;font-weight:600;margin-top:6px;text-transform:uppercase;letter-spacing:.03em}
+  .stat .sub{color:var(--ink3);font-size:12px;margin-top:4px}
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+  @media(max-width:760px){.panels{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--sh)}
+  .card h3{font-family:var(--display);font-weight:700;font-size:15.5px;margin:0 0 4px}
+  .card p.hint{color:var(--ink2);font-size:13px;margin:0 0 14px;line-height:1.5}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink2)}
+  .field input{background:#0b1324;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit;font-size:14px}
+  .field input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:transparent}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;cursor:pointer;font-family:var(--body);font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:11px;transition:.15s}
+  .btn-p{background:var(--grad);color:#fff;box-shadow:0 8px 20px -10px rgba(47,123,255,.8)} .btn-p:hover{filter:brightness(1.07)}
+  .btn-g{background:var(--panelhi);color:var(--ink);border:1px solid var(--line2)} .btn-g:hover{background:#1b2742}
+  .btn-sm{padding:7px 12px;font-size:12.5px}
+  .btn-ok{background:var(--okbg);color:var(--ok);border:1px solid rgba(51,217,138,.35)} .btn-ok:hover{background:rgba(51,217,138,.2)}
+  .btn-warn{background:var(--warnbg);color:var(--warn);border:1px solid rgba(244,182,76,.35)}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em}
+  .pill.pub{color:var(--ok);background:var(--okbg)} .pill.draft{color:var(--warn);background:var(--warnbg)}
+  .pill.arch{color:var(--ink3);background:rgba(255,255,255,.05)} .pill.idx{color:var(--brand2);background:rgba(41,211,255,.12)} .pill.noidx{color:var(--ink3);background:rgba(255,255,255,.05)}
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--sh)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;padding:12px 14px;color:var(--ink2);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);font-weight:700;background:#0c1526}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  td.slug{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--ink)}
+  td.num{color:var(--ink2);text-align:center;font-variant-numeric:tabular-nums}
+  .acts{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  form.inline{display:inline}
+  .empty{padding:40px;text-align:center;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="tb-title">Geo SEO Pages</div>
+    <a class="back" href="/admin">&larr; Back to admin</a>
+  </div>
+
+  <% if (flash) { %><div class="flash ok"><%= flash %></div><% } %>
+  <% if (err) { %><div class="flash err"><%= err %></div><% } %>
+
+  <!-- STATS -->
+  <div class="grid">
+    <div class="stat"><div class="n"><%= (locs.total||0) %></div><div class="l">Locations</div><div class="sub"><%= (locs.country||0) %> countries · <%= (locs.city||0) %> cities</div></div>
+    <div class="stat"><div class="n"><%= (pages.total||0) %></div><div class="l">Pages</div><div class="sub"><%= (pages.DRAFT||0) %> draft · <%= (pages.PUBLISHED||0) %> live</div></div>
+    <div class="stat"><div class="n" style="color:var(--brand2)"><%= (pages.index||0) %></div><div class="l">Indexed</div><div class="sub">visible to Google</div></div>
+    <div class="stat"><div class="n" style="color:var(--ink2)"><%= (pages.noindex||0) %></div><div class="l">Noindex</div><div class="sub">live, not indexed</div></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="panels">
+    <div class="card">
+      <h3>1 · Locations</h3>
+      <p class="hint">Load the built-in list of Pakistan cities + international markets into the engine. Safe to run again — it only adds or updates.</p>
+      <form method="post" action="/admin/geo/load-locations"><button class="btn btn-g" type="submit"><%= (locs.total||0) ? 'Reload locations' : 'Load locations' %></button></form>
+    </div>
+    <div class="card">
+      <h3>2 · Generate pages</h3>
+      <p class="hint">Create one page per location (as drafts). Nothing goes live until you publish it below.</p>
+      <form method="post" action="/admin/geo/generate">
+        <div class="field"><label>Categories (comma-separated slugs)</label><input name="categories" value="iptv" placeholder="iptv,vpns"></div>
+        <div class="field"><label>Max pages</label><input name="limit" value="500" inputmode="numeric"></div>
+        <button class="btn btn-p" type="submit">Generate drafts</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <div><h3 style="margin:0">Re-check indexing</h3><p class="hint" style="margin:4px 0 0">Re-evaluate every published page's quality &amp; duplicate score and flip index/noindex if needed.</p></div>
+    <form method="post" action="/admin/geo/recompute"><button class="btn btn-g" type="submit">Recompute</button></form>
+  </div>
+
+  <!-- PAGE LIST -->
+  <div class="tablewrap">
+    <% if (!rows.length) { %>
+      <div class="empty">No geo pages yet. Load locations, then generate drafts above.</div>
+    <% } else { %>
+    <table>
+      <thead><tr><th>URL</th><th>Status</th><th>Index</th><th>Qual</th><th>Dup</th><th>Opp</th><th style="text-align:right">Actions</th></tr></thead>
+      <tbody>
+      <% rows.forEach(function(r){
+        var st = (r.status||'DRAFT').toLowerCase();
+        var stCls = st==='published'?'pub':(st==='archived'?'arch':'draft');
+        var idxCls = (r.indexing_status==='INDEX')?'idx':'noidx';
+      %>
+        <tr>
+          <td class="slug"><a href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener"><%= r.slug %></a></td>
+          <td><span class="pill <%= stCls %>"><%= r.status %></span></td>
+          <td><span class="pill <%= idxCls %>"><%= r.indexing_status==='INDEX'?'index':'noindex' %></span></td>
+          <td class="num"><%= r.quality_score==null?'—':r.quality_score %></td>
+          <td class="num"><%= r.duplicate_score==null?'—':r.duplicate_score %></td>
+          <td class="num"><%= r.opportunity_score==null?'—':r.opportunity_score %></td>
+          <td>
+            <div class="acts">
+              <a class="btn btn-g btn-sm" href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener">Preview</a>
+              <% if (r.status==='PUBLISHED') { %>
+                <form class="inline" method="post" action="/admin/geo/unpublish"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-warn btn-sm" type="submit">Unpublish</button></form>
+              <% } else { %>
+                <form class="inline" method="post" action="/admin/geo/publish"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-ok btn-sm" type="submit">Publish</button></form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+  <p style="color:var(--ink3);font-size:12px;margin-top:14px">Publishing runs the quality + duplicate gate: thin or near-duplicate pages are published as <b>noindex</b> automatically (still reachable, just not indexed), and good pages ping IndexNow. Preview opens the live URL.</p>
+</div>
+</body>
+</html>
