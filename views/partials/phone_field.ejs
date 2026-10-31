@@ -1,0 +1,102 @@
+<%
+/* Premium phone field — shared by signup + login.
+   Locals: pfId (unique), pfNumName, pfNumId, pfNumValue, pfSel (iso), pfDisabled, pfRequired.
+   Reads `countries` (phone.countries()) and `geoCountry` from the parent render. */
+var _ccList = (typeof countries !== 'undefined' && countries) ? countries : [];
+var _sel = pfSel || (typeof geoCountry !== 'undefined' && geoCountry ? geoCountry : 'PK');
+%>
+<div class="pf" id="pf_<%= pfId %>">
+  <input type="hidden" name="wa_country" id="pfcc_<%= pfId %>" value="<%= _sel %>" <%= pfDisabled ? 'disabled' : '' %>>
+  <button type="button" class="pf-cc" id="pfbtn_<%= pfId %>" aria-haspopup="listbox" aria-expanded="false" <%= pfDisabled ? 'disabled' : '' %>>
+    <span class="pf-name">Select country</span>
+    <span class="pf-code"></span>
+    <svg class="pf-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <div class="pf-pop" id="pfpop_<%= pfId %>" hidden>
+    <div class="pf-search-wrap">
+      <input type="text" class="pf-search" placeholder="Type a country or code" autocomplete="off" inputmode="search">
+    </div>
+    <div class="pf-list" role="listbox"></div>
+  </div>
+  <div class="pf-num">
+    <span class="pf-dial" id="pfdial_<%= pfId %>">+92</span>
+    <input type="tel" name="<%= pfNumName %>" id="<%= pfNumId %>" value="<%= pfNumValue || '' %>" placeholder="300 1234567" inputmode="numeric" autocomplete="tel" <%= pfDisabled ? 'disabled' : (pfRequired ? 'required' : '') %>>
+  </div>
+</div>
+<script>window.__CC = window.__CC || <%- JSON.stringify(_ccList) %>;</script>
+
+<% if (typeof _pfAssets === 'undefined') { _pfAssets = true; %>
+<style>
+.pf{position:relative;display:flex;flex-direction:column;gap:9px;margin:0 0 6px}
+.pf-cc{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:1px solid rgba(128,128,128,.34);border-radius:12px;background:rgba(128,128,128,.07);color:inherit;cursor:pointer;font:inherit;text-align:left;transition:border-color .15s,box-shadow .15s}
+.pf-cc:hover{border-color:rgba(128,128,128,.55)}
+.pf-cc[aria-expanded="true"]{border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+.pf-cc:disabled{opacity:.5;cursor:not-allowed}
+.pf-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pf-code{font-variant-numeric:tabular-nums;opacity:.85;font-weight:600}
+.pf-caret{width:17px;height:17px;opacity:.6;flex:none}
+.pf-pop{position:absolute;top:calc(100% + 7px);left:0;right:0;z-index:60;background:#131a3b;border:1px solid rgba(150,160,200,.22);border-radius:14px;box-shadow:0 20px 56px -14px rgba(0,0,0,.72);overflow:hidden}
+.pf-search-wrap{padding:11px;border-bottom:1px solid rgba(150,160,200,.16)}
+.pf-search{width:100%;padding:11px 13px;border:1px solid rgba(128,128,128,.3);border-radius:10px;background:rgba(0,0,0,.22);color:inherit;font:inherit}
+.pf-search::placeholder{color:rgba(190,198,220,.6)}
+.pf-search:focus{outline:none;border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+.pf-list{max-height:238px;overflow:auto;padding:6px;-webkit-overflow-scrolling:touch}
+.pf-opt{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border:0;background:transparent;color:inherit;cursor:pointer;border-radius:9px;font:inherit;text-align:left}
+.pf-opt:hover,.pf-opt.hl{background:rgba(31,170,89,.16)}
+.pf-on{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-oc{opacity:.7;font-variant-numeric:tabular-nums;flex:none}
+.pf-empty{padding:16px;text-align:center;opacity:.6;font-size:14px}
+.pf-num{display:flex;align-items:stretch;border:1px solid rgba(128,128,128,.34);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.pf-num .pf-dial{display:flex;align-items:center;justify-content:center;min-width:62px;padding:0 13px;background:rgba(128,128,128,.13);border-right:1px solid rgba(128,128,128,.34);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pf-num input{border:0;margin:0;flex:1;min-width:0;border-radius:0;background:transparent;color:inherit;font:inherit}
+.pf-num input:focus{outline:none;box-shadow:none}
+.pf-num:focus-within{border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+.pf-num input:disabled,.pf-cc:disabled{pointer-events:none}
+@media(max-width:460px){ .pf-list{max-height:200px} }
+</style>
+<script>
+(function(){
+  if(window.__pfWired) return; window.__pfWired=true;
+  function wire(root){
+    if(root.__w) return; root.__w=true;
+    var btn=root.querySelector('.pf-cc'), pop=root.querySelector('.pf-pop'),
+        search=root.querySelector('.pf-search'), list=root.querySelector('.pf-list'),
+        hidden=root.querySelector('input[name="wa_country"]'), dial=root.querySelector('.pf-dial'),
+        cName=root.querySelector('.pf-name'), cCode=root.querySelector('.pf-code');
+    var data=window.__CC||[]; var hl=-1;
+    function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    function byIso(iso){ for(var i=0;i<data.length;i++){ if(data[i].iso===iso) return data[i]; } return null; }
+    function setSel(iso){
+      var c=byIso(iso)||byIso('PK')||data[0]; if(!c) return;
+      hidden.value=c.iso; cName.textContent=c.name; cCode.textContent='+'+c.code;
+      if(dial) dial.textContent='+'+c.code;
+    }
+    function render(q){
+      q=(q||'').toLowerCase().trim();
+      var rows=data.filter(function(c){ return !q || c.name.toLowerCase().indexOf(q)>=0 || (''+c.code).indexOf(q)>=0 || c.iso.toLowerCase().indexOf(q)>=0; });
+      hl=-1;
+      list.innerHTML = rows.length ? rows.map(function(c){ return '<button type="button" class="pf-opt" data-iso="'+c.iso+'"><span class="pf-on">'+esc(c.name)+'</span><span class="pf-oc">+'+c.code+'</span></button>'; }).join('') : '<div class="pf-empty">No match</div>';
+    }
+    function open(){ if(btn.disabled) return; render(''); pop.hidden=false; btn.setAttribute('aria-expanded','true'); search.value=''; setTimeout(function(){ try{search.focus();}catch(e){} },30); }
+    function close(){ pop.hidden=true; btn.setAttribute('aria-expanded','false'); }
+    btn.addEventListener('click',function(e){ e.stopPropagation(); pop.hidden?open():close(); });
+    search.addEventListener('input',function(){ render(search.value); });
+    search.addEventListener('keydown',function(e){
+      var opts=list.querySelectorAll('.pf-opt'); if(!opts.length) return;
+      if(e.key==='ArrowDown'){ e.preventDefault(); hl=Math.min(hl+1,opts.length-1); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); hl=Math.max(hl-1,0); }
+      else if(e.key==='Enter'){ e.preventDefault(); if(hl>=0){ setSel(opts[hl].getAttribute('data-iso')); close(); } return; }
+      else return;
+      opts.forEach(function(o,i){ o.classList.toggle('hl',i===hl); }); if(opts[hl]) opts[hl].scrollIntoView({block:'nearest'});
+    });
+    list.addEventListener('click',function(e){ var o=e.target.closest('.pf-opt'); if(!o) return; setSel(o.getAttribute('data-iso')); close(); });
+    document.addEventListener('click',function(e){ if(!root.contains(e.target)) close(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+    setSel(hidden.value||'PK');
+  }
+  function initAll(){ document.querySelectorAll('.pf').forEach(wire); }
+  if(document.readyState!=='loading') initAll(); else document.addEventListener('DOMContentLoaded',initAll);
+  window.__pfInitAll=initAll;
+})();
+</script>
+<% } %>

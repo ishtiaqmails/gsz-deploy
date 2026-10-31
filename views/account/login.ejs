@@ -9,13 +9,7 @@
         .lg .lg-tab.on{background:#1faa59;color:#fff;opacity:1;box-shadow:0 2px 8px -3px rgba(31,170,89,.7)}
         .lg .lg-pane{display:none}
         .lg .lg-pane.on{display:block}
-        .lg .wa-field{display:flex;flex-direction:column;gap:9px;margin:0 0 11px}
-        .lg #wa_country{width:100%;max-width:none;margin:0}
-        .lg .wa-num{display:flex;align-items:stretch;border:1px solid rgba(128,128,128,.32);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
-        .lg .wa-num .wa-dial{display:flex;align-items:center;justify-content:center;min-width:60px;padding:0 13px;background:rgba(128,128,128,.12);border-right:1px solid rgba(128,128,128,.32);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
-        .lg .wa-num input{border:0;margin:0;flex:1;min-width:0;border-radius:0;background:transparent}
-        .lg .wa-num input:focus{outline:none;box-shadow:none}
-        .lg .wa-num:focus-within{border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+        .lg .pf input{margin:0}
       </style>
       <span class="auth-badge"><span class="dot"></span>Welcome back</span>
       <h1>Sign in</h1>
@@ -24,7 +18,6 @@
       <%
         var _em = String(email || '');
         var _isPhone = _em && _em.indexOf('@') < 0 && /[0-9]/.test(_em);
-        function _flag(iso){ try{ return String(iso||'').toUpperCase().replace(/[A-Z]/g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0));}); }catch(e){ return ''; } }
         var selCt = (typeof geoCountry!=='undefined' && geoCountry ? geoCountry : 'PK');
       %>
       <form method="post" action="/login" autocomplete="on" id="lgForm">
@@ -44,15 +37,12 @@
         <!-- PHONE -->
         <div class="lg-pane <%= _isPhone?'on':'' %>" data-pane="phone">
           <label class="fld" for="wa_login">WhatsApp / phone number</label>
-          <div class="wa-field">
-            <select name="wa_country" id="wa_country" aria-label="Country code" <%= _isPhone?'':'disabled' %>>
-              <% (typeof countries!=='undefined'?countries:[]).forEach(function(ct){ %><option value="<%= ct.iso %>" data-code="<%= ct.code %>" <%= ct.iso===selCt?'selected':'' %>><%= _flag(ct.iso) %>  <%= ct.name %> · +<%= ct.code %></option><% }); %>
-            </select>
-            <div class="wa-num">
-              <span class="wa-dial" id="wa_dial">+92</span>
-              <input id="wa_login" type="tel" name="email" value="<%= _isPhone?_em:'' %>" placeholder="300 1234567" inputmode="numeric" autocomplete="tel" <%= _isPhone?'required':'disabled' %>>
-            </div>
-          </div>
+          <%- include('../partials/phone_field', {
+                pfId: 'login', pfNumName: 'email', pfNumId: 'wa_login',
+                pfNumValue: (_isPhone ? _em : ''),
+                pfSel: selCt,
+                pfDisabled: !_isPhone, pfRequired: _isPhone
+              }) %>
         </div>
 
         <label class="fld" for="password">Password</label>
@@ -70,20 +60,17 @@
   var panes=document.querySelectorAll('.lg-pane');
   var emailI=document.getElementById('email');
   var waI=document.getElementById('wa_login');
-  var waC=document.getElementById('wa_country');
-  var sel=waC, dial=document.getElementById('wa_dial');
-  function dsync(){ if(!sel||!dial) return; var o=sel.options[sel.selectedIndex]; var c=o&&o.getAttribute('data-code'); dial.textContent='+'+(c||''); }
-  if(sel){ sel.addEventListener('change',dsync); dsync(); }
+  var waC=document.getElementById('pfcc_login');       // hidden country value
+  var waBtn=document.getElementById('pfbtn_login');     // country picker button
   function activate(which){
     tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===which); });
     panes.forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-pane')===which); });
     var phone=(which==='phone');
-    // only the active field submits + is validated
     if(emailI){ emailI.disabled=phone; if(!phone){ emailI.setAttribute('required','required'); } else { emailI.removeAttribute('required'); } }
     if(waI){ waI.disabled=!phone; if(phone){ waI.setAttribute('required','required'); } else { waI.removeAttribute('required'); } }
     if(waC){ waC.disabled=!phone; }
-    var focusEl = phone ? waI : emailI;
-    if(focusEl){ try{ focusEl.focus(); }catch(e){} }
+    if(waBtn){ waBtn.disabled=!phone; }
+    var f = phone ? waI : emailI; if(f){ try{ f.focus(); }catch(e){} }
   }
   tabs.forEach(function(t){ t.addEventListener('click', function(){ activate(t.getAttribute('data-tab')); }); });
 })();
