@@ -1,0 +1,73 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="auth">
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="auth-card su">
+      <style>/*suCompact*/
+        .su .lead{margin:0 0 15px;font-size:14px}
+        .su .fld{margin:0 0 5px}
+        .su input{margin:0 0 11px}
+        .su .su-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+        .su .hint{margin:0 0 12px}
+        @media(max-width:460px){ .su .su-grid2{grid-template-columns:1fr} }
+        /* premium phone field — theme-agnostic (neutral translucent chrome) */
+        .su .wa-field{display:flex;flex-direction:column;gap:9px;margin:0 0 6px}
+        .su #wa_country{width:100%;max-width:none;margin:0;height:auto}
+        .su .wa-num{display:flex;align-items:stretch;border:1px solid rgba(128,128,128,.32);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+        .su .wa-num .wa-dial{display:flex;align-items:center;justify-content:center;min-width:60px;padding:0 13px;background:rgba(128,128,128,.12);border-right:1px solid rgba(128,128,128,.32);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .su .wa-num input{border:0;margin:0;flex:1;min-width:0;border-radius:0;background:transparent}
+        .su .wa-num input:focus{outline:none;box-shadow:none}
+        .su .wa-num:focus-within{border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+      </style>
+      <span class="auth-badge"><span class="dot"></span>Create your account</span>
+      <h1>Sign up</h1>
+      <p class="lead">One account for your orders, downloads and free trials.</p>
+      <% if (error) { %><div class="err"><%= error %></div><% } %>
+      <form method="post" action="/signup" autocomplete="on">
+        <div class="su-grid2">
+          <div>
+            <label class="fld" for="name">Full name</label>
+            <input id="name" type="text" name="name" value="<%= form.name || '' %>" placeholder="Your name" required autocomplete="name">
+          </div>
+          <div>
+            <label class="fld" for="email">Email address</label>
+            <input id="email" type="email" name="email" value="<%= form.email || '' %>" placeholder="you@email.com" required autocomplete="email">
+          </div>
+        </div>
+        <label class="fld" for="wa">WhatsApp number</label>
+        <% function _flag(iso){ try{ return String(iso||'').toUpperCase().replace(/[A-Z]/g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0));}); }catch(e){ return ''; } } %>
+        <% var selCt = (form.wa_country || (typeof geoCountry!=='undefined' && geoCountry ? geoCountry : 'PK')); %>
+        <div class="wa-field">
+          <select name="wa_country" id="wa_country" aria-label="Country code">
+            <% (typeof countries!=='undefined'?countries:[]).forEach(function(ct){ %><option value="<%= ct.iso %>" data-code="<%= ct.code %>" <%= ct.iso===selCt?'selected':'' %>><%= _flag(ct.iso) %>  <%= ct.name %> · +<%= ct.code %></option><% }); %>
+          </select>
+          <div class="wa-num">
+            <span class="wa-dial" id="wa_dial">+92</span>
+            <input id="wa" type="tel" name="wa" value="<%= form.wa || '' %>" placeholder="300 1234567" required autocomplete="tel" inputmode="numeric">
+          </div>
+        </div>
+        <p class="hint">Your country is detected automatically — change it above if it's wrong. Type your number in local format; you'll verify it on WhatsApp.</p>
+        <div class="su-grid2">
+          <div>
+            <label class="fld" for="password">Password</label>
+            <input id="password" type="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+          </div>
+          <div>
+            <label class="fld" for="password2">Confirm password</label>
+            <input id="password2" type="password" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn btn-p btn-full" type="submit">Create account</button>
+      </form>
+      <p class="alt">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+</main>
+<script>
+(function(){
+  var sel=document.getElementById('wa_country'), dial=document.getElementById('wa_dial');
+  function sync(){ if(!sel||!dial) return; var o=sel.options[sel.selectedIndex]; var c=o&&o.getAttribute('data-code'); dial.textContent='+'+(c||''); }
+  if(sel){ sel.addEventListener('change',sync); sync(); }
+})();
+</script>
+<%- include('../partials/store_bottom') %>

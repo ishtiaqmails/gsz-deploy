@@ -1,0 +1,91 @@
+<%- include('../partials/store_top') %>
+<%- include('../partials/auth_style') %>
+<main class="auth">
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="auth-card lg">
+      <style>/*lgLogin*/
+        .lg .lg-tabs{display:flex;gap:5px;padding:5px;background:rgba(128,128,128,.14);border-radius:13px;margin:2px 0 16px}
+        .lg .lg-tab{flex:1;text-align:center;padding:10px 0;border-radius:9px;font-weight:650;font-size:14px;cursor:pointer;border:0;background:transparent;color:inherit;opacity:.65;transition:all .15s;font-family:inherit}
+        .lg .lg-tab.on{background:#1faa59;color:#fff;opacity:1;box-shadow:0 2px 8px -3px rgba(31,170,89,.7)}
+        .lg .lg-pane{display:none}
+        .lg .lg-pane.on{display:block}
+        .lg .wa-field{display:flex;flex-direction:column;gap:9px;margin:0 0 11px}
+        .lg #wa_country{width:100%;max-width:none;margin:0}
+        .lg .wa-num{display:flex;align-items:stretch;border:1px solid rgba(128,128,128,.32);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+        .lg .wa-num .wa-dial{display:flex;align-items:center;justify-content:center;min-width:60px;padding:0 13px;background:rgba(128,128,128,.12);border-right:1px solid rgba(128,128,128,.32);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .lg .wa-num input{border:0;margin:0;flex:1;min-width:0;border-radius:0;background:transparent}
+        .lg .wa-num input:focus{outline:none;box-shadow:none}
+        .lg .wa-num:focus-within{border-color:#1faa59;box-shadow:0 0 0 3px rgba(31,170,89,.14)}
+      </style>
+      <span class="auth-badge"><span class="dot"></span>Welcome back</span>
+      <h1>Sign in</h1>
+      <p class="lead">Access your orders, downloads and trials in one place.</p>
+      <% if (error) { %><div class="err"><%= error %></div><% } %>
+      <%
+        var _em = String(email || '');
+        var _isPhone = _em && _em.indexOf('@') < 0 && /[0-9]/.test(_em);
+        function _flag(iso){ try{ return String(iso||'').toUpperCase().replace(/[A-Z]/g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0));}); }catch(e){ return ''; } }
+        var selCt = (typeof geoCountry!=='undefined' && geoCountry ? geoCountry : 'PK');
+      %>
+      <form method="post" action="/login" autocomplete="on" id="lgForm">
+        <input type="hidden" name="next" value="<%= next %>">
+
+        <div class="lg-tabs" role="tablist">
+          <button type="button" class="lg-tab <%= _isPhone?'':'on' %>" data-tab="email">Email</button>
+          <button type="button" class="lg-tab <%= _isPhone?'on':'' %>" data-tab="phone">Phone</button>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="lg-pane <%= _isPhone?'':'on' %>" data-pane="email">
+          <label class="fld" for="email">Email address</label>
+          <input id="email" type="email" name="email" value="<%= _isPhone?'':_em %>" placeholder="you@email.com" autocomplete="username" <%= _isPhone?'disabled':'required' %>>
+        </div>
+
+        <!-- PHONE -->
+        <div class="lg-pane <%= _isPhone?'on':'' %>" data-pane="phone">
+          <label class="fld" for="wa_login">WhatsApp / phone number</label>
+          <div class="wa-field">
+            <select name="wa_country" id="wa_country" aria-label="Country code" <%= _isPhone?'':'disabled' %>>
+              <% (typeof countries!=='undefined'?countries:[]).forEach(function(ct){ %><option value="<%= ct.iso %>" data-code="<%= ct.code %>" <%= ct.iso===selCt?'selected':'' %>><%= _flag(ct.iso) %>  <%= ct.name %> · +<%= ct.code %></option><% }); %>
+            </select>
+            <div class="wa-num">
+              <span class="wa-dial" id="wa_dial">+92</span>
+              <input id="wa_login" type="tel" name="email" value="<%= _isPhone?_em:'' %>" placeholder="300 1234567" inputmode="numeric" autocomplete="tel" <%= _isPhone?'required':'disabled' %>>
+            </div>
+          </div>
+        </div>
+
+        <label class="fld" for="password">Password</label>
+        <input id="password" type="password" name="password" placeholder="Your password" required autocomplete="current-password">
+        <button class="btn btn-p btn-full" type="submit">Sign in</button>
+      </form>
+      <p class="alt" style="margin-top:14px"><a href="/forgot">Forgot password?</a></p>
+      <p class="alt">New here? <a href="/signup">Create an account</a></p>
+    </div>
+  </div>
+</main>
+<script>
+(function(){
+  var tabs=document.querySelectorAll('.lg-tab');
+  var panes=document.querySelectorAll('.lg-pane');
+  var emailI=document.getElementById('email');
+  var waI=document.getElementById('wa_login');
+  var waC=document.getElementById('wa_country');
+  var sel=waC, dial=document.getElementById('wa_dial');
+  function dsync(){ if(!sel||!dial) return; var o=sel.options[sel.selectedIndex]; var c=o&&o.getAttribute('data-code'); dial.textContent='+'+(c||''); }
+  if(sel){ sel.addEventListener('change',dsync); dsync(); }
+  function activate(which){
+    tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===which); });
+    panes.forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-pane')===which); });
+    var phone=(which==='phone');
+    // only the active field submits + is validated
+    if(emailI){ emailI.disabled=phone; if(!phone){ emailI.setAttribute('required','required'); } else { emailI.removeAttribute('required'); } }
+    if(waI){ waI.disabled=!phone; if(phone){ waI.setAttribute('required','required'); } else { waI.removeAttribute('required'); } }
+    if(waC){ waC.disabled=!phone; }
+    var focusEl = phone ? waI : emailI;
+    if(focusEl){ try{ focusEl.focus(); }catch(e){} }
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ activate(t.getAttribute('data-tab')); }); });
+})();
+</script>
+<%- include('../partials/store_bottom') %>
