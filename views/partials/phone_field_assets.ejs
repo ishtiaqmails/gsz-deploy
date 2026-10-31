@@ -98,5 +98,7 @@
   }
   window.__pfInitAll=function(){ document.querySelectorAll('.pf').forEach(wire); };
   if(document.readyState!=='loading') window.__pfInitAll(); else document.addEventListener('DOMContentLoaded',window.__pfInitAll);
+  // Preload the country list (cached) so the pop-up picker never flashes "Country" on open.
+  try{ window.__pfEnsureCC(); }catch(e){}
 })();
 </script>
