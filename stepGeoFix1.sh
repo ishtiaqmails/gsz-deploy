@@ -22,8 +22,12 @@ node --check "$GSZ/lib/geo_content.js"; echo "   geo_content.js OK (backup: $BAK
 
 echo "==> restart app"
 pm2 restart "$APP" >/dev/null 2>&1; sleep 2
-curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 || curl -sf "http://127.0.0.1:$PORT/" >/dev/null 2>&1 || { echo "health failed"; false; }
-echo "   healthy"
+ok=0; for i in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 || curl -sf "http://127.0.0.1:$PORT/" >/dev/null 2>&1; then ok=1; break; fi
+  sleep 1
+done
+[ "$ok" = "1" ] || { echo "   health check FAILED on :$PORT"; false; }
+echo "   healthy on :$PORT"
 
 echo "==> regenerate the 2 demo pages (fixed pricing copy)"
 GSZ_DIR="$GSZ" node "$GSZ/scripts/geo_seed.js"
