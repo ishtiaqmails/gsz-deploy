@@ -1,26 +1,25 @@
 <%
-/* Premium phone field (PAGES) — markup + country data; behaviour/CSS live in phone_field_assets.
-   Locals: pfId, pfNumName, pfNumId, pfNumValue, pfSel (iso), pfDisabled, pfRequired.
-   Reads `countries` (phone.countries()) and `geoCountry` from the parent render. */
+/* Premium phone field (PAGES) — compact single-row markup + country data.
+   Behaviour/CSS live in phone_field_assets.
+   Locals: pfId, pfNumName, pfNumId, pfNumValue, pfSel (iso), pfDisabled, pfRequired. */
 var _ccList = (typeof countries !== 'undefined' && countries) ? countries : [];
 var _sel = pfSel || (typeof geoCountry !== 'undefined' && geoCountry ? geoCountry : 'PK');
 %>
 <div class="pf" id="pf_<%= pfId %>">
   <input type="hidden" name="wa_country" id="pfcc_<%= pfId %>" value="<%= _sel %>" <%= pfDisabled ? 'disabled' : '' %>>
-  <button type="button" class="pf-cc" id="pfbtn_<%= pfId %>" aria-haspopup="listbox" aria-expanded="false" <%= pfDisabled ? 'disabled' : '' %>>
-    <span class="pf-name">Select country</span>
-    <span class="pf-code"></span>
-    <svg class="pf-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  </button>
+  <div class="pf-row">
+    <button type="button" class="pf-cc" id="pfbtn_<%= pfId %>" aria-haspopup="listbox" aria-expanded="false" <%= pfDisabled ? 'disabled' : '' %>>
+      <span class="pf-name">Country</span>
+      <span class="pf-code"></span>
+      <svg class="pf-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <input type="tel" class="pf-numin" name="<%= pfNumName %>" id="<%= pfNumId %>" value="<%= pfNumValue || '' %>" placeholder="300 1234567" inputmode="numeric" autocomplete="tel" <%= pfDisabled ? 'disabled' : (pfRequired ? 'required' : '') %>>
+  </div>
   <div class="pf-pop" id="pfpop_<%= pfId %>" hidden>
     <div class="pf-search-wrap">
       <input type="text" class="pf-search" placeholder="Type a country or code" autocomplete="off" inputmode="search">
     </div>
     <div class="pf-list" role="listbox"></div>
-  </div>
-  <div class="pf-num">
-    <span class="pf-dial" id="pfdial_<%= pfId %>">+92</span>
-    <input type="tel" name="<%= pfNumName %>" id="<%= pfNumId %>" value="<%= pfNumValue || '' %>" placeholder="300 1234567" inputmode="numeric" autocomplete="tel" <%= pfDisabled ? 'disabled' : (pfRequired ? 'required' : '') %>>
   </div>
 </div>
 <script>window.__CC = (window.__CC && window.__CC.length) ? window.__CC : <%- JSON.stringify(_ccList) %>;</script>
