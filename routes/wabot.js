@@ -88,6 +88,26 @@ module.exports = function (pool) {
     res.json({ ok: true, reachable: true, status: (d.connected ? 'connected' : (d.qr ? 'qr' : 'connecting')), connected: !!d.connected, number: d.number || null, user: d.user || null, qrDataUrl });
   });
 
+  // ---- live activity + stats (watch the bot moment-to-moment) ----
+  router.get('/wabot/activity.json', auth, async (req, res) => {
+    try {
+      const q = async (sql, p) => { try { return (await pool.query(sql, p || [])).rows; } catch (e) { return []; } };
+      const todayKhi = "(created_at AT TIME ZONE 'Asia/Karachi')::date = (now() AT TIME ZONE 'Asia/Karachi')::date";
+      const events = await q("SELECT event, reason, created_at FROM wa_audit_log ORDER BY id DESC LIMIT 30");
+      const verifiedCustomers = (await q("SELECT count(*)::int n FROM customer_whatsapp_links WHERE status='ACTIVE' AND is_primary=true"))[0] || { n: 0 };
+      const verifiedToday = (await q("SELECT count(*)::int n FROM wa_audit_log WHERE event='WHATSAPP_VERIFICATION_COMPLETED' AND " + todayKhi))[0] || { n: 0 };
+      const startedToday = (await q("SELECT count(*)::int n FROM wa_audit_log WHERE event='WHATSAPP_VERIFICATION_STARTED' AND " + todayKhi))[0] || { n: 0 };
+      const messagesToday = (await q("SELECT count(*)::int n FROM wa_audit_log WHERE event='VERIFY_NUMBER_MSG' AND " + todayKhi))[0] || { n: 0 };
+      const lastMsg = (await q("SELECT value FROM wa_settings WHERE key='wa_last_message_received_at'"))[0];
+      res.json({
+        ok: true,
+        stats: { verifiedCustomers: verifiedCustomers.n, verifiedToday: verifiedToday.n, startedToday: startedToday.n, messagesToday: messagesToday.n },
+        lastMessageAt: lastMsg ? lastMsg.value : null,
+        events: events.map(e => ({ event: e.event, reason: e.reason || '', at: e.created_at }))
+      });
+    } catch (e) { res.json({ ok: false, error: e.message }); }
+  });
+
   // ---- save numbers (propagate everywhere) ----
   router.post('/wabot/numbers', auth, body, async (req, res) => {
     try {

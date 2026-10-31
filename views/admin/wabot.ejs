@@ -3,79 +3,326 @@
 <% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
 <% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
 
-<!-- CONNECTION -->
-<div class="card">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <div><h2 style="margin:0">Bot connection</h2><p class="hint" style="margin:4px 0 0">The verification bot that sends codes & order messages to customers.</p></div>
-    <span id="waBadge" class="spill" style="background:#eef1f7;color:#737e9c">Checking…</span>
-  </div>
-  <div style="margin-top:14px">
-    <div id="waConnected" style="display:none;font-size:15px">Connected as <b id="waNumber">—</b></div>
-    <div id="waQR" style="display:none;text-align:center;padding:8px 0">
-      <img id="waQRImg" alt="WhatsApp QR" style="width:260px;max-width:82%;border-radius:12px;border:1px solid var(--hair)">
-      <p class="hint" style="margin:10px 0 0">On the bot phone: WhatsApp → Linked Devices → Link a Device → scan this.</p>
+<div class="wac">
+
+  <!-- HERO: live status -->
+  <div class="wac-hero">
+    <div class="wac-hero-l">
+      <div class="wac-dot" id="wacDot"></div>
+      <div>
+        <div class="wac-kicker">WhatsApp command center</div>
+        <div class="wac-state" id="wacState">Connecting to bot…</div>
+      </div>
     </div>
-    <div id="waConnecting" class="hint">Checking the bot…</div>
+    <div class="wac-hero-r">
+      <div class="wac-as">
+        <span class="wac-as-lab">Bot number</span>
+        <span class="wac-as-num" id="wacAsNum">—</span>
+      </div>
+      <div class="wac-pulse" id="wacPulse" title="Live — refreshing every 5s"><span></span>LIVE</div>
+    </div>
   </div>
-  <div class="qrow" style="margin-top:14px">
-    <form method="post" action="/admin/wabot/reconnect" style="display:inline"><button class="btn btn-g" type="submit">Reconnect</button></form>
-    <form method="post" action="/admin/wabot/relogin" style="display:inline" onsubmit="return confirm('Log the bot out and show a new QR? The bot goes offline until you re-scan from its phone.')"><button class="btn btn-g" type="submit" style="color:#b4231b">Re-login (new QR)</button></form>
+
+  <!-- STAT TILES -->
+  <div class="wac-tiles">
+    <div class="wac-tile">
+      <div class="wac-tile-n" id="stVerified">—</div>
+      <div class="wac-tile-l">Verified customers</div>
+    </div>
+    <div class="wac-tile">
+      <div class="wac-tile-n" id="stVerToday">—</div>
+      <div class="wac-tile-l">Verified today</div>
+    </div>
+    <div class="wac-tile">
+      <div class="wac-tile-n" id="stStarted">—</div>
+      <div class="wac-tile-l">Started today</div>
+    </div>
+    <div class="wac-tile">
+      <div class="wac-tile-n" id="stMsgs">—</div>
+      <div class="wac-tile-l">Messages today</div>
+    </div>
   </div>
+
+  <div class="wac-grid">
+
+    <!-- CONNECTION -->
+    <div class="card wac-conn">
+      <div class="wac-card-h">
+        <h2>Connection</h2>
+        <span id="waBadge" class="wac-badge wac-badge-mut">Checking…</span>
+      </div>
+      <p class="hint" style="margin:2px 0 0">The verification bot that sends codes &amp; order messages to customers.</p>
+
+      <div id="waConnected" class="wac-conn-ok" style="display:none">
+        <div class="wac-check">✓</div>
+        <div>
+          <div class="wac-conn-ok-t">Linked &amp; online</div>
+          <div class="hint">Connected as <b id="waNumber" style="font-variant-numeric:tabular-nums">—</b> · last message <span id="waLastMsg">—</span></div>
+        </div>
+      </div>
+
+      <div id="waQR" style="display:none;text-align:center;padding:10px 0">
+        <img id="waQRImg" alt="WhatsApp QR" class="wac-qr">
+        <p class="hint" style="margin:12px auto 0;max-width:340px">On the bot phone: <b>WhatsApp → Linked Devices → Link a Device</b> → scan this code.</p>
+      </div>
+
+      <div id="waConnecting" class="wac-connecting">
+        <span class="wac-spin"></span> Reaching the bot…
+      </div>
+
+      <div class="wac-actions">
+        <form method="post" action="/admin/wabot/reconnect" style="display:inline"><button class="btn btn-g" type="submit">Reconnect</button></form>
+        <form method="post" action="/admin/wabot/relogin" style="display:inline" onsubmit="return confirm('Log the bot out and show a new QR? The bot goes offline until you re-scan from its phone.')"><button class="btn btn-g" type="submit" style="color:#b4231b">Re-login (new QR)</button></form>
+      </div>
+    </div>
+
+    <!-- LIVE ACTIVITY -->
+    <div class="card wac-feed">
+      <div class="wac-card-h">
+        <h2>Live activity</h2>
+        <span class="hint" id="wacFeedTick">just now</span>
+      </div>
+      <div id="wacEvents" class="wac-events">
+        <div class="wac-empty">Waiting for the first event…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NUMBERS -->
+  <form method="post" action="/admin/wabot/numbers">
+  <div class="card">
+    <div class="wac-card-h"><h2>Numbers</h2></div>
+    <p class="hint">Change a number here and it updates <b>everywhere</b> on the site instantly — contact buttons, wa.me links and message templates all read these live. No old number is ever hard-coded.</p>
+    <div class="wac-num">
+      <label class="fld">Store / public WhatsApp <span class="wac-sub">the contact &amp; “Order on WhatsApp” button</span></label>
+      <input type="text" name="store" value="<%= numbers.store %>" placeholder="923141892712" inputmode="numeric">
+    </div>
+    <div class="wac-num">
+      <label class="fld">Bot / verification number <span class="wac-sub">auto-synced to the connected bot — change it by re-logging the bot above</span></label>
+      <input type="text" value="<%= numbers.verify || '(not connected yet)' %>" disabled class="wac-locked">
+    </div>
+    <div class="wac-num">
+      <label class="fld">Owner number(s) <span class="wac-sub">comma-separated · get alerts &amp; can run owner commands</span></label>
+      <input type="text" name="owner" value="<%= numbers.owner %>" placeholder="923xxxxxxxxx, 923xxxxxxxxx">
+    </div>
+    <div class="wac-num2">
+      <div><label class="fld">Sales number</label><input type="text" name="sales" value="<%= numbers.sales %>" inputmode="numeric"></div>
+      <div><label class="fld">Support number</label><input type="text" name="support" value="<%= numbers.support %>" inputmode="numeric"></div>
+    </div>
+    <button class="btn btn-p" type="submit" style="margin-top:6px">Save numbers</button>
+  </div>
+  </form>
+
+  <!-- VERIFICATION -->
+  <form method="post" action="/admin/wabot/toggles">
+  <div class="card">
+    <div class="wac-card-h"><h2>WhatsApp verification</h2></div>
+    <p class="hint">Control where customers must verify their WhatsApp before they can act. Changes apply site-wide immediately.</p>
+    <% function row(name, on, title, desc){ %>
+      <label class="wac-toggle">
+        <span class="wac-sw"><input type="checkbox" name="<%= name %>" <%= on?'checked':'' %>><span class="wac-sw-t"></span></span>
+        <span><b><%= title %></b><br><span class="hint"><%= desc %></span></span>
+      </label>
+    <% } %>
+    <% row('verificationEnabled', toggles.verificationEnabled, 'Verification system enabled', 'Master switch — customers can verify their WhatsApp. Off disables verification entirely.'); %>
+    <% row('requireCheckout', toggles.requireCheckout, 'Require WhatsApp at checkout', 'Customers must verify before placing an order.'); %>
+    <% row('requireTrial', toggles.requireTrial, 'Require WhatsApp for free trials', 'Customers must verify before claiming a trial.'); %>
+    <% row('orderNotifications', toggles.orderNotifications, 'Order notifications via WhatsApp', 'Send order received / paid / delivered messages to customers.'); %>
+    <button class="btn btn-p" type="submit" style="margin-top:2px">Save settings</button>
+  </div>
+  </form>
+
 </div>
 
-<!-- NUMBERS -->
-<form method="post" action="/admin/wabot/numbers">
-<div class="card">
-  <h2>Numbers</h2>
-  <p class="hint">Change a number here and it updates everywhere on the site instantly — contact buttons, wa.me links, and message templates all read these live.</p>
-  <label class="fld">Store / public WhatsApp <span style="font-weight:400;color:var(--muted)">— the contact & "Order on WhatsApp" button</span></label>
-  <input type="text" name="store" value="<%= numbers.store %>" placeholder="923141892712" inputmode="numeric">
-  <label class="fld">Bot / verification number <span style="font-weight:400;color:var(--muted)">— auto-synced to the connected bot; change it by re-logging the bot above</span></label>
-  <input type="text" value="<%= numbers.verify || '(not connected yet)' %>" disabled style="background:#f3f5fb;color:var(--muted)">
-  <label class="fld">Owner number(s) <span style="font-weight:400;color:var(--muted)">— comma-separated; get alerts & can run owner commands</span></label>
-  <input type="text" name="owner" value="<%= numbers.owner %>" placeholder="923xxxxxxxxx, 923xxxxxxxxx">
-  <label class="fld">Sales number</label>
-  <input type="text" name="sales" value="<%= numbers.sales %>" inputmode="numeric">
-  <label class="fld">Support number</label>
-  <input type="text" name="support" value="<%= numbers.support %>" inputmode="numeric">
-  <button class="btn btn-p" type="submit" style="margin-top:4px">Save numbers</button>
-</div>
-</form>
+<style>
+.wac{max-width:980px}
+.wac .card{margin-top:16px}
+.wac-card-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wac-card-h h2{margin:0;font-size:17px}
 
-<!-- VERIFICATION -->
-<form method="post" action="/admin/wabot/toggles">
-<div class="card">
-  <h2>WhatsApp verification</h2>
-  <p class="hint">Control where customers must verify their WhatsApp before they can act.</p>
-  <% function row(name, on, title, desc){ %>
-    <label style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px;cursor:pointer">
-      <input type="checkbox" name="<%= name %>" <%= on?'checked':'' %> style="margin-top:3px;width:18px;height:18px;flex:none">
-      <span><b><%= title %></b><br><span class="hint"><%= desc %></span></span>
-    </label>
-  <% } %>
-  <%- '' %>
-  <% row('verificationEnabled', toggles.verificationEnabled, 'Verification system enabled', 'Master switch — customers can verify their WhatsApp. Off disables verification entirely.'); %>
-  <% row('requireCheckout', toggles.requireCheckout, 'Require WhatsApp at checkout', 'Customers must verify before placing an order.'); %>
-  <% row('requireTrial', toggles.requireTrial, 'Require WhatsApp for free trials', 'Customers must verify before claiming a trial.'); %>
-  <% row('orderNotifications', toggles.orderNotifications, 'Order notifications via WhatsApp', 'Send order received / paid / delivered messages to customers.'); %>
-  <button class="btn btn-p" type="submit">Save settings</button>
-</div>
-</form>
+/* hero */
+.wac-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(135deg,#0d1b16 0%,#12352a 58%,#0f5c3c 100%);color:#eafff4;
+  border-radius:18px;padding:20px 22px;box-shadow:0 10px 30px -14px rgba(10,60,40,.55)}
+.wac-hero-l{display:flex;align-items:center;gap:15px}
+.wac-dot{width:13px;height:13px;border-radius:50%;background:#e8b84b;flex:none;
+  box-shadow:0 0 0 0 rgba(31,170,89,.6)}
+.wac-dot.on{background:#39d98a;animation:wacPing 2s ease-out infinite}
+.wac-dot.off{background:#ff6a5a;animation:none}
+@keyframes wacPing{0%{box-shadow:0 0 0 0 rgba(57,217,138,.55)}70%{box-shadow:0 0 0 12px rgba(57,217,138,0)}100%{box-shadow:0 0 0 0 rgba(57,217,138,0)}}
+.wac-kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7fe7b4;font-weight:700}
+.wac-state{font-size:20px;font-weight:650;margin-top:3px;line-height:1.1}
+.wac-hero-r{display:flex;align-items:center;gap:18px}
+.wac-as{text-align:right}
+.wac-as-lab{display:block;font-size:11px;color:#7fe7b4;letter-spacing:.06em}
+.wac-as-num{font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.wac-pulse{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.12em;
+  color:#bff3d7;background:rgba(255,255,255,.08);border:1px solid rgba(127,231,180,.25);
+  padding:7px 11px;border-radius:999px}
+.wac-pulse span{width:7px;height:7px;border-radius:50%;background:#39d98a;animation:wacBlink 1.4s infinite}
+@keyframes wacBlink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* tiles */
+.wac-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.wac-tile{background:#fff;border:1px solid var(--hair,#e7eaf2);border-radius:14px;padding:16px 16px 14px;
+  position:relative;overflow:hidden}
+.wac-tile:before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:3px;background:#1faa59}
+.wac-tile:nth-child(2):before{background:#2f80ed}
+.wac-tile:nth-child(3):before{background:#9b6bdf}
+.wac-tile:nth-child(4):before{background:#e8913b}
+.wac-tile-n{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:#16202e;padding-left:9px}
+.wac-tile-l{font-size:12.5px;color:var(--muted,#7a869a);margin-top:7px;padding-left:9px}
+
+/* two-up grid */
+.wac-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.wac-grid .card{margin-top:16px}
+
+/* badges */
+.wac-badge{font-size:12px;font-weight:650;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.wac-badge-mut{background:#eef1f7;color:#737e9c}
+.wac-badge-ok{background:#e9fbf1;color:#0b7a42}
+.wac-badge-warn{background:#fff6e5;color:#9a6b00}
+.wac-badge-bad{background:#fdecea;color:#b4231b}
+
+/* connection body */
+.wac-conn-ok{display:flex;gap:13px;align-items:center;margin-top:16px;background:#f3fcf7;
+  border:1px solid #cdeedd;border-radius:13px;padding:14px 16px}
+.wac-check{width:38px;height:38px;border-radius:50%;background:#1faa59;color:#fff;font-size:20px;
+  display:flex;align-items:center;justify-content:center;flex:none;font-weight:700}
+.wac-conn-ok-t{font-weight:650;font-size:15px;color:#0b7a42}
+.wac-qr{width:244px;max-width:82%;border-radius:14px;border:1px solid var(--hair,#e7eaf2);padding:8px;background:#fff}
+.wac-connecting{margin-top:16px;color:var(--muted,#7a869a);font-size:14px;display:flex;align-items:center;gap:9px}
+.wac-spin{width:15px;height:15px;border:2px solid #d7deea;border-top-color:#1faa59;border-radius:50%;
+  display:inline-block;animation:wacSpin .8s linear infinite}
+@keyframes wacSpin{to{transform:rotate(360deg)}}
+.wac-actions{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
+
+/* activity feed */
+.wac-feed{display:flex;flex-direction:column}
+.wac-events{margin-top:12px;max-height:338px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.wac-ev{display:flex;align-items:flex-start;gap:11px;padding:9px 4px;border-bottom:1px solid #f1f3f8}
+.wac-ev:last-child{border-bottom:0}
+.wac-ev-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;background:#b7c0d3}
+.wac-ev.ok .wac-ev-dot{background:#1faa59}
+.wac-ev.bad .wac-ev-dot{background:#e5484d}
+.wac-ev.msg .wac-ev-dot{background:#2f80ed}
+.wac-ev.start .wac-ev-dot{background:#e8913b}
+.wac-ev-body{flex:1;min-width:0}
+.wac-ev-t{font-size:13.5px;color:#1e2733;font-weight:550}
+.wac-ev-r{font-size:12px;color:var(--muted,#7a869a);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wac-ev-time{font-size:11.5px;color:#9aa6b8;white-space:nowrap;font-variant-numeric:tabular-nums}
+.wac-empty{color:var(--muted,#7a869a);font-size:13.5px;padding:18px 4px;text-align:center}
+.wac-new{animation:wacIn .5s ease}
+@keyframes wacIn{from{background:#eafaf1}to{background:transparent}}
+
+/* numbers + toggles */
+.wac-num{margin-bottom:12px}
+.wac-num2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.wac-sub{font-weight:400;color:var(--muted,#7a869a);font-size:12.5px}
+.wac-locked{background:#f3f5fb;color:var(--muted,#7a869a)}
+.wac-toggle{display:flex;gap:13px;align-items:flex-start;margin:0 0 15px;cursor:pointer}
+.wac-sw{position:relative;flex:none;margin-top:1px}
+.wac-sw input{position:absolute;opacity:0;width:44px;height:26px;margin:0;cursor:pointer}
+.wac-sw-t{display:block;width:44px;height:26px;border-radius:999px;background:#ccd3e0;transition:background .18s;position:relative}
+.wac-sw-t:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
+.wac-sw input:checked + .wac-sw-t{background:#1faa59}
+.wac-sw input:checked + .wac-sw-t:after{transform:translateX(18px)}
+
+@media(max-width:760px){
+  .wac-tiles{grid-template-columns:1fr 1fr}
+  .wac-grid{grid-template-columns:1fr}
+  .wac-num2{grid-template-columns:1fr}
+  .wac-hero-r{width:100%;justify-content:space-between}
+}
+</style>
 
 <script>
 (function(){
   var badge=document.getElementById('waBadge');
-  function set(el,disp){ var e=document.getElementById(el); if(e) e.style.display=disp; }
-  function poll(){
+  var dot=document.getElementById('wacDot'), state=document.getElementById('wacState');
+  function show(id,disp){ var e=document.getElementById(id); if(e) e.style.display=disp; }
+  function setBadge(cls,txt){ badge.className='wac-badge '+cls; badge.textContent=txt; }
+
+  function ago(iso){
+    if(!iso) return '—';
+    var d=new Date(iso); if(isNaN(d)) return '—';
+    var s=Math.floor((Date.now()-d.getTime())/1000);
+    if(s<10) return 'just now';
+    if(s<60) return s+'s ago';
+    var m=Math.floor(s/60); if(m<60) return m+'m ago';
+    var h=Math.floor(m/60); if(h<24) return h+'h ago';
+    return Math.floor(h/24)+'d ago';
+  }
+
+  // ---- connection poll ----
+  function pollConn(){
     fetch('/admin/wabot/qr.json',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
-      set('waConnected','none'); set('waQR','none'); set('waConnecting','none');
-      if(j.connected){ badge.textContent='Connected'; badge.style.background='#e9fbf1'; badge.style.color='#0b7a42'; var n=document.getElementById('waNumber'); if(n) n.textContent=(j.number||j.user||'—'); set('waConnected','block'); }
-      else if(j.qrDataUrl){ badge.textContent='Scan QR'; badge.style.background='#fff6e5'; badge.style.color='#9a6b00'; var img=document.getElementById('waQRImg'); if(img) img.src=j.qrDataUrl; set('waQR','block'); }
-      else if(j.reachable){ badge.textContent='Connecting'; badge.style.background='#fff6e5'; badge.style.color='#9a6b00'; set('waConnecting','block'); }
-      else { badge.textContent='Offline'; badge.style.background='#fdecea'; badge.style.color='#b4231b'; var c=document.getElementById('waConnecting'); if(c) c.textContent='Bot process unreachable.'; set('waConnecting','block'); }
+      show('waConnected','none'); show('waQR','none'); show('waConnecting','none');
+      var num=document.getElementById('wacAsNum');
+      if(j.connected){
+        dot.className='wac-dot on'; state.textContent='Bot online';
+        setBadge('wac-badge-ok','Connected');
+        var n=j.number||j.user||'—'; var el=document.getElementById('waNumber'); if(el) el.textContent=n;
+        if(num) num.textContent=n;
+        show('waConnected','flex');
+      } else if(j.qrDataUrl){
+        dot.className='wac-dot'; state.textContent='Waiting for QR scan';
+        setBadge('wac-badge-warn','Scan QR'); if(num) num.textContent='—';
+        var img=document.getElementById('waQRImg'); if(img) img.src=j.qrDataUrl;
+        show('waQR','block');
+      } else if(j.reachable){
+        dot.className='wac-dot'; state.textContent='Connecting…';
+        setBadge('wac-badge-warn','Connecting'); if(num) num.textContent='—';
+        show('waConnecting','flex');
+      } else {
+        dot.className='wac-dot off'; state.textContent='Bot offline';
+        setBadge('wac-badge-bad','Offline'); if(num) num.textContent='—';
+        var c=document.getElementById('waConnecting'); if(c){ c.innerHTML='Bot process unreachable.'; }
+        show('waConnecting','flex');
+      }
     }).catch(function(){});
   }
-  poll(); setInterval(poll, 5000);
+
+  // ---- activity poll ----
+  var EV={
+    WHATSAPP_VERIFICATION_COMPLETED:{c:'ok',  t:'Customer verified'},
+    WHATSAPP_VERIFICATION_STARTED:  {c:'start',t:'Verification started'},
+    WHATSAPP_VERIFICATION_FAILED:   {c:'bad', t:'Verification failed'},
+    VERIFY_NUMBER_MSG:              {c:'msg', t:'Message received'}
+  };
+  function label(ev){ return EV[ev] || {c:'', t:(ev||'Event').replace(/_/g,' ').toLowerCase().replace(/^./,function(x){return x.toUpperCase();})}; }
+  var seen='';
+  function pollAct(){
+    fetch('/admin/wabot/activity.json',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+      if(!j.ok) return;
+      var s=j.stats||{};
+      function setN(id,v){ var e=document.getElementById(id); if(e) e.textContent=(v==null?'0':v); }
+      setN('stVerified',s.verifiedCustomers); setN('stVerToday',s.verifiedToday);
+      setN('stStarted',s.startedToday); setN('stMsgs',s.messagesToday);
+      var lm=document.getElementById('waLastMsg'); if(lm) lm.textContent=ago(j.lastMessageAt);
+      var tick=document.getElementById('wacFeedTick'); if(tick) tick.textContent='updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      var box=document.getElementById('wacEvents'); if(!box) return;
+      var evs=j.events||[];
+      var sig=evs.map(function(e){return e.event+e.at;}).join('|');
+      if(sig===seen) return; var fresh=(seen!=='');
+      seen=sig;
+      if(!evs.length){ box.innerHTML='<div class="wac-empty">No activity yet. Events appear here the moment they happen.</div>'; return; }
+      box.innerHTML=evs.map(function(e){
+        var m=label(e.event);
+        var rsn=e.reason?('<div class="wac-ev-r">'+String(e.reason).replace(/[<>&]/g,'')+'</div>'):'';
+        return '<div class="wac-ev '+m.c+(fresh?' wac-new':'')+'">'+
+          '<span class="wac-ev-dot"></span>'+
+          '<div class="wac-ev-body"><div class="wac-ev-t">'+m.t+'</div>'+rsn+'</div>'+
+          '<span class="wac-ev-time">'+ago(e.at)+'</span></div>';
+      }).join('');
+    }).catch(function(){});
+  }
+
+  pollConn(); pollAct();
+  setInterval(pollConn,5000);
+  setInterval(pollAct,5000);
 })();
 </script>
 
