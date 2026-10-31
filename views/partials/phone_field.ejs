@@ -25,7 +25,6 @@ var _sel = pfSel || (typeof geoCountry !== 'undefined' && geoCountry ? geoCountr
 </div>
 <script>window.__CC = window.__CC || <%- JSON.stringify(_ccList) %>;</script>
 
-<% if (typeof _pfAssets === 'undefined') { _pfAssets = true; %>
 <style>
 .pf{position:relative;display:flex;flex-direction:column;gap:9px;margin:0 0 6px}
 .pf-cc{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:1px solid rgba(128,128,128,.34);border-radius:12px;background:rgba(128,128,128,.07);color:inherit;cursor:pointer;font:inherit;text-align:left;transition:border-color .15s,box-shadow .15s}
@@ -99,4 +98,3 @@ var _sel = pfSel || (typeof geoCountry !== 'undefined' && geoCountry ? geoCountr
   window.__pfInitAll=initAll;
 })();
 </script>
-<% } %>
