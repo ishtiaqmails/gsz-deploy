@@ -74,19 +74,21 @@ function buildHeadline(ctx, L) {
   const where = ctx.target ? ctx.target.name : (ctx.country && ctx.country.name) || '';
   const cat = ctx.categoryName || 'Digital Subscriptions';
   const key = (ctx.intent && ctx.intent.key) || 'BEST';
+  // "{cat} in {loc} — {suffix}" reads naturally for any category name, including
+  // ones that already end in a noun like "IPTV services".
   const map = {
     BEST: `Best ${cat} in ${where}`,
     BUY: `Buy ${cat} in ${where}`,
-    PRICE: `${cat} Prices in ${where}`,
-    TRIAL: `${cat} Free Trial in ${where}`,
-    COMPARE: `Compare ${cat} Plans in ${where}`,
-    REVIEW: `${cat} Reviews in ${where}`,
+    PRICE: `${cat} in ${where} — Prices & Plans`,
+    TRIAL: `${cat} in ${where} — Free Trial`,
+    COMPARE: `${cat} in ${where} — Compare Plans`,
+    REVIEW: `${cat} in ${where} — Reviews`,
     LOCAL: `${cat} in ${where}`,
-    CHANNELS: `${cat} Channels in ${where}`,
-    SPORTS: `${cat} Sports Packages in ${where}`,
-    AVAILABILITY: `Is ${cat} Available in ${where}?`,
-    HOW_TO: `How to Get ${cat} in ${where}`,
-    PROBLEM_SOLUTION: `${cat} Not Working in ${where}? Here's the Fix`
+    CHANNELS: `${cat} in ${where} — Channels`,
+    SPORTS: `${cat} in ${where} — Live Sports`,
+    AVAILABILITY: `Is ${cat} available in ${where}?`,
+    HOW_TO: `How to get ${cat} in ${where}`,
+    PROBLEM_SOLUTION: `${cat} not working in ${where}? Here's the fix`
   };
   return map[key] || `${cat} in ${where}`;
 }
@@ -116,7 +118,41 @@ function buildIntro(ctx, L, products) {
     langLine,
     `Need help choosing? Our support team answers ${demo ? demo + '' : ''}questions before and after you buy.`
   ]);
-  return [p1, p2];
+  const p3 = intentParagraph((ctx.intent && ctx.intent.key) || '', cat, where, L);
+  return p3 ? [p1, p2, p3] : [p1, p2];
+}
+
+// A distinct paragraph per intent so a /pricing page, a /channels page and a
+// /sports page for the same place don't read as the same template.
+function intentParagraph(key, cat, where, L) {
+  switch (key) {
+    case 'PRICE':
+      return sentence([`Every plan below shows its live ${L.currency} price for ${where}.`,
+        `Shorter plans are great for trying a service; longer plans bring the lowest price per month.`]);
+    case 'TRIAL':
+      return sentence([`Where a free trial is offered it's shown on the plan itself.`,
+        `Trials in ${where} are sent to your WhatsApp after a quick verification that keeps them fair for everyone.`]);
+    case 'CHANNELS':
+      return sentence([`Line-ups for ${where} viewers cover local and international channels, entertainment, news and kids,`,
+        `with movies and series libraries on most plans. Exact channels depend on the service you pick below.`]);
+    case 'SPORTS':
+      return sentence([`For sports fans in ${where}, these plans carry major leagues, tournaments and PPV events,`,
+        `in HD/4K where the source allows. Pick a sports-strong plan below and we'll set you up in minutes.`]);
+    case 'COMPARE':
+      return sentence([`Use the plans below to compare what ${where} customers actually get:`,
+        `channel depth, device support, stability and price. Not sure which fits? Message us and we'll recommend one.`]);
+    case 'HOW_TO':
+      return sentence([`Getting set up in ${where} is simple: pick a plan, pay with ${L.paymentLabel},`,
+        `and we deliver your login within minutes. It works on Firestick, Android, Smart TV and IPTV player apps.`]);
+    case 'REVIEW':
+      return sentence([`${where} customers choose us for instant delivery, honest support and reliable streams.`,
+        `Browse the plans below — each one is live and ready to activate.`]);
+    case 'AVAILABILITY':
+      return sentence([`Yes — every plan below is available to order in ${where} right now,`,
+        `with instant digital delivery and local payment. No waiting, no shipping.`]);
+    default:
+      return '';
+  }
 }
 
 const LANG = { en: 'English', ur: 'Urdu', ps: 'Pashto', ar: 'Arabic', hi: 'Hindi', pa: 'Punjabi', sd: 'Sindhi', fa: 'Persian', fr: 'French', es: 'Spanish' };
@@ -150,6 +186,10 @@ function buildFaq(ctx, L, products) {
   const key = (ctx.intent && ctx.intent.key) || '';
   if (key === 'TRIAL') faq.push({ q: `Is there a free trial in ${where}?`, a: `Selected plans include a trial. Where a trial is offered it is shown on the plan itself; otherwise our shortest paid plan lets you test the service at low cost.` });
   if (key === 'SPORTS') faq.push({ q: `Can I watch live sports in ${where}?`, a: `Yes — our packages carry major live sports and event channels available to ${where} viewers, subject to the plan you choose.` });
+  if (key === 'CHANNELS') faq.push({ q: `What channels are included in ${where}?`, a: `Plans cover local and international channels plus entertainment, news, kids, movies and series. The exact line-up depends on the service you choose below.` });
+  if (key === 'HOW_TO') faq.push({ q: `What devices does it work on in ${where}?`, a: `Any plan works on Amazon Firestick, Android phones and boxes, Smart TVs and standard IPTV player apps. We send simple setup steps with your login.` });
+  if (key === 'COMPARE') faq.push({ q: `Which plan is best for ${where}?`, a: `It depends on what you watch — sports, international channels or everyday entertainment. Tell us on WhatsApp and we'll recommend the right plan for you.` });
+  if (key === 'AVAILABILITY') faq.push({ q: `Is it available right now in ${where}?`, a: `Yes. Every plan on this page can be ordered in ${where} today with instant digital delivery — nothing is shipped and there's no waiting.` });
   faq.push({
     q: `Do you support customers in ${where}?`,
     a: `Yes. We serve ${where} with local pricing, ${L.paymentLabel}, and 24/7 support before and after purchase.`
