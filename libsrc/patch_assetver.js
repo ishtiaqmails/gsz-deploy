@@ -1,24 +1,40 @@
 'use strict';
-/* Bump the static asset cache-buster (?v=NN on /static/js/app.js and
-   /static/css/app.css) so browsers fetch freshly-changed JS/CSS.
-   Re-runnable: each run increments the current version by 1.
-   Edits views/partials/store_top.ejs and views/partials/store_bottom.ejs. */
+/* ASSETVER_v1 — auto cache-busting for store assets. ?v= now derives from each file's mtime, so
+   any change to app.js / app.css busts browser + Cloudflare cache automatically (fixes the stale
+   app.js that froze the currency UI and the mobile category bar). Future-proof: no manual bumps.
+   3 edits across server.js, store_top.ejs, store_bottom.ejs. Idempotent; split/join. */
 const fs = require('fs'), path = require('path');
-const ROOT = process.argv[2]; if (!ROOT) { console.error('usage: node patch_assetver.js <ROOT>'); process.exit(1); }
-const files = ['views/partials/store_top.ejs', 'views/partials/store_bottom.ejs'].map(f => path.join(ROOT, f));
-const RE = /(app\.(?:css|js)\?v=)(\d+)/g;
+const ROOT = process.argv[2] || '/opt/gsz';
 
-let cur = null;
-for (const f of files) {
-  const s = fs.readFileSync(f, 'utf8');
-  let m; const r = new RegExp(RE.source, 'g');
-  while ((m = r.exec(s))) { const n = parseInt(m[2], 10); if (cur === null || n > cur) cur = n; }
+const HELPER =
+  "\nconst _assetFs = require('fs'); const _assetVerCache = {};\n" +
+  "app.locals.assetVer = function (p) { if (_assetVerCache[p]) return _assetVerCache[p]; try { _assetVerCache[p] = String(Math.floor(_assetFs.statSync(path.join(__dirname, 'public', p)).mtimeMs)); } catch (e) { _assetVerCache[p] = '1'; } return _assetVerCache[p]; };";
+
+const edits = [
+  { file: 'server.js',
+    old: "app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));",
+    neu: "app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));" + HELPER,
+    done: "app.locals.assetVer =" },
+  { file: 'views/partials/store_top.ejs',
+    old: "/static/css/app.css?v=41",
+    neu: "/static/css/app.css?v=<%= assetVer('css/app.css') %>",
+    done: "app.css?v=<%= assetVer('css/app.css') %>" },
+  { file: 'views/partials/store_bottom.ejs',
+    old: "/static/js/app.js?v=41",
+    neu: "/static/js/app.js?v=<%= assetVer('js/app.js') %>",
+    done: "app.js?v=<%= assetVer('js/app.js') %>" },
+];
+
+const cache = {};
+function load(f) { if (!(f in cache)) cache[f] = fs.readFileSync(path.join(ROOT, f), 'utf8'); return cache[f]; }
+let applied = 0, skipped = 0;
+for (const e of edits) {
+  let s = load(e.file);
+  if (s.indexOf(e.done) >= 0) { skipped++; continue; }
+  const n = s.split(e.old).length - 1;
+  if (n === 0) throw new Error('ANCHOR MISSING in ' + e.file + ': ' + e.old.slice(0, 55));
+  if (n !== 1) throw new Error('anchor not unique (' + n + ') in ' + e.file + ': ' + e.old.slice(0, 40));
+  cache[e.file] = s.split(e.old).join(e.neu); applied++;
 }
-if (cur === null) throw new Error('ANCHOR MISS: no app.(css|js)?v=NN found');
-const next = cur + 1;
-for (const f of files) {
-  const s = fs.readFileSync(f, 'utf8');
-  const out = s.replace(RE, (_m, p1) => p1 + next);
-  fs.writeFileSync(f, out);
-}
-console.log('ASSET VERSION BUMPED: ' + cur + ' -> ' + next);
+for (const f in cache) fs.writeFileSync(path.join(ROOT, f), cache[f]);
+console.log('ASSETVER_v1 applied=' + applied + ' skipped=' + skipped);
