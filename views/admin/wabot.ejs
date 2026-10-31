@@ -1,0 +1,82 @@
+<%- include('_shell_top') %>
+
+<% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
+<% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
+
+<!-- CONNECTION -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div><h2 style="margin:0">Bot connection</h2><p class="hint" style="margin:4px 0 0">The verification bot that sends codes & order messages to customers.</p></div>
+    <span id="waBadge" class="spill" style="background:#eef1f7;color:#737e9c">Checking…</span>
+  </div>
+  <div style="margin-top:14px">
+    <div id="waConnected" style="display:none;font-size:15px">Connected as <b id="waNumber">—</b></div>
+    <div id="waQR" style="display:none;text-align:center;padding:8px 0">
+      <img id="waQRImg" alt="WhatsApp QR" style="width:260px;max-width:82%;border-radius:12px;border:1px solid var(--hair)">
+      <p class="hint" style="margin:10px 0 0">On the bot phone: WhatsApp → Linked Devices → Link a Device → scan this.</p>
+    </div>
+    <div id="waConnecting" class="hint">Checking the bot…</div>
+  </div>
+  <div class="qrow" style="margin-top:14px">
+    <form method="post" action="/admin/wabot/reconnect" style="display:inline"><button class="btn btn-g" type="submit">Reconnect</button></form>
+    <form method="post" action="/admin/wabot/relogin" style="display:inline" onsubmit="return confirm('Log the bot out and show a new QR? The bot goes offline until you re-scan from its phone.')"><button class="btn btn-g" type="submit" style="color:#b4231b">Re-login (new QR)</button></form>
+  </div>
+</div>
+
+<!-- NUMBERS -->
+<form method="post" action="/admin/wabot/numbers">
+<div class="card">
+  <h2>Numbers</h2>
+  <p class="hint">Change a number here and it updates everywhere on the site instantly — contact buttons, wa.me links, and message templates all read these live.</p>
+  <label class="fld">Store / public WhatsApp <span style="font-weight:400;color:var(--muted)">— the contact & "Order on WhatsApp" button</span></label>
+  <input type="text" name="store" value="<%= numbers.store %>" placeholder="923141892712" inputmode="numeric">
+  <label class="fld">Bot / verification number <span style="font-weight:400;color:var(--muted)">— auto-synced to the connected bot; change it by re-logging the bot above</span></label>
+  <input type="text" value="<%= numbers.verify || '(not connected yet)' %>" disabled style="background:#f3f5fb;color:var(--muted)">
+  <label class="fld">Owner number(s) <span style="font-weight:400;color:var(--muted)">— comma-separated; get alerts & can run owner commands</span></label>
+  <input type="text" name="owner" value="<%= numbers.owner %>" placeholder="923xxxxxxxxx, 923xxxxxxxxx">
+  <label class="fld">Sales number</label>
+  <input type="text" name="sales" value="<%= numbers.sales %>" inputmode="numeric">
+  <label class="fld">Support number</label>
+  <input type="text" name="support" value="<%= numbers.support %>" inputmode="numeric">
+  <button class="btn btn-p" type="submit" style="margin-top:4px">Save numbers</button>
+</div>
+</form>
+
+<!-- VERIFICATION -->
+<form method="post" action="/admin/wabot/toggles">
+<div class="card">
+  <h2>WhatsApp verification</h2>
+  <p class="hint">Control where customers must verify their WhatsApp before they can act.</p>
+  <% function row(name, on, title, desc){ %>
+    <label style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px;cursor:pointer">
+      <input type="checkbox" name="<%= name %>" <%= on?'checked':'' %> style="margin-top:3px;width:18px;height:18px;flex:none">
+      <span><b><%= title %></b><br><span class="hint"><%= desc %></span></span>
+    </label>
+  <% } %>
+  <%- '' %>
+  <% row('verificationEnabled', toggles.verificationEnabled, 'Verification system enabled', 'Master switch — customers can verify their WhatsApp. Off disables verification entirely.'); %>
+  <% row('requireCheckout', toggles.requireCheckout, 'Require WhatsApp at checkout', 'Customers must verify before placing an order.'); %>
+  <% row('requireTrial', toggles.requireTrial, 'Require WhatsApp for free trials', 'Customers must verify before claiming a trial.'); %>
+  <% row('orderNotifications', toggles.orderNotifications, 'Order notifications via WhatsApp', 'Send order received / paid / delivered messages to customers.'); %>
+  <button class="btn btn-p" type="submit">Save settings</button>
+</div>
+</form>
+
+<script>
+(function(){
+  var badge=document.getElementById('waBadge');
+  function set(el,disp){ var e=document.getElementById(el); if(e) e.style.display=disp; }
+  function poll(){
+    fetch('/admin/wabot/qr.json',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+      set('waConnected','none'); set('waQR','none'); set('waConnecting','none');
+      if(j.connected){ badge.textContent='Connected'; badge.style.background='#e9fbf1'; badge.style.color='#0b7a42'; var n=document.getElementById('waNumber'); if(n) n.textContent=(j.number||j.user||'—'); set('waConnected','block'); }
+      else if(j.qrDataUrl){ badge.textContent='Scan QR'; badge.style.background='#fff6e5'; badge.style.color='#9a6b00'; var img=document.getElementById('waQRImg'); if(img) img.src=j.qrDataUrl; set('waQR','block'); }
+      else if(j.reachable){ badge.textContent='Connecting'; badge.style.background='#fff6e5'; badge.style.color='#9a6b00'; set('waConnecting','block'); }
+      else { badge.textContent='Offline'; badge.style.background='#fdecea'; badge.style.color='#b4231b'; var c=document.getElementById('waConnecting'); if(c) c.textContent='Bot process unreachable.'; set('waConnecting','block'); }
+    }).catch(function(){});
+  }
+  poll(); setInterval(poll, 5000);
+})();
+</script>
+
+<%- include('_shell_bottom') %>
