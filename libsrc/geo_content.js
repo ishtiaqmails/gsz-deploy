@@ -137,7 +137,9 @@ function buildFaq(ctx, L, products) {
     a: `Delivery is instant and automated — most ${where} orders are completed within a few minutes, any time of day or night.`
   });
   if (products && products.length) {
-    const cheapest = products.reduce((m, p) => (p._price && (!m || Number(p._price.amount) < Number(m._price.amount)) ? p : m), null);
+    // only real, priced plans count toward "starts from" — never a contact-for-price (0) item
+    const priced = products.filter(p => p._price && Number(p._price.amount) > 0);
+    const cheapest = priced.reduce((m, p) => (!m || Number(p._price.amount) < Number(m._price.amount)) ? p : m, null);
     if (cheapest && cheapest._price) {
       faq.push({
         q: `How much does ${cat} cost in ${where}?`,
