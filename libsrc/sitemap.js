@@ -1,82 +1,131 @@
 'use strict';
-/* CS-4: dynamic sitemap.xml + robots.txt. Lists only REAL, indexable URLs pulled
-   live from the DB — static pages, categories, products, content hubs (that have
-   posts) and published articles. Base URL from SITE_DOMAIN, with request-host
-   fallback so it works behind any proxy. No build step, always current. */
-const express = require('express');
+/* lib/sitemap.js — sitemap index + child sitemap generation.
+ *
+ * Two layers:
+ *   pure XML builders (no I/O, unit-testable):
+ *     urlset(entries)      -> <urlset> XML for up to 50k <url> entries
+ *     sitemapindex(list)   -> <sitemapindex> XML pointing at child sitemaps
+ *   DB collector (needs pool):
+ *     collect(pool, opts)  -> { index, children: { 'geo-1.xml': xml, ... }, count }
+ *
+ * Source of truth for "what may be indexed" is seo_urls (indexable=TRUE) plus
+ * PUBLISHED+INDEX geo_pages. NOTHING here registers an Express route — the route
+ * is wired later so it can reuse/replace any existing /sitemap.xml without clobber.
+ *
+ * Standards: 50,000 URL / 50MB cap per file (we chunk at 45k for headroom).
+ */
+const CHUNK = 45000;
+const NS = 'http://www.sitemaps.org/schemas/sitemap/0.9';
 
-module.exports = function (pool) {
-  const router = express.Router();
+function xmlEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+function iso(d) {
+  if (!d) return null;
+  try { return new Date(d).toISOString().slice(0, 10); } catch (e) { return null; }
+}
 
-  const TYPE_PREFIX = { article: 'blog', news: 'news', guide: 'guides', tutorial: 'tutorials', review: 'reviews', comparison: 'comparisons', buying_guide: 'buying-guides', troubleshooting: 'troubleshooting', faq: 'knowledge', knowledge: 'knowledge' };
-
-  function base(req) {
-    const d = (process.env.SITE_DOMAIN || '').replace(/\/+$/, '');
-    if (d) return /^https?:/i.test(d) ? d : ('https://' + d);
-    const proto = (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
-    return proto + '://' + req.get('host');
+// entries: [{ loc, lastmod?, changefreq?, priority? }]
+function urlset(entries) {
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="' + NS + '">'];
+  for (const e of (entries || [])) {
+    if (!e || !e.loc) continue;
+    lines.push('  <url>');
+    lines.push('    <loc>' + xmlEsc(e.loc) + '</loc>');
+    const lm = iso(e.lastmod);
+    if (lm) lines.push('    <lastmod>' + lm + '</lastmod>');
+    if (e.changefreq) lines.push('    <changefreq>' + xmlEsc(e.changefreq) + '</changefreq>');
+    if (e.priority != null) lines.push('    <priority>' + Number(e.priority).toFixed(1) + '</priority>');
+    lines.push('  </url>');
   }
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;'); }
-  function iso(d) { try { return new Date(d).toISOString().slice(0, 10); } catch (e) { return ''; } }
+  lines.push('</urlset>');
+  return lines.join('\n');
+}
 
-  router.get('/sitemap.xml', async function (req, res) {
-    try {
-      const b = base(req);
-      const urls = [];
-      function add(loc, lastmod, changefreq, priority) { urls.push({ loc: b + loc, lastmod: lastmod || '', changefreq: changefreq || '', priority: priority || '' }); }
+// list: [{ loc, lastmod? }]
+function sitemapindex(list) {
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<sitemapindex xmlns="' + NS + '">'];
+  for (const s of (list || [])) {
+    if (!s || !s.loc) continue;
+    lines.push('  <sitemap>');
+    lines.push('    <loc>' + xmlEsc(s.loc) + '</loc>');
+    const lm = iso(s.lastmod);
+    if (lm) lines.push('    <lastmod>' + lm + '</lastmod>');
+    lines.push('  </sitemap>');
+  }
+  lines.push('</sitemapindex>');
+  return lines.join('\n');
+}
 
-      // 1) static marketing pages
-      add('/', '', 'daily', '1.0');
-      add('/about', '', 'monthly', '0.5');
-      add('/resellers', '', 'monthly', '0.6');
-      add('/faq', '', 'monthly', '0.5');
+function chunk(arr, n) {
+  const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out;
+}
 
-      // 2) categories (live, active)
-      const cats = (await pool.query('SELECT slug FROM categories WHERE active ORDER BY slug')).rows;
-      cats.forEach(function (c) { add('/category/' + c.slug, '', 'weekly', '0.7'); });
+/* ------------------------------ collector ------------------------------ */
+// opts: { base, pathPrefix='/sitemaps', changefreq='weekly' }
+async function collect(pool, opts) {
+  opts = opts || {};
+  const base = (opts.base || '').replace(/\/+$/, '');
+  const prefix = opts.pathPrefix || '/sitemaps';
+  const abs = (loc) => /^https?:\/\//i.test(loc) ? loc : base + '/' + String(loc).replace(/^\/+/, '');
 
-      // 3) products (live, active, visible)
-      const prods = (await pool.query('SELECT slug FROM products WHERE active AND NOT hidden ORDER BY slug')).rows;
-      prods.forEach(function (p) { add('/product/' + p.slug, '', 'weekly', '0.8'); });
+  // 1) Indexable geo pages (authoritative for the engine's own pages).
+  const geo = (await safe(pool,
+    "SELECT slug, updated_at, published_at FROM geo_pages " +
+    "WHERE status='PUBLISHED' AND indexing_status='INDEX' ORDER BY updated_at DESC")).rows || [];
 
-      // 4) content hubs — /blog always, typed hubs only when they hold posts
-      const LIVE = "(status='published' OR (status='scheduled' AND scheduled_at IS NOT NULL AND scheduled_at<=now()))";
-      const hubs = (await pool.query("SELECT type, max(COALESCE(updated_at,published_at,created_at)) mx FROM cs_posts WHERE " + LIVE + " GROUP BY type")).rows;
-      add('/blog', '', 'weekly', '0.6');
-      const seen = { blog: 1 };
-      hubs.forEach(function (h) { const pre = TYPE_PREFIX[h.type] || 'blog'; if (!seen[pre]) { seen[pre] = 1; add('/' + pre, iso(h.mx), 'weekly', '0.6'); } });
+  // 2) Anything else the registry marks indexable that isn't a geo page
+  //    (products/categories/static), so the sitemap covers the whole site.
+  const reg = (await safe(pool,
+    "SELECT url, normalized_url, last_changed_at, crawl_priority FROM seo_urls " +
+    "WHERE indexable IS TRUE AND (entity_type IS DISTINCT FROM 'geo_page') " +
+    "ORDER BY crawl_priority DESC NULLS LAST")).rows || [];
 
-      // 5) published articles, per-type canonical URL, newest first
-      const posts = (await pool.query("SELECT type, slug, COALESCE(updated_at,published_at,created_at) lm FROM cs_posts WHERE " + LIVE + " ORDER BY lm DESC")).rows;
-      posts.forEach(function (p) { const pre = TYPE_PREFIX[p.type] || 'blog'; add('/' + pre + '/' + p.slug, iso(p.lm), 'monthly', '0.7'); });
+  const seen = new Set();
+  const entries = [];
+  for (const g of geo) {
+    const loc = abs(g.slug);
+    if (seen.has(loc)) continue; seen.add(loc);
+    entries.push({ loc, lastmod: g.updated_at || g.published_at, changefreq: opts.changefreq || 'weekly', priority: 0.7 });
+  }
+  for (const u of reg) {
+    const loc = abs(u.url || u.normalized_url);
+    if (!loc || seen.has(loc)) continue; seen.add(loc);
+    entries.push({
+      loc, lastmod: u.last_changed_at,
+      changefreq: opts.changefreq || 'weekly',
+      priority: priFrom(u.crawl_priority)
+    });
+  }
 
-      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-        urls.map(function (u) {
-          return '  <url><loc>' + esc(u.loc) + '</loc>' +
-            (u.lastmod ? ('<lastmod>' + u.lastmod + '</lastmod>') : '') +
-            (u.changefreq ? ('<changefreq>' + u.changefreq + '</changefreq>') : '') +
-            (u.priority ? ('<priority>' + u.priority + '</priority>') : '') + '</url>';
-        }).join('\n') +
-        '\n</urlset>\n';
-      res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(xml);
-    } catch (e) { res.status(500).type('text/plain').send('sitemap error: ' + e.message); }
-  });
+  const groups = chunk(entries, CHUNK);
+  const children = {};
+  const indexList = [];
+  if (!groups.length) {
+    children['sitemap-0.xml'] = urlset([]);
+    indexList.push({ loc: abs(prefix.replace(/^\/+/, '') + '/sitemap-0.xml'), lastmod: new Date() });
+  } else {
+    groups.forEach((grp, i) => {
+      const name = 'sitemap-' + i + '.xml';
+      children[name] = urlset(grp);
+      const newest = grp.reduce((m, e) => (e.lastmod && (!m || new Date(e.lastmod) > new Date(m))) ? e.lastmod : m, null);
+      indexList.push({ loc: abs(prefix.replace(/^\/+/, '') + '/' + name), lastmod: newest || new Date() });
+    });
+  }
+  return { index: sitemapindex(indexList), children, count: entries.length };
+}
 
-  router.get('/robots.txt', function (req, res) {
-    const b = base(req);
-    const body = [
-      'User-agent: *',
-      'Allow: /',
-      'Disallow: /admin',
-      'Disallow: /checkout',
-      'Disallow: /account',
-      '',
-      'Sitemap: ' + b + '/sitemap.xml',
-      ''
-    ].join('\n');
-    res.set('Cache-Control', 'public, max-age=86400').type('text/plain').send(body);
-  });
+function priFrom(cp) {
+  if (cp == null) return 0.5;
+  const n = Number(cp);
+  if (!isFinite(n)) return 0.5;
+  // crawl_priority defaults around 100; map 0..200 -> 0.1..1.0
+  return Math.max(0.1, Math.min(1.0, Math.round((n / 200) * 10) / 10));
+}
+async function safe(pool, sql, params) {
+  try { return await pool.query(sql, params || []); } catch (e) { return { rows: [] }; }
+}
 
-  return router;
-};
+module.exports = { urlset, sitemapindex, collect, _priFrom: priFrom, _chunk: chunk, CHUNK };
