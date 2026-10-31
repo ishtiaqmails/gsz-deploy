@@ -175,9 +175,11 @@ function buildJsonLd(ctx) {
         name: p.name, url: abs(base, p.url || '')
       }))
     });
-    // Per-product Product/Offer (bounded) — only when a price is known.
+    // Per-product Product/Offer (bounded) — only when a REAL price is known
+    // (skip contact-for-price / zero so we never emit a misleading price:0 Offer).
     ctx.products.slice(0, 12).forEach(p => {
-      if (p.price == null && p.priceUsd == null) return;
+      const hasPrice = (Number(p.price) > 0) || (Number(p.priceUsd) > 0);
+      if (!hasPrice) return;
       const offer = {
         '@type': 'Offer',
         priceCurrency: p.currency || (p.priceUsd != null ? 'USD' : 'PKR'),

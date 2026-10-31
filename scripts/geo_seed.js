@@ -58,13 +58,17 @@ function depsFor(categoryId) {
       }));
     },
     price: async (p, cc) => {
-      const pkr = p.price, usd = p.usd;
-      if (pricing && pricing.resolve) {
-        try { const q = await pricing.resolve({ pkr, usd, price: pkr, from: pkr, from_usd: usd }, cc, {}); if (q && q.display) return { display: q.display, amount: q.amount, currency: q.currency, symbol: q.symbol, usd: q.usd }; } catch (e) {}
+      // amount comes straight from the product's real base price (same value the
+      // cards show). gsz_pricing is used only to format the display string.
+      const pkr = Number(p.price) || 0, usd = Number(p.usd) || 0;
+      if (cc === 'PK') {
+        let display = 'Rs ' + pkr.toLocaleString('en-US');
+        if (pricing && pricing.fmt) { try { display = pricing.fmt('PKR', pkr); } catch (e) {} }
+        return { display, amount: pkr, currency: 'PKR', symbol: 'Rs ', usd };
       }
-      // fallback: PKR for PK else USD
-      if (cc === 'PK') return { display: 'Rs ' + Number(pkr || 0).toLocaleString('en-US'), amount: pkr, currency: 'PKR', symbol: 'Rs ', usd };
-      return { display: '$' + (usd || 0), amount: usd, currency: 'USD', symbol: '$', usd };
+      let display = '$' + usd;
+      if (pricing && pricing.fmt) { try { display = pricing.fmt('USD', usd); } catch (e) {} }
+      return { display, amount: usd, currency: 'USD', symbol: '$', usd };
     },
     rules: async () => [],
     siblings: async () => [],
