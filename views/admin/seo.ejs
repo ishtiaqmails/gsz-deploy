@@ -1,0 +1,85 @@
+<%- include('_shell_top') %>
+<style>
+  .seo-wrap{max-width:860px}
+  .seo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0 0 18px}
+  .seo-stat{padding:14px 16px;border:1px solid #e6ebf5;border-radius:14px;background:#fff}
+  .seo-stat .l{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9aa6c4}
+  .seo-stat .v{font-size:16px;font-weight:800;color:#12204a;margin-top:4px;word-break:break-word}
+  .seo-stat .s{font-size:12.5px;color:#6b7aa0;margin-top:3px}
+  .ok{color:#128a4e}.off{color:#b4701a}
+  .seo-steps{counter-reset:s;margin:10px 0 0;padding:0;list-style:none}
+  .seo-steps li{counter-increment:s;position:relative;padding:9px 0 9px 34px;font-size:14px;color:#2a3a68;border-bottom:1px solid #f0f3fa}
+  .seo-steps li:last-child{border-bottom:0}
+  .seo-steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:23px;height:23px;border-radius:50%;background:#12204a;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .seo-steps code{background:#f1f4fb;padding:2px 6px;border-radius:5px;color:#3b4e86;font-size:12.5px}
+  .seo-steps a{color:#2a7bff}
+  textarea.sa{width:100%;min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:12px;border:1.5px solid #d4ddee;border-radius:12px;resize:vertical}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+</style>
+
+<div class="seo-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px">
+    <div><h1 style="margin:0;font-size:22px;color:#0e1c42">Search engines</h1><p class="hint" style="margin:3px 0 0">Automatic submission status. Bing, Yandex and the IndexNow network are already live. Add Google below for instant push there too.</p></div>
+    <a class="btn btn-g" href="/admin/geo" style="white-space:nowrap">← Geo pages</a>
+  </div>
+
+  <% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
+  <% if (typeof result!=='undefined' && result) { %><div class="flash"><%= result %></div><% } %>
+  <% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
+
+  <div class="seo-grid">
+    <div class="seo-stat">
+      <div class="l">IndexNow (Bing · Yandex · Seznam)</div>
+      <div class="v <%= indexnowKey?'ok':'off' %>"><%= indexnowKey ? 'Active' : 'Key missing' %></div>
+      <div class="s">Instant on publish + daily sweep of your sitemap. Nothing to do.</div>
+    </div>
+    <div class="seo-stat">
+      <div class="l">Google Indexing API</div>
+      <div class="v <%= g.configured?'ok':'off' %>"><%= g.configured ? 'Connected' : 'Not connected' %></div>
+      <div class="s"><%= g.configured ? g.client_email : 'Paste a service-account key below to enable instant Google push.' %></div>
+    </div>
+    <div class="seo-stat">
+      <div class="l">Sitemap</div>
+      <div class="v ok">Live</div>
+      <div class="s"><a href="<%= base %>/sitemap.xml" target="_blank">/sitemap.xml</a> — products, blogs & all indexable geo pages.</div>
+    </div>
+  </div>
+
+  <% if (g.configured) { %>
+    <div class="card">
+      <h2 style="margin:0 0 4px">Google is connected</h2>
+      <p class="hint" style="margin:0 0 12px">New blog posts are pushed to Google the moment you publish. Geo & product pages cycle through a daily batch (Google caps this at ~200 URLs/day) and are also found via your sitemap.</p>
+      <div class="rowbtns">
+        <form method="post" action="/admin/seo/google-test"><button class="btn btn-g" type="submit">Test connection</button></form>
+        <form method="post" action="/admin/seo/google-run"><button class="btn btn-p" type="submit">Push newest pages to Google now</button></form>
+      </div>
+      <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700;color:#2a7bff">Replace the credential</summary>
+        <form method="post" action="/admin/seo/google-sa" style="margin-top:10px">
+          <textarea class="sa" name="sa_json" placeholder="Paste a new service-account JSON to replace the current one"></textarea>
+          <div class="rowbtns"><button class="btn btn-g" type="submit">Save new credential</button></div>
+        </form>
+      </details>
+    </div>
+  <% } else { %>
+    <div class="card">
+      <h2 style="margin:0 0 4px">Connect Google (one-time)</h2>
+      <p class="hint" style="margin:0 0 6px">This is the only manual step, and you do it once. Google requires its own key for security — I can't create it for you, but it takes about 5 minutes.</p>
+      <ol class="seo-steps">
+        <li>Open <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> and create (or pick) a project.</li>
+        <li>Enable the <b>Web Search Indexing API</b>: <a href="https://console.cloud.google.com/apis/library/indexing.googleapis.com" target="_blank">this page</a> → Enable.</li>
+        <li>Go to <b>Credentials → Create credentials → Service account</b>. Name it anything, create it.</li>
+        <li>Open the service account → <b>Keys → Add key → Create new key → JSON</b>. A <code>.json</code> file downloads.</li>
+        <li>In <a href="https://search.google.com/search-console" target="_blank">Search Console</a> for <code><%= base.replace(/^https?:\/\//,'') %></code> → <b>Settings → Users and permissions → Add user</b>, paste the service account's email (ends in <code>.iam.gserviceaccount.com</code>) as an <b>Owner</b>.</li>
+        <li>Open that downloaded JSON file, copy everything, and paste it below.</li>
+      </ol>
+      <form method="post" action="/admin/seo/google-sa" style="margin-top:14px">
+        <label class="fld">Service-account JSON</label>
+        <textarea class="sa" name="sa_json" placeholder='{ "type": "service_account", "project_id": "...", "private_key": "-----BEGIN PRIVATE KEY----- ...", "client_email": "...@...iam.gserviceaccount.com", ... }'></textarea>
+        <div class="rowbtns"><button class="btn btn-p" type="submit">Save &amp; connect Google</button></div>
+      </form>
+      <p class="hint" style="margin:12px 0 0">Note: Google officially supports this API for job/livestream pages, so for general pages it prompts a crawl but doesn't guarantee indexing. Your sitemap + Search Console remain the reliable baseline — this just adds a faster nudge.</p>
+    </div>
+  <% } %>
+</div>
+
+<%- include('_shell_bottom') %>

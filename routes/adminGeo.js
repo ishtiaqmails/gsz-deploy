@@ -257,6 +257,55 @@ module.exports = function (pool) {
     finally { client.release(); }
   });
 
+  // ============ SEO SUBMIT (Google Indexing API credential + manual push) ============
+  function siteBase(req) {
+    let d = (process.env.SITE_DOMAIN || process.env.SITE_URL || '').replace(/\/+$/, '');
+    if (d) return /^https?:/i.test(d) ? d : ('https://' + d);
+    return ((req.get && (req.get('x-forwarded-proto') || 'https')) + '://' + (req.get ? req.get('host') : 'galaxyzayron.store'));
+  }
+
+  router.get('/seo', auth, async (req, res) => {
+    try {
+      const gi = lib('google_indexing');
+      const st = gi ? await gi.status(pool).catch(() => ({ configured: false })) : { configured: false };
+      let inKey = null;
+      try { const idx = lib('indexnow'); if (idx) inKey = await idx.getKey(pool).catch(() => null); } catch (e) {}
+      res.render('admin/seo', {
+        title: 'Search engines', active: 'geo', g: st, indexnowKey: inKey, base: siteBase(req),
+        flash: req.query.ok || null, err: req.query.err || null, result: req.query.r || null
+      });
+    } catch (e) { res.status(500).send('seo admin error: ' + e.message); }
+  });
+
+  router.post('/seo/google-sa', auth, urlenc, async (req, res) => {
+    try {
+      const raw = String(req.body.sa_json || '').trim();
+      if (!raw) return res.redirect('/admin/seo?err=' + enc('Paste the service-account JSON'));
+      let j; try { j = JSON.parse(raw); } catch (e) { return res.redirect('/admin/seo?err=' + enc('That is not valid JSON — paste the whole file')); }
+      if (!j.client_email || !j.private_key) return res.redirect('/admin/seo?err=' + enc('JSON is missing client_email / private_key — use the service-account KEY file'));
+      await pool.query("INSERT INTO wa_settings(key,value) VALUES('google_sa_json',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", [JSON.stringify(j)]);
+      res.redirect('/admin/seo?ok=' + enc('Saved Google credential for ' + j.client_email + '. Now click Test.'));
+    } catch (e) { res.redirect('/admin/seo?err=' + enc('Save failed: ' + e.message)); }
+  });
+
+  router.post('/seo/google-test', auth, urlenc, async (req, res) => {
+    try {
+      const gi = lib('google_indexing'); if (!gi) return res.redirect('/admin/seo?err=' + enc('Module missing'));
+      const r = await gi.notify(pool, siteBase(req) + '/', 'URL_UPDATED');
+      if (r && r.ok && r.submitted) return res.redirect('/admin/seo?r=' + enc('Google accepted the test URL — instant push is working.'));
+      return res.redirect('/admin/seo?err=' + enc('Google rejected it: ' + ((r && (r.lastErr || r.error || r.skip)) || 'unknown') + '. Check the service account is added as Owner in Search Console.'));
+    } catch (e) { res.redirect('/admin/seo?err=' + enc('Test failed: ' + e.message)); }
+  });
+
+  router.post('/seo/google-run', auth, urlenc, async (req, res) => {
+    try {
+      const gi = lib('google_indexing'); if (!gi) return res.redirect('/admin/seo?err=' + enc('Module missing'));
+      const r = await gi.notifyRecent(pool, siteBase(req), 180);
+      if (r && r.ok) return res.redirect('/admin/seo?r=' + enc('Pushed ' + r.submitted + ' recent URLs to Google' + (r.failed ? (' (' + r.failed + ' failed — likely daily quota)') : '') + '.'));
+      return res.redirect('/admin/seo?err=' + enc('Batch did not run: ' + ((r && (r.error || r.skip)) || 'unknown')));
+    } catch (e) { res.redirect('/admin/seo?err=' + enc('Batch failed: ' + e.message)); }
+  });
+
   // ============ PICK PAGES (geo_picks -> PICK_LANDING geo_pages) ============
   function slugify(s) { return String(s || '').toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }
 
