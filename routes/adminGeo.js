@@ -151,5 +151,114 @@ module.exports = function (pool) {
     catch (e) { res.redirect('/admin/geo?err=' + enc('Recompute failed: ' + e.message)); }
   });
 
+  // ============ PRODUCT TARGETING (geo_product_rules) ============
+  // A rule is kept only when it changes something (hide / feature / recommend / price / notice);
+  // a product left at default has no row, so the table stays a clean exception list.
+  function ruleIsDefault(o) {
+    return !o.hide && !o.feat && !o.rec && (o.price === '' || o.price == null) && (!o.notice);
+  }
+  // write one product's rule at one location (delete if default)
+  async function writeRule(client, o, locId, defaultCid) {
+    await client.query('DELETE FROM geo_product_rules WHERE product_id=$1 AND location_id=$2', [o.pid, locId]);
+    if (ruleIsDefault(o)) return 'clear';
+    const price = (o.price === '' || o.price == null) ? null : Number(o.price);
+    await client.query(
+      "INSERT INTO geo_product_rules (product_id, category_id, location_id, availability, enabled, featured, recommended, regional_price, currency_override, special_notice, updated_at) " +
+      "VALUES ($1,$2,$3,$4,true,$5,$6,$7,$8,$9,now())",
+      [o.pid, o.cid || defaultCid || null, locId, o.hide ? 'unavailable' : 'available', !!o.feat, !!o.rec,
+       (price != null && !isNaN(price) && price > 0) ? price : null, o.curOverride || null, o.notice || null]);
+    return 'set';
+  }
+
+  async function targetData(req) {
+    const mode = String(req.query.mode || 'loc') === 'prod' ? 'prod' : 'loc';
+    const cats = (await pool.query("SELECT id,slug,name,glyph,sort FROM categories WHERE active ORDER BY sort,name").catch(() => ({ rows: [] }))).rows;
+    const products = (await pool.query("SELECT id,name,slug,category_id FROM products WHERE active AND NOT hidden ORDER BY category_id,sort,name").catch(() => ({ rows: [] }))).rows;
+    const locs = (await pool.query("SELECT id,type,name,slug,country_code,currency,currency_symbol FROM geo_locations WHERE enabled ORDER BY (type='country') DESC,(type='region') DESC,name").catch(() => ({ rows: [] }))).rows;
+    const out = {
+      title: 'Product targeting', active: 'geo', mode, cats, products, locs,
+      loc: null, locRules: {}, parentCountry: null, prod: null,
+      flash: req.query.ok || null, err: req.query.err || null,
+      siteUrl: (process.env.SITE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '')
+    };
+    if (mode === 'loc' && req.query.loc) {
+      const lr = await pool.query("SELECT id,type,name,slug,country_code,currency,currency_symbol,parent_id FROM geo_locations WHERE id=$1", [parseInt(req.query.loc, 10)]).catch(() => ({ rows: [] }));
+      out.loc = lr.rows[0] || null;
+      if (out.loc) {
+        const rr = await pool.query("SELECT product_id,availability,featured,recommended,regional_price,currency_override,special_notice FROM geo_product_rules WHERE location_id=$1", [out.loc.id]).catch(() => ({ rows: [] }));
+        rr.rows.forEach(r => { out.locRules[r.product_id] = r; });
+        if (out.loc.type !== 'country' && out.loc.country_code) {
+          const pc = await pool.query("SELECT id,name FROM geo_locations WHERE type='country' AND country_code=$1 LIMIT 1", [out.loc.country_code]).catch(() => ({ rows: [] }));
+          out.parentCountry = pc.rows[0] || null;
+        }
+      }
+    }
+    if (mode === 'prod' && req.query.prod) {
+      const pr = await pool.query("SELECT id,name,slug,category_id FROM products WHERE id=$1", [parseInt(req.query.prod, 10)]).catch(() => ({ rows: [] }));
+      out.prod = pr.rows[0] || null;
+    }
+    return out;
+  }
+
+  router.get('/geo/targeting', auth, async (req, res) => {
+    try { res.render('admin/geo_targeting', await targetData(req)); }
+    catch (e) { res.status(500).send('targeting error: ' + e.message); }
+  });
+
+  // Save every product rule for ONE location (the by-location grid)
+  router.post('/geo/targeting/save-location', auth, urlenc, async (req, res) => {
+    const locId = parseInt(req.body.loc, 10);
+    const back = '/admin/geo/targeting?mode=loc&loc=' + locId;
+    if (!locId) return res.redirect('/admin/geo/targeting?err=' + enc('No location'));
+    let rows;
+    try { rows = JSON.parse(req.body.payload || '[]'); } catch (e) { return res.redirect(back + '&err=' + enc('Bad payload')); }
+    const lmeta = await pool.query("SELECT currency_symbol FROM geo_locations WHERE id=$1", [locId]).catch(() => ({ rows: [] }));
+    const sym = (lmeta.rows[0] && lmeta.rows[0].currency_symbol) || null;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      let set = 0, cleared = 0;
+      for (const o of rows) {
+        if (!o || !o.pid) continue;
+        o.curOverride = sym;
+        const r = await writeRule(client, o, locId, o.cid);
+        if (r === 'set') set++; else cleared++;
+      }
+      await client.query('COMMIT');
+      res.redirect(back + '&ok=' + enc('Saved — ' + set + ' rule' + (set === 1 ? '' : 's') + ' active, ' + cleared + ' at default'));
+    } catch (e) { try { await client.query('ROLLBACK'); } catch (x) {} res.redirect(back + '&err=' + enc('Save failed: ' + e.message)); }
+    finally { client.release(); }
+  });
+
+  // Apply ONE product's rule to MANY locations (the by-product bulk assign)
+  router.post('/geo/targeting/apply-product', auth, urlenc, async (req, res) => {
+    const pid = parseInt(req.body.prod, 10);
+    const cid = parseInt(req.body.cid, 10) || null;
+    const back = '/admin/geo/targeting?mode=prod&prod=' + pid;
+    if (!pid) return res.redirect('/admin/geo/targeting?err=' + enc('No product'));
+    const locIds = String(req.body.locs || '').split(',').map(x => parseInt(x, 10)).filter(Boolean);
+    if (!locIds.length) return res.redirect(back + '&err=' + enc('Pick at least one location'));
+    const o = {
+      pid, cid,
+      hide: String(req.body.hide || '') === '1',
+      feat: String(req.body.feat || '') === '1',
+      rec: String(req.body.rec || '') === '1',
+      price: String(req.body.price || '').trim(),
+      notice: String(req.body.notice || '').trim()
+    };
+    const lmetas = await pool.query("SELECT id,currency_symbol FROM geo_locations WHERE id=ANY($1)", [locIds]).catch(() => ({ rows: [] }));
+    const smap = {}; lmetas.rows.forEach(r => { smap[r.id] = r.currency_symbol || null; });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      let set = 0, cleared = 0;
+      for (const locId of locIds) { o.curOverride = smap[locId] || null; const r = await writeRule(client, o, locId, cid); if (r === 'set') set++; else cleared++; }
+      await client.query('COMMIT');
+      const verb = ruleIsDefault(o) ? ('Cleared the rule at ' + cleared + ' locations') : ('Applied to ' + set + ' locations');
+      res.redirect(back + '&ok=' + enc(verb));
+    } catch (e) { try { await client.query('ROLLBACK'); } catch (x) {} res.redirect(back + '&err=' + enc('Apply failed: ' + e.message)); }
+    finally { client.release(); }
+  });
+
   return router;
 };

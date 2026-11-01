@@ -1,0 +1,312 @@
+<%- include('_shell_top') %>
+<% function j(o){ return JSON.stringify(o).replace(/</g,'\\u003c'); } %>
+<% var sym = (loc && (loc.currency_symbol||loc.symbol)) || ''; %>
+
+<style>
+  .gt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+  .gt-tabs{display:inline-flex;background:#eef2fb;border:1px solid #d9e2f5;border-radius:12px;padding:4px;gap:4px}
+  .gt-tab{padding:8px 16px;border-radius:9px;font-weight:700;font-size:13.5px;color:#4a5878;text-decoration:none;white-space:nowrap}
+  .gt-tab.on{background:#fff;color:#12204a;box-shadow:0 1px 3px rgba(20,40,90,.12)}
+  .gt-pick{position:relative;max-width:520px}
+  .gt-pick input.gt-q{width:100%;padding:12px 14px;border:1.5px solid #d4ddee;border-radius:12px;font-size:15px}
+  .gt-res{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #d4ddee;border-radius:12px;box-shadow:0 12px 34px rgba(20,40,90,.16);max-height:340px;overflow:auto;display:none}
+  .gt-res.show{display:block}
+  .gt-ri{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f3fa}
+  .gt-ri:hover,.gt-ri.hl{background:#f3f7ff}
+  .gt-ri:last-child{border-bottom:0}
+  .gt-ri .nm{font-weight:650;color:#17254f}
+  .gt-ri .mt{margin-left:auto;font-size:11px;font-weight:700;color:#6b7aa0;text-transform:uppercase;letter-spacing:.04em}
+  .gt-flag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#eef2fb;color:#56688f}
+  .gt-flag.city{background:#eafaf0;color:#128a4e}.gt-flag.country{background:#eef1ff;color:#3b53d6}.gt-flag.region{background:#fff3e6;color:#b4701a}
+  .gt-sel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 4px;padding:12px 16px;background:linear-gradient(180deg,#f7fbff,#fff);border:1.5px solid #cfe0ff;border-radius:14px}
+  .gt-sel h2{margin:0;font-size:19px;color:#101f49}
+  .gt-sel .cur{font-size:12.5px;color:#5b6c92;font-weight:600}
+  .gt-note{font-size:12.5px;color:#5b6c92;margin:8px 2px 0}
+  .gt-catbar{display:flex;align-items:center;gap:8px;margin:22px 2px 10px}
+  .gt-catbar .gl{font-size:17px}.gt-catbar h3{margin:0;font-size:15px;color:#2a3a68;letter-spacing:.01em}
+  .gt-catbar .ct{margin-left:auto;font-size:11.5px;color:#8392b5;font-weight:700}
+  .gt-grid{display:grid;gap:10px}
+  .gt-row{display:grid;grid-template-columns:minmax(150px,1.4fr) auto auto auto minmax(120px,1fr) minmax(140px,1.3fr);gap:10px;align-items:center;padding:10px 14px;border:1px solid #e6ebf5;border-radius:12px;background:#fff}
+  .gt-row.hidden{background:#fbfbfc;opacity:.78}
+  .gt-row .pn{font-weight:650;color:#17254f;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .gt-seg{display:inline-flex;border:1px solid #d9e2f5;border-radius:10px;overflow:hidden}
+  .gt-seg button{border:0;background:#fff;padding:7px 11px;font-size:12.5px;font-weight:700;color:#5a6a8e;cursor:pointer}
+  .gt-seg button.on{background:#12204a;color:#fff}
+  .gt-seg.show button.on{background:#128a4e}.gt-seg.hide button.on{background:#c23b2e}
+  .gt-tog{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;user-select:none;cursor:pointer;color:#56688f;white-space:nowrap}
+  .gt-tog input{width:17px;height:17px;accent-color:#2a7bff}
+  .gt-price{display:flex;align-items:center;gap:4px}
+  .gt-price .pf{font-weight:800;color:#2a3a68;font-size:13px}
+  .gt-price input{width:100%;min-width:70px;padding:8px 9px;border:1.5px solid #d9e2f5;border-radius:9px;font-size:13.5px}
+  .gt-row input.nt{width:100%;padding:8px 10px;border:1.5px solid #d9e2f5;border-radius:9px;font-size:13px}
+  .gt-head-lbls{display:grid;grid-template-columns:minmax(150px,1.4fr) auto auto auto minmax(120px,1fr) minmax(140px,1.3fr);gap:10px;padding:0 14px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9aa6c4}
+  .gt-save{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:18px;padding:14px 16px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1.5px solid #cfe0ff;border-radius:14px;box-shadow:0 -4px 20px rgba(20,40,90,.07)}
+  .gt-save .dirty{font-size:13px;font-weight:700;color:#b4701a}
+  .gt-empty{padding:30px;text-align:center;color:#7585a6;background:#fafbfe;border:1px dashed #d4ddee;border-radius:14px}
+  /* by-product */
+  .gt-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;background:#eef2fb;border:1px solid #d9e2f5;border-radius:999px;font-size:13px;font-weight:650;color:#2a3a68}
+  .gt-chip b{font-weight:800}.gt-chip .x{cursor:pointer;color:#8392b5;font-weight:800}
+  .gt-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .gt-fset{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:14px 0}
+  .gt-fset .fb{padding:12px 14px;border:1px solid #e6ebf5;border-radius:12px;background:#fff}
+  .gt-fset .fb label.fld{display:block;margin:0 0 7px}
+  @media(max-width:760px){
+    .gt-row,.gt-head-lbls{grid-template-columns:1fr 1fr;grid-auto-rows:auto}
+    .gt-head-lbls{display:none}
+    .gt-row .pn{grid-column:1 / -1;font-size:15px}
+    .gt-row .nt{grid-column:1 / -1}
+    .gt-price{grid-column:1 / -1}
+  }
+</style>
+
+<% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
+<% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
+
+<div class="gt-head">
+  <div>
+    <h1 style="margin:0 0 2px;font-size:24px;color:#0e1c42">Product targeting</h1>
+    <p class="hint" style="margin:0">Choose which products show in each country or city, feature them, and set a custom market price. Rules layer on top — anything you don't touch shows everywhere at its normal price.</p>
+  </div>
+  <a class="btn btn-g" href="/admin/geo">← Geo pages</a>
+</div>
+
+<div class="gt-tabs" style="margin-bottom:16px">
+  <a class="gt-tab <%= mode==='prod'?'':'on' %>" href="/admin/geo/targeting?mode=loc">By location</a>
+  <a class="gt-tab <%= mode==='prod'?'on':'' %>" href="/admin/geo/targeting?mode=prod">By product</a>
+</div>
+
+<% if (mode!=='prod') { %>
+<!-- ============ BY LOCATION ============ -->
+<div class="card">
+  <label class="fld">Pick a country or city</label>
+  <div class="gt-pick">
+    <input type="text" class="gt-q" id="locQ" autocomplete="off" placeholder="Type a name — e.g. United Kingdom, Dubai, Lahore…" value="<%= loc ? (loc.name + (loc.country_code? (' · '+loc.country_code):'')) : '' %>">
+    <div class="gt-res" id="locRes"></div>
+  </div>
+  <p class="gt-note">Set a rule on a <b>country</b> and it covers that country page and every city in it. Give a <b>city</b> its own rule only when it should differ.</p>
+</div>
+
+<% if (loc) { %>
+  <div class="gt-sel">
+    <span class="gt-flag <%= loc.type %>"><%= loc.type %></span>
+    <h2><%= loc.name %></h2>
+    <% if (loc.country_code && loc.type!=='country') { %><span class="cur">in <%= loc.country_code %></span><% } %>
+    <% if (sym) { %><span class="cur">· prices in <%= sym %></span><% } %>
+    <% if (typeof parentCountry!=='undefined' && parentCountry) { %><span class="cur">· inherits <b><%= parentCountry.name %></b> rules unless overridden here</span><% } %>
+  </div>
+
+  <form method="post" action="/admin/geo/targeting/save-location" id="locForm">
+    <input type="hidden" name="loc" value="<%= loc.id %>">
+    <input type="hidden" name="payload" id="locPayload">
+    <input type="hidden" name="mode" value="loc">
+
+    <div class="gt-head-lbls">
+      <span>Product</span><span>Visibility</span><span>Feature</span><span>Recommend</span><span>Custom price (<%= sym||'local' %>)</span><span>Notice</span>
+    </div>
+
+    <% if (!products.length) { %>
+      <div class="gt-empty">No active products found.</div>
+    <% } %>
+
+    <% cats.forEach(function(c){ var cp = products.filter(function(p){return p.category_id===c.id}); if(!cp.length) return; %>
+      <div class="gt-catbar"><span class="gl"><%= c.glyph||'●' %></span><h3><%= c.name %></h3><span class="ct"><%= cp.length %> products</span></div>
+      <div class="gt-grid">
+        <% cp.forEach(function(p){ var r = (locRules && locRules[p.id]) || null;
+             var hidden = r && r.availability==='unavailable';
+             var feat = r && r.featured, rec = r && r.recommended;
+             var price = r && r.regional_price!=null ? r.regional_price : '';
+             var notice = r && r.special_notice ? r.special_notice : ''; %>
+          <div class="gt-row<%= hidden?' hidden':'' %>" data-pid="<%= p.id %>" data-cid="<%= p.category_id %>">
+            <div class="pn"><%= p.name %></div>
+            <div class="gt-seg vis <%= hidden?'hide':'show' %>" data-vis="<%= hidden?'hide':'show' %>">
+              <button type="button" data-v="show" class="<%= hidden?'':'on' %>">Show</button>
+              <button type="button" data-v="hide" class="<%= hidden?'on':'' %>">Hide</button>
+            </div>
+            <label class="gt-tog"><input type="checkbox" class="feat" <%= feat?'checked':'' %>> ★ Featured</label>
+            <label class="gt-tog"><input type="checkbox" class="rec" <%= rec?'checked':'' %>> ✓ Pick</label>
+            <div class="gt-price"><span class="pf"><%= sym||'' %></span><input type="number" step="0.01" min="0" class="price" placeholder="auto" value="<%= price %>"></div>
+            <input type="text" class="nt" placeholder="optional note shown on the card" maxlength="80" value="<%= notice.replace(/"/g,'&quot;') %>">
+          </div>
+        <% }); %>
+      </div>
+    <% }); %>
+
+    <% if (products.length) { %>
+    <div class="gt-save">
+      <button class="btn btn-p" type="submit">Save rules for <%= loc.name %></button>
+      <span class="dirty" id="dirty" style="display:none">Unsaved changes</span>
+      <span class="hint" style="margin-left:auto">Blank price = auto-price from the product's $ / Rs. Hidden products won't appear on this location's pages.</span>
+    </div>
+    <% } %>
+  </form>
+<% } else { %>
+  <div class="gt-empty" style="margin-top:16px">Pick a location above to set its product rules.</div>
+<% } %>
+
+<% } else { %>
+<!-- ============ BY PRODUCT ============ -->
+<div class="card">
+  <label class="fld">Pick a product</label>
+  <div class="gt-pick">
+    <input type="text" class="gt-q" id="prodQ" autocomplete="off" placeholder="Type a product name…" value="<%= prod ? prod.name : '' %>">
+    <div class="gt-res" id="prodRes"></div>
+  </div>
+</div>
+
+<% if (prod) { %>
+  <div class="gt-sel"><h2><%= prod.name %></h2><span class="cur">apply the same rule to many locations at once</span></div>
+
+  <form method="post" action="/admin/geo/targeting/apply-product" id="prodForm">
+    <input type="hidden" name="prod" value="<%= prod.id %>">
+    <input type="hidden" name="cid" value="<%= prod.category_id %>">
+    <input type="hidden" name="locs" id="prodLocs">
+    <input type="hidden" name="mode" value="prod">
+
+    <div class="card" style="margin-top:14px">
+      <label class="fld">Target locations</label>
+      <div class="gt-pick" style="max-width:520px">
+        <input type="text" class="gt-q" id="tgtQ" autocomplete="off" placeholder="Add a country or city…">
+        <div class="gt-res" id="tgtRes"></div>
+      </div>
+      <div class="gt-chips" id="tgtChips"></div>
+      <p class="gt-note">Tip: add a <b>country</b> to cover all its cities at once. Use <b>Add all cities of…</b> only when cities need separate rows.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1 1 200px"><label class="fld" style="font-size:11px">Add all cities of a country</label>
+          <input type="text" class="gt-q" id="allCitiesQ" autocomplete="off" placeholder="e.g. United Kingdom" style="padding:9px 12px">
+          <div class="gt-res" id="allCitiesRes"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gt-fset">
+      <div class="fb"><label class="fld">Visibility</label>
+        <div class="gt-seg vis show" data-vis="show">
+          <button type="button" data-v="show" class="on">Show</button>
+          <button type="button" data-v="hide">Hide</button>
+        </div>
+      </div>
+      <div class="fb"><label class="fld">Promote</label>
+        <label class="gt-tog"><input type="checkbox" id="pFeat"> ★ Featured</label>
+        <label class="gt-tog" style="margin-left:12px"><input type="checkbox" id="pRec"> ✓ Recommended pick</label>
+      </div>
+      <div class="fb"><label class="fld">Custom price (local)</label>
+        <div class="gt-price"><input type="number" step="0.01" min="0" id="pPrice" placeholder="blank = auto from $ / Rs"></div>
+      </div>
+      <div class="fb"><label class="fld">Notice (optional)</label>
+        <input type="text" class="nt" id="pNotice" maxlength="80" placeholder="e.g. 7-day delivery" style="width:100%;padding:8px 10px;border:1.5px solid #d9e2f5;border-radius:9px">
+      </div>
+    </div>
+
+    <div class="gt-save">
+      <button class="btn btn-p" type="submit" id="applyBtn" disabled>Apply to <span id="tgtCount">0</span> locations</button>
+      <span class="hint" style="margin-left:auto">This writes one rule per selected location for <b><%= prod.name %></b>. Setting everything to default clears its rule there.</span>
+    </div>
+  </form>
+<% } else { %>
+  <div class="gt-empty" style="margin-top:16px">Pick a product above to target it to locations.</div>
+<% } %>
+<% } %>
+
+<script>
+  var LOCS = <%- j(locs||[]) %>;
+  var PRODUCTS = <%- j((products||[]).map(function(p){return {id:p.id,name:p.name,category_id:p.category_id}})) %>;
+  function norm(s){return String(s||'').toLowerCase();}
+  function locLabel(l){return l.name + (l.country_code? (' · '+l.country_code):'');}
+
+  // ---- generic autocomplete over a dataset ----
+  function hookPick(qId, resId, data, labelFn, metaFn, onPick){
+    var q=document.getElementById(qId), res=document.getElementById(resId); if(!q||!res) return;
+    var hl=-1, items=[];
+    function render(){
+      var term=norm(q.value.trim());
+      items = term ? data.filter(function(d){return norm(labelFn(d)).indexOf(term)>=0}).slice(0,40) : data.slice(0,40);
+      res.innerHTML = items.map(function(d,i){
+        return '<div class="gt-ri'+(i===hl?' hl':'')+'" data-i="'+i+'"><span class="nm">'+labelFn(d).replace(/</g,'&lt;')+'</span>'+(metaFn?('<span class="mt">'+metaFn(d)+'</span>'):'')+'</div>';
+      }).join('') || '<div class="gt-ri" style="color:#9aa6c4;cursor:default">No match</div>';
+      res.classList.add('show');
+    }
+    q.addEventListener('focus',render);
+    q.addEventListener('input',function(){hl=-1;render();});
+    q.addEventListener('keydown',function(e){
+      if(e.key==='ArrowDown'){hl=Math.min(hl+1,items.length-1);render();e.preventDefault();}
+      else if(e.key==='ArrowUp'){hl=Math.max(hl-1,0);render();e.preventDefault();}
+      else if(e.key==='Enter'){ if(hl>=0&&items[hl]){onPick(items[hl]);res.classList.remove('show');e.preventDefault();} }
+      else if(e.key==='Escape'){res.classList.remove('show');}
+    });
+    res.addEventListener('mousedown',function(e){var el=e.target.closest('.gt-ri');if(!el||el.dataset.i==null)return;var d=items[+el.dataset.i];if(d)onPick(d);res.classList.remove('show');});
+    document.addEventListener('click',function(e){if(!q.contains(e.target)&&!res.contains(e.target))res.classList.remove('show');});
+  }
+
+  // ---- BY LOCATION ----
+  (function(){
+    var form=document.getElementById('locForm');
+    hookPick('locQ','locRes',LOCS,locLabel,function(l){return l.type;},function(l){location.href='/admin/geo/targeting?mode=loc&loc='+l.id;});
+    if(!form) return;
+    var dirty=document.getElementById('dirty');
+    function mark(){ if(dirty) dirty.style.display=''; }
+    form.querySelectorAll('.gt-row').forEach(function(row){
+      var seg=row.querySelector('.gt-seg.vis');
+      seg.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){
+        seg.dataset.vis=b.dataset.v; seg.classList.toggle('hide',b.dataset.v==='hide'); seg.classList.toggle('show',b.dataset.v==='show');
+        seg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x.dataset.v===b.dataset.v);});
+        row.classList.toggle('hidden',b.dataset.v==='hide'); mark();
+      });});
+      row.querySelectorAll('input').forEach(function(i){i.addEventListener('input',mark);i.addEventListener('change',mark);});
+    });
+    form.addEventListener('submit',function(){
+      var out=[];
+      form.querySelectorAll('.gt-row').forEach(function(row){
+        var seg=row.querySelector('.gt-seg.vis');
+        out.push({
+          pid:+row.dataset.pid, cid:+row.dataset.cid,
+          hide: seg.dataset.vis==='hide',
+          feat: row.querySelector('.feat').checked,
+          rec: row.querySelector('.rec').checked,
+          price: row.querySelector('.price').value.trim(),
+          notice: row.querySelector('.nt').value.trim()
+        });
+      });
+      document.getElementById('locPayload').value=JSON.stringify(out);
+    });
+  })();
+
+  // ---- BY PRODUCT ----
+  (function(){
+    var form=document.getElementById('prodForm');
+    hookPick('prodQ','prodRes',PRODUCTS,function(p){return p.name;},null,function(p){location.href='/admin/geo/targeting?mode=prod&prod='+p.id;});
+    if(!form) return;
+    var chosen={}; // id -> loc
+    var chipsBox=document.getElementById('tgtChips'), cnt=document.getElementById('tgtCount'), applyBtn=document.getElementById('applyBtn');
+    function refresh(){
+      var ids=Object.keys(chosen);
+      chipsBox.innerHTML=ids.map(function(id){var l=chosen[id];return '<span class="gt-chip" data-id="'+id+'"><b>'+l.name.replace(/</g,'&lt;')+'</b>'+(l.country_code?(' · '+l.country_code):'')+' <span class="x" data-id="'+id+'">✕</span></span>';}).join('');
+      cnt.textContent=ids.length; applyBtn.disabled=ids.length===0;
+      document.getElementById('prodLocs').value=ids.join(',');
+    }
+    function add(l){ chosen[l.id]=l; refresh(); }
+    chipsBox.addEventListener('click',function(e){var x=e.target.closest('.x');if(!x)return;delete chosen[x.dataset.id];refresh();});
+    hookPick('tgtQ','tgtRes',LOCS,locLabel,function(l){return l.type;},function(l){add(l);document.getElementById('tgtQ').value='';});
+    hookPick('allCitiesQ','allCitiesRes',LOCS.filter(function(l){return l.type==='country';}),locLabel,function(l){return 'add cities';},function(c){
+      var cc=c.country_code; LOCS.forEach(function(l){ if(l.type==='city'&&l.country_code===cc) chosen[l.id]=l; }); refresh(); document.getElementById('allCitiesQ').value='';
+    });
+    // visibility segment
+    var seg=form.querySelector('.gt-seg.vis');
+    seg.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
+      seg.dataset.vis=b.dataset.v;seg.classList.toggle('hide',b.dataset.v==='hide');seg.classList.toggle('show',b.dataset.v==='show');
+      seg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x.dataset.v===b.dataset.v);});
+    });});
+    form.addEventListener('submit',function(e){
+      if(!Object.keys(chosen).length){e.preventDefault();return;}
+      form.querySelector('[name=hide]')&&form.querySelector('[name=hide]').remove();
+      function hid(n,v){var i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;form.appendChild(i);}
+      hid('hide', seg.dataset.vis==='hide'?'1':'0');
+      hid('feat', document.getElementById('pFeat').checked?'1':'0');
+      hid('rec', document.getElementById('pRec').checked?'1':'0');
+      hid('price', document.getElementById('pPrice').value.trim());
+      hid('notice', document.getElementById('pNotice').value.trim());
+    });
+    refresh();
+  })();
+</script>
+
+<%- include('_shell_bottom') %>
