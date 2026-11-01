@@ -1,9 +1,11 @@
 'use strict';
 /* routes/adminGeo.js — admin UI for the Geo Page Engine. Mount at /admin.
- *   GET  /admin/geo                 dashboard: counts + page list + controls
+ *   GET  /admin/geo                 dashboard: counts + paginated/filtered page list
  *   POST /admin/geo/load-locations  load data/geo_locations.json
+ *   POST /admin/geo/country         type a country -> generate all its city pages (background)
  *   POST /admin/geo/generate        stage DRAFT pages (category x locations)
- *   POST /admin/geo/publish         publish one page (gate decides index/noindex + IndexNow ping)
+ *   POST /admin/geo/bulk            bulk publish / unpublish / delete (selected or all-matching)
+ *   POST /admin/geo/publish         publish one page
  *   POST /admin/geo/unpublish       archive one page
  *   POST /admin/geo/recompute       re-evaluate indexing for all published pages
  * Auth: same guard as the rest of /admin (req.session.admin).
@@ -20,27 +22,73 @@ module.exports = function (pool) {
   const geoAdmin = lib('geo_admin');
   const geoPublish = lib('geo_publish');
   const DATA = path.join(__dirname, '..', 'data', 'geo_locations.json');
+  function enc(s) { return encodeURIComponent(String(s).slice(0, 180)); }
 
-  async function dashData(flash, err) {
+  // --- filters -> WHERE clause (shared by the list and bulk "all matching") ---
+  function filterSql(src) {
+    const where = []; const args = [];
+    const status = String(src.status || 'ALL').toUpperCase();
+    if (['DRAFT', 'PUBLISHED', 'ARCHIVED', 'REVIEW'].indexOf(status) >= 0) { args.push(status); where.push('status=$' + args.length); }
+    const idx = String(src.idx || 'ALL').toUpperCase();
+    if (idx === 'INDEX') where.push("indexing_status='INDEX'");
+    else if (idx === 'NOINDEX') where.push("(indexing_status IS NULL OR indexing_status<>'INDEX')");
+    const term = String(src.q || '').trim().toLowerCase();
+    if (term) { args.push('%' + term + '%'); where.push('(lower(slug) LIKE $' + args.length + " OR lower(coalesce(title,'')) LIKE $" + args.length + ')'); }
+    return { clause: where.length ? (' WHERE ' + where.join(' AND ')) : '', args };
+  }
+
+  async function dashData(req) {
     const [locs, pages] = await Promise.all([
       geoAdmin ? geoAdmin.locationsSummary(pool).catch(() => ({})) : {},
       geoAdmin ? geoAdmin.pagesSummary(pool).catch(() => ({})) : {}
     ]);
+    const per = Math.min(Math.max(parseInt(req.query.per, 10) || 50, 10), 200);
+    let page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const f = filterSql(req.query);
+    const total = (await pool.query('SELECT count(*)::int n FROM geo_pages' + f.clause, f.args).catch(() => ({ rows: [{ n: 0 }] }))).rows[0].n || 0;
+    const totalPages = Math.max(Math.ceil(total / per), 1);
+    if (page > totalPages) page = totalPages;
+    const off = (page - 1) * per;
     const rows = (await pool.query(
-      "SELECT id,slug,title,status,indexing_status,quality_score,duplicate_score,opportunity_score,page_type " +
-      "FROM geo_pages ORDER BY (status='PUBLISHED') DESC, opportunity_score DESC NULLS LAST, id DESC LIMIT 500").catch(() => ({ rows: [] }))).rows;
+      "SELECT id,slug,title,status,indexing_status,quality_score,duplicate_score,opportunity_score,page_type FROM geo_pages" + f.clause +
+      " ORDER BY (status='PUBLISHED') DESC, opportunity_score DESC NULLS LAST, id DESC LIMIT " + per + " OFFSET " + off, f.args).catch(() => ({ rows: [] }))).rows;
     const cats = (await pool.query("SELECT slug,name FROM categories WHERE active ORDER BY name").catch(() => ({ rows: [] }))).rows;
-    return { title: 'Geo SEO Pages', active: 'geo', locs, pages, rows, cats, flash: flash || null, err: err || null, siteUrl: (process.env.SITE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '') };
+    const filt = { q: String(req.query.q || ''), status: String(req.query.status || 'ALL').toUpperCase(), idx: String(req.query.idx || 'ALL').toUpperCase() };
+    // query string carrying the current filter (for links + bulk "all matching")
+    const qs = 'q=' + encodeURIComponent(filt.q) + '&status=' + filt.status + '&idx=' + filt.idx + '&per=' + per;
+    return {
+      title: 'Geo SEO Pages', active: 'geo', locs, pages, rows, cats,
+      flash: req.query.ok || null, err: req.query.err || null,
+      siteUrl: (process.env.SITE_URL || 'https://galaxyzayron.store').replace(/\/+$/, ''),
+      pg: { page, per, total, totalPages, off, from: total ? off + 1 : 0, to: Math.min(off + per, total) },
+      filt, qs
+    };
   }
 
   router.get('/geo', auth, async (req, res) => {
-    try { res.render('admin/geo', await dashData(req.query.ok, req.query.err)); }
+    try { res.render('admin/geo', await dashData(req)); }
     catch (e) { res.status(500).send('geo admin error: ' + e.message); }
   });
 
   router.post('/geo/load-locations', auth, urlenc, async (req, res) => {
     try { const r = await geoAdmin.loadLocations(pool, DATA); res.redirect('/admin/geo?ok=' + enc('Loaded ' + r.countries + ' countries, ' + r.regions + ' regions, ' + r.cities + ' cities')); }
     catch (e) { res.redirect('/admin/geo?err=' + enc('Load failed: ' + e.message)); }
+  });
+
+  router.post('/geo/country', auth, urlenc, async (req, res) => {
+    try {
+      const country = String(req.body.country || '').trim();
+      const cats = (String(req.body.category || 'iptv').trim()) || 'iptv';
+      if (!country) return res.redirect('/admin/geo?err=' + enc('Enter a country name'));
+      const cp = require('child_process'); const fs = require('fs');
+      const GSZ = path.join(__dirname, '..');
+      const live = String(req.body.publish || '') === '1';
+      const args = [path.join(GSZ, 'scripts', 'geo_country.js'), country, cats]; if (!live) args.push('--draft');
+      let out = 'ignore'; try { out = fs.openSync(path.join(GSZ, '.geo_country.log'), 'a'); } catch (e) {}
+      const child = cp.spawn(process.execPath, args, { cwd: GSZ, detached: true, stdio: ['ignore', out, out], env: process.env });
+      child.unref();
+      res.redirect('/admin/geo?ok=' + enc('Started ' + (live ? 'generating + publishing' : 'staging drafts') + ' for all cities of "' + country + '" (' + cats + '). Refresh in a few seconds to watch pages appear.'));
+    } catch (e) { res.redirect('/admin/geo?err=' + enc('Country generate failed: ' + e.message)); }
   });
 
   router.post('/geo/generate', auth, urlenc, async (req, res) => {
@@ -51,6 +99,41 @@ module.exports = function (pool) {
       if (r.error) return res.redirect('/admin/geo?err=' + enc(r.error + (r.available ? (' (have: ' + r.available.join(',') + ')') : '')));
       res.redirect('/admin/geo?ok=' + enc('Staged ' + r.created + ' draft pages (' + r.wouldIndex + ' would index, ' + r.wouldNoindex + ' noindex). Skipped ' + r.skipped + ' existing.'));
     } catch (e) { res.redirect('/admin/geo?err=' + enc('Generate failed: ' + e.message)); }
+  });
+
+  // --- bulk: publish / unpublish / delete on selected ids OR everything matching the filter ---
+  router.post('/geo/bulk', auth, urlenc, async (req, res) => {
+    const retQs = String(req.body.ret || '');
+    const back = '/admin/geo' + (retQs ? ('?' + retQs) : '');
+    try {
+      const action = String(req.body.action || '').toLowerCase();
+      let ids;
+      if (String(req.body.all || '') === '1') {
+        const f = filterSql(req.body);
+        ids = (await pool.query('SELECT id FROM geo_pages' + f.clause, f.args)).rows.map(r => r.id);
+      } else {
+        ids = String(req.body.ids || '').split(',').map(x => parseInt(x, 10)).filter(Boolean);
+      }
+      if (!ids.length) return res.redirect(back + (back.indexOf('?') >= 0 ? '&' : '?') + 'err=' + enc('No pages selected'));
+      const msg = (t) => res.redirect(back + (back.indexOf('?') >= 0 ? '&' : '?') + 'ok=' + enc(t));
+
+      if (action === 'delete') { await pool.query('DELETE FROM geo_pages WHERE id = ANY($1)', [ids]); return msg('Deleted ' + ids.length + ' pages'); }
+      if (action === 'unpublish') { await pool.query("UPDATE geo_pages SET status='ARCHIVED', indexing_status='NOINDEX', updated_at=now() WHERE id = ANY($1)", [ids]); return msg('Unpublished ' + ids.length + ' pages'); }
+      if (action === 'publish') {
+        if (ids.length <= 150) {
+          let ok = 0; for (const id of ids) { try { const r = await geoPublish.publish(pool, id); if (r && r.ok) ok++; } catch (e) {} }
+          return msg('Published ' + ok + ' of ' + ids.length + ' pages');
+        }
+        // large batch -> background
+        const fs = require('fs'); const tmp = path.join(__dirname, '..', '.geo_bulk_' + Date.now() + '.json');
+        fs.writeFileSync(tmp, JSON.stringify(ids));
+        const cp = require('child_process'); let out = 'ignore'; try { out = fs.openSync(path.join(__dirname, '..', '.geo_country.log'), 'a'); } catch (e) {}
+        const child = cp.spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'geo_bulk_publish.js'), tmp], { cwd: path.join(__dirname, '..'), detached: true, stdio: ['ignore', out, out], env: process.env });
+        child.unref();
+        return msg('Publishing ' + ids.length + ' pages in the background — refresh to watch.');
+      }
+      return res.redirect(back + (back.indexOf('?') >= 0 ? '&' : '?') + 'err=' + enc('Unknown bulk action'));
+    } catch (e) { res.redirect('/admin/geo?err=' + enc('Bulk failed: ' + e.message)); }
   });
 
   router.post('/geo/publish', auth, urlenc, async (req, res) => {
@@ -68,6 +151,5 @@ module.exports = function (pool) {
     catch (e) { res.redirect('/admin/geo?err=' + enc('Recompute failed: ' + e.message)); }
   });
 
-  function enc(s) { return encodeURIComponent(String(s).slice(0, 180)); }
   return router;
 };

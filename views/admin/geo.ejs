@@ -3,6 +3,18 @@
 <% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
 <% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
 
+<div class="card" style="border:1.5px solid #cfe0ff;background:linear-gradient(180deg,#f7fbff,#ffffff)">
+  <h2 style="margin:0 0 4px">Generate a whole country</h2>
+  <p class="hint" style="margin:0 0 12px">Type any country name — the engine pulls <b>every city</b> and builds the country page plus a page for each city. No limits.</p>
+  <form method="post" action="/admin/geo/country" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1 1 200px"><label class="fld">Country</label><input type="text" name="country" placeholder="Pakistan · United Kingdom · UAE · PK" required></div>
+    <div style="flex:0 1 150px"><label class="fld">Categories</label><input type="text" name="category" value="iptv" placeholder="iptv · all · iptv,vpns"></div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;white-space:nowrap;padding-bottom:10px"><input type="checkbox" name="publish" value="1" style="width:16px;height:16px"> Publish live now</label>
+    <button class="btn btn-p" type="submit">Generate country</button>
+  </form>
+  <p class="hint" style="margin:10px 0 0">Leave <b>Publish live now</b> off to stage drafts first (recommended), review below, then publish. Large countries keep building in the background — refresh to watch the count grow.</p>
+</div>
+
 <div class="stats">
   <div class="stat"><div class="lbl">Locations</div><b><%= (locs.total||0) %></b><div class="ssub"><%= (locs.country||0) %> countries · <%= (locs.city||0) %> cities</div></div>
   <div class="stat" style="--c:linear-gradient(118deg,#8a2bff,#2a7bff)"><div class="lbl">Pages</div><b><%= (pages.total||0) %></b><div class="ssub"><%= (pages.DRAFT||0) %> draft · <%= (pages.PUBLISHED||0) %> live</div></div>
@@ -10,64 +22,180 @@
   <div class="stat" style="--c:#c7cede"><div class="lbl">Noindex</div><b><%= (pages.noindex||0) %></b><div class="ssub">live, not indexed</div></div>
 </div>
 
-<div class="card">
-  <h2>1 · Locations</h2>
-  <p class="hint">Load the built-in list of Pakistan cities + international markets into the engine. Safe to run again — it only adds or updates.</p>
-  <form method="post" action="/admin/geo/load-locations"><button class="btn btn-g" type="submit"><%= (locs.total||0) ? 'Reload locations' : 'Load locations' %></button></form>
+<div class="gx-tools">
+  <form method="post" action="/admin/geo/load-locations"><button class="btn btn-g" type="submit"><%= (locs.total||0) ? 'Reload base locations' : 'Load base locations' %></button></form>
+  <form method="post" action="/admin/geo/generate" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <div><label class="fld" style="font-size:11px">Categories</label><input type="text" name="categories" value="iptv" style="width:120px"></div>
+    <div><label class="fld" style="font-size:11px">Max</label><input type="number" name="limit" value="500" min="1" max="5000" style="width:80px"></div>
+    <button class="btn btn-g" type="submit">Generate drafts</button>
+  </form>
+  <form method="post" action="/admin/geo/recompute"><button class="btn btn-g" type="submit">Recompute indexing</button></form>
 </div>
 
-<div class="card">
-  <h2>2 · Generate pages</h2>
-  <p class="hint">Create one page per location (as drafts). Nothing goes live until you publish it in the list below.</p>
-  <form method="post" action="/admin/geo/generate">
-    <label class="fld">Categories (comma-separated slugs)</label>
-    <input type="text" name="categories" value="iptv" placeholder="iptv,vpns">
-    <label class="fld">Max pages</label>
-    <input type="number" name="limit" value="500" min="1" max="5000">
-    <button class="btn btn-p" type="submit">Generate drafts</button>
+<!-- FILTER BAR -->
+<form method="get" action="/admin/geo" class="gx-filter card">
+  <div class="gx-f"><label class="fld">Search URL / title</label><input type="text" name="q" value="<%= filt.q %>" placeholder="e.g. lahore, iptv"></div>
+  <div class="gx-f"><label class="fld">Status</label>
+    <select name="status">
+      <% ['ALL','PUBLISHED','DRAFT','ARCHIVED'].forEach(function(s){ %><option value="<%= s %>" <%= filt.status===s?'selected':'' %>><%= s.charAt(0)+s.slice(1).toLowerCase() %></option><% }); %>
+    </select>
+  </div>
+  <div class="gx-f"><label class="fld">Index</label>
+    <select name="idx">
+      <% [['ALL','All'],['INDEX','Indexed'],['NOINDEX','Noindex']].forEach(function(o){ %><option value="<%= o[0] %>" <%= filt.idx===o[0]?'selected':'' %>><%= o[1] %></option><% }); %>
+    </select>
+  </div>
+  <div class="gx-f"><label class="fld">Per page</label>
+    <select name="per">
+      <% [25,50,100,200].forEach(function(n){ %><option value="<%= n %>" <%= pg.per===n?'selected':'' %>><%= n %></option><% }); %>
+    </select>
+  </div>
+  <button class="btn btn-p" type="submit">Apply</button>
+  <% if (filt.q || filt.status!=='ALL' || filt.idx!=='ALL') { %><a class="btn btn-g" href="/admin/geo">Clear</a><% } %>
+</form>
+
+<!-- LIST + BULK -->
+<form method="post" action="/admin/geo/bulk" id="bulkForm">
+  <input type="hidden" name="ids" id="bulkIds">
+  <input type="hidden" name="action" id="bulkAction">
+  <input type="hidden" name="all" id="bulkAll" value="0">
+  <input type="hidden" name="ret" value="<%= qs %>&page=<%= pg.page %>">
+  <input type="hidden" name="q" value="<%= filt.q %>"><input type="hidden" name="status" value="<%= filt.status %>"><input type="hidden" name="idx" value="<%= filt.idx %>">
+
+  <div class="gx-bar">
+    <div class="gx-count">Showing <b><%= pg.from %></b>–<b><%= pg.to %></b> of <b><%= pg.total %></b></div>
+    <div class="gx-sel" id="gxSel" style="display:none">
+      <span id="gxSelN">0 selected</span>
+      <span class="gx-allmatch" id="gxAllMatch">· <a href="#" id="gxSelAll">Select all <%= pg.total %> matching</a></span>
+      <span class="gx-clear"><a href="#" id="gxClear">clear</a></span>
+      <span class="gx-actions">
+        <button type="button" class="btn btn-p gxb" data-act="publish" style="padding:7px 12px;font-size:12.5px">Publish</button>
+        <button type="button" class="btn btn-g gxb" data-act="unpublish" style="padding:7px 12px;font-size:12.5px;color:#9a6b00">Unpublish</button>
+        <button type="button" class="btn btn-g gxb" data-act="delete" style="padding:7px 12px;font-size:12.5px;color:#b4231b">Delete</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <% if (!rows.length) { %>
+      <div style="padding:26px;color:var(--muted);font-size:14px">No pages match. Clear filters, or generate a country above.</div>
+    <% } else { %>
+    <table class="rsp gx-table">
+      <thead><tr>
+        <th style="width:34px"><input type="checkbox" id="gxHead" aria-label="Select all on page"></th>
+        <th>URL</th><th>Status</th><th>Index</th><th>Qual</th><th>Dup</th><th>Opp</th><th style="text-align:right">Actions</th>
+      </tr></thead>
+      <tbody>
+      <% rows.forEach(function(r){
+        var st=(r.status||'DRAFT');
+        var stColor = st==='PUBLISHED' ? 'background:#e9fbf1;color:#0b7a42' : (st==='ARCHIVED' ? 'background:#eef1f7;color:#737e9c' : 'background:#fff6e5;color:#9a6b00');
+        var idxOn = (r.indexing_status==='INDEX');
+      %>
+        <tr>
+          <td data-label=""><input type="checkbox" class="gxrow" value="<%= r.id %>" aria-label="Select page"></td>
+          <td data-label="URL"><a href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600;word-break:break-all"><%= r.slug %></a></td>
+          <td data-label="Status"><span class="spill" style="<%= stColor %>"><%= st.toLowerCase() %></span></td>
+          <td data-label="Index"><span class="spill" style="<%= idxOn?'background:#e7f0ff;color:#2a7bff':'background:#eef1f7;color:#737e9c' %>"><%= idxOn?'index':'noindex' %></span></td>
+          <td data-label="Qual"><%= r.quality_score==null?'—':r.quality_score %></td>
+          <td data-label="Dup"><%= r.duplicate_score==null?'—':r.duplicate_score %></td>
+          <td data-label="Opp"><%= r.opportunity_score==null?'—':r.opportunity_score %></td>
+          <td data-label="Actions" style="text-align:right">
+            <div style="display:inline-flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">
+              <a class="btn btn-g" style="padding:7px 11px;font-size:12.5px" href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener">Preview</a>
+              <% if (st==='PUBLISHED') { %>
+                <form method="post" action="/admin/geo/unpublish" style="display:inline"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-g" style="padding:7px 11px;font-size:12.5px;color:#9a6b00" type="submit">Unpublish</button></form>
+              <% } else { %>
+                <form method="post" action="/admin/geo/publish" style="display:inline"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-p" style="padding:7px 11px;font-size:12.5px" type="submit">Publish</button></form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }); %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+</form>
+
+<!-- PAGINATION -->
+<% if (pg.totalPages > 1) { var mk=function(p){ return '/admin/geo?'+qs+'&page='+p; }; %>
+<div class="gx-pager">
+  <a class="btn btn-g gxpg <%= pg.page<=1?'gxdis':'' %>" href="<%= pg.page<=1?'#':mk(1) %>">« First</a>
+  <a class="btn btn-g gxpg <%= pg.page<=1?'gxdis':'' %>" href="<%= pg.page<=1?'#':mk(pg.page-1) %>">‹ Prev</a>
+  <span class="gx-pageof">Page <b><%= pg.page %></b> of <%= pg.totalPages %></span>
+  <a class="btn btn-g gxpg <%= pg.page>=pg.totalPages?'gxdis':'' %>" href="<%= pg.page>=pg.totalPages?'#':mk(pg.page+1) %>">Next ›</a>
+  <a class="btn btn-g gxpg <%= pg.page>=pg.totalPages?'gxdis':'' %>" href="<%= pg.page>=pg.totalPages?'#':mk(pg.totalPages) %>">Last »</a>
+  <form method="get" action="/admin/geo" class="gx-jump">
+    <input type="hidden" name="q" value="<%= filt.q %>"><input type="hidden" name="status" value="<%= filt.status %>"><input type="hidden" name="idx" value="<%= filt.idx %>"><input type="hidden" name="per" value="<%= pg.per %>">
+    <input type="number" name="page" min="1" max="<%= pg.totalPages %>" value="<%= pg.page %>" aria-label="Go to page"><button class="btn btn-g" type="submit">Go</button>
   </form>
 </div>
+<% } %>
 
-<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-  <div><h2 style="margin:0">Re-check indexing</h2><p class="hint" style="margin:4px 0 0">Re-evaluate every published page's quality &amp; duplicate score and flip index/noindex if needed.</p></div>
-  <form method="post" action="/admin/geo/recompute"><button class="btn btn-g" type="submit">Recompute</button></form>
-</div>
+<p style="color:var(--muted);font-size:12.5px;margin-top:10px">Publishing runs the quality + duplicate gate: thin or near-duplicate pages publish as <b>noindex</b> automatically (still reachable, just not indexed), and good pages ping IndexNow. Bulk actions apply to the ticked rows, or to every page matching the current filter via “Select all … matching”.</p>
 
-<div class="card" style="padding:0;overflow:hidden">
-  <% if (!rows.length) { %>
-    <div style="padding:26px;color:var(--muted);font-size:14px">No geo pages yet. Load locations, then generate drafts above.</div>
-  <% } else { %>
-  <table class="rsp">
-    <thead><tr><th>URL</th><th>Status</th><th>Index</th><th>Qual</th><th>Dup</th><th>Opp</th><th style="text-align:right">Actions</th></tr></thead>
-    <tbody>
-    <% rows.forEach(function(r){
-      var st=(r.status||'DRAFT');
-      var stColor = st==='PUBLISHED' ? 'background:#e9fbf1;color:#0b7a42' : (st==='ARCHIVED' ? 'background:#eef1f7;color:#737e9c' : 'background:#fff6e5;color:#9a6b00');
-      var idxOn = (r.indexing_status==='INDEX');
-    %>
-      <tr>
-        <td data-label="URL"><a href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600;word-break:break-all"><%= r.slug %></a></td>
-        <td data-label="Status"><span class="spill" style="<%= stColor %>"><%= st.toLowerCase() %></span></td>
-        <td data-label="Index"><span class="spill" style="<%= idxOn?'background:#e7f0ff;color:#2a7bff':'background:#eef1f7;color:#737e9c' %>"><%= idxOn?'index':'noindex' %></span></td>
-        <td data-label="Quality"><%= r.quality_score==null?'—':r.quality_score %></td>
-        <td data-label="Duplicate"><%= r.duplicate_score==null?'—':r.duplicate_score %></td>
-        <td data-label="Opportunity"><%= r.opportunity_score==null?'—':r.opportunity_score %></td>
-        <td data-label="Actions" style="text-align:right">
-          <div style="display:inline-flex;gap:7px;flex-wrap:wrap;justify-content:flex-end">
-            <a class="btn btn-g" style="padding:7px 11px;font-size:12.5px" href="<%= siteUrl + r.slug %>" target="_blank" rel="noopener">Preview</a>
-            <% if (st==='PUBLISHED') { %>
-              <form method="post" action="/admin/geo/unpublish" style="display:inline"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-g" style="padding:7px 11px;font-size:12.5px;color:#9a6b00" type="submit">Unpublish</button></form>
-            <% } else { %>
-              <form method="post" action="/admin/geo/publish" style="display:inline"><input type="hidden" name="id" value="<%= r.id %>"><button class="btn btn-p" style="padding:7px 11px;font-size:12.5px" type="submit">Publish</button></form>
-            <% } %>
-          </div>
-        </td>
-      </tr>
-    <% }); %>
-    </tbody>
-  </table>
-  <% } %>
-</div>
-<p style="color:var(--muted);font-size:12.5px;margin-top:6px">Publishing runs the quality + duplicate gate: thin or near-duplicate pages publish as <b>noindex</b> automatically (still reachable, just not indexed), and good pages ping IndexNow. Preview opens the live URL.</p>
+<style>
+.gx-tools{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:16px 0;padding:14px 16px;background:#fff;border:1px solid var(--hair,#e7eaf2);border-radius:14px}
+.gx-tools form{margin:0}
+.gx-filter{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:16px}
+.gx-filter .gx-f{flex:0 1 auto}
+.gx-filter input[type=text],.gx-filter select{min-width:120px}
+.gx-filter .gx-f:first-child{flex:1 1 220px}
+.gx-filter .gx-f:first-child input{width:100%}
+.gx-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0 10px}
+.gx-count{font-size:13.5px;color:var(--muted,#7a869a)}
+.gx-sel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;background:#eef4ff;border:1px solid #cfe0ff;border-radius:11px;padding:7px 13px}
+.gx-sel a{color:#2a7bff;font-weight:600;text-decoration:none}
+.gx-actions{display:inline-flex;gap:7px;margin-left:4px}
+.gx-table th:first-child,.gx-table td:first-child{text-align:center}
+.gx-table input[type=checkbox]{width:17px;height:17px;cursor:pointer}
+.gx-table tr.gxon{background:#f5f9ff}
+.gx-pager{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;justify-content:center}
+.gx-pager .gxpg{padding:8px 13px;font-size:13px}
+.gx-pager .gxdis{opacity:.4;pointer-events:none}
+.gx-pageof{font-size:13.5px;color:var(--muted,#7a869a);padding:0 6px}
+.gx-jump{display:inline-flex;gap:6px;align-items:center;margin-left:6px}
+.gx-jump input{width:72px}
+@media(max-width:640px){ .gx-filter .gx-f:first-child{flex:1 1 100%} .gx-sel{width:100%} }
+</style>
+
+<script>
+(function(){
+  var form=document.getElementById('bulkForm'); if(!form) return;
+  var head=document.getElementById('gxHead');
+  var rows=[].slice.call(document.querySelectorAll('.gxrow'));
+  var selBox=document.getElementById('gxSel'), selN=document.getElementById('gxSelN');
+  var idsIn=document.getElementById('bulkIds'), actIn=document.getElementById('bulkAction'), allIn=document.getElementById('bulkAll');
+  var allMatch=false; var totalMatching=<%= pg.total %>;
+  function selected(){ return rows.filter(function(r){return r.checked;}); }
+  function refresh(){
+    var n=selected().length;
+    rows.forEach(function(r){ r.closest('tr').classList.toggle('gxon', r.checked); });
+    if(allMatch){ selN.textContent='All '+totalMatching+' matching selected'; selBox.style.display='flex'; }
+    else if(n>0){ selN.textContent=n+' selected'; selBox.style.display='flex'; }
+    else { selBox.style.display='none'; }
+    if(head) head.checked = (n>0 && n===rows.length);
+  }
+  if(head) head.addEventListener('change',function(){ allMatch=false; rows.forEach(function(r){ r.checked=head.checked; }); refresh(); });
+  rows.forEach(function(r){ r.addEventListener('change',function(){ allMatch=false; refresh(); }); });
+  var selAll=document.getElementById('gxSelAll'); if(selAll) selAll.addEventListener('click',function(e){ e.preventDefault(); allMatch=true; refresh(); });
+  var clr=document.getElementById('gxClear'); if(clr) clr.addEventListener('click',function(e){ e.preventDefault(); allMatch=false; if(head) head.checked=false; rows.forEach(function(r){ r.checked=false; }); refresh(); });
+  [].slice.call(document.querySelectorAll('.gxb')).forEach(function(b){
+    b.addEventListener('click',function(){
+      var act=b.getAttribute('data-act');
+      var ids=selected().map(function(r){return r.value;});
+      if(!allMatch && !ids.length){ return; }
+      var count = allMatch ? totalMatching : ids.length;
+      var verb = act.charAt(0).toUpperCase()+act.slice(1);
+      if(!confirm(verb+' '+count+' page'+(count===1?'':'s')+'?'+(act==='delete'?' This cannot be undone.':''))) return;
+      allIn.value = allMatch ? '1' : '0';
+      idsIn.value = allMatch ? '' : ids.join(',');
+      actIn.value = act;
+      form.submit();
+    });
+  });
+  refresh();
+})();
+</script>
 
 <%- include('_shell_bottom') %>
