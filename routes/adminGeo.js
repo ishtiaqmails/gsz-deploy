@@ -257,5 +257,85 @@ module.exports = function (pool) {
     finally { client.release(); }
   });
 
+  // ============ PICK PAGES (geo_picks -> PICK_LANDING geo_pages) ============
+  function slugify(s) { return String(s || '').toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''); }
+
+  async function picksData(req) {
+    const cats = (await pool.query("SELECT id,slug,name,glyph,sort FROM categories WHERE active ORDER BY sort,name").catch(() => ({ rows: [] }))).rows;
+    const products = (await pool.query("SELECT id,name,slug,category_id FROM products WHERE active AND NOT hidden ORDER BY category_id,sort,name").catch(() => ({ rows: [] }))).rows;
+    const picks = (await pool.query("SELECT * FROM geo_picks ORDER BY created_at DESC").catch(() => ({ rows: [] }))).rows;
+    const countries = (await pool.query("SELECT id,name,slug,country_code FROM geo_locations WHERE type='country' AND enabled ORDER BY name").catch(() => ({ rows: [] }))).rows;
+    const counts = {};
+    const cr = await pool.query("SELECT (content_data->'pick'->>'id') AS pid, status, count(*)::int n FROM geo_pages WHERE page_type='PICK_LANDING' GROUP BY 1,2").catch(() => ({ rows: [] }));
+    cr.rows.forEach(r => { if (r.pid == null) return; const id = parseInt(r.pid, 10); counts[id] = counts[id] || { total: 0, live: 0, draft: 0 }; counts[id].total += r.n; if (r.status === 'PUBLISHED') counts[id].live += r.n; else if (r.status === 'DRAFT') counts[id].draft += r.n; });
+    return {
+      title: 'Pick pages', active: 'geo', cats, products, picks, counts, countries,
+      flash: req.query.ok || null, err: req.query.err || null,
+      siteUrl: (process.env.SITE_URL || 'https://galaxyzayron.store').replace(/\/+$/, '')
+    };
+  }
+
+  router.get('/geo/picks', auth, async (req, res) => {
+    try { res.render('admin/geo_picks', await picksData(req)); }
+    catch (e) { res.status(500).send('picks error: ' + e.message); }
+  });
+
+  router.post('/geo/picks/create', auth, urlenc, async (req, res) => {
+    try {
+      const name = String(req.body.name || '').trim();
+      const cid = parseInt(req.body.category_id, 10) || null;
+      const ids = String(req.body.product_ids || '').split(',').map(x => parseInt(x, 10)).filter(Boolean);
+      const intro = String(req.body.intro || '').trim() || null;
+      if (!name) return res.redirect('/admin/geo/picks?err=' + enc('Enter a name'));
+      if (!ids.length) return res.redirect('/admin/geo/picks?err=' + enc('Tick at least one product'));
+      let slug = slugify(name) || ('pick-' + Date.now());
+      if ((await pool.query("SELECT 1 FROM geo_picks WHERE slug=$1", [slug])).rows.length) slug = slug + '-' + Date.now().toString(36).slice(-4);
+      await pool.query("INSERT INTO geo_picks (name,slug,category_id,product_ids,intro) VALUES ($1,$2,$3,$4,$5)", [name, slug, cid, ids, intro]);
+      res.redirect('/admin/geo/picks?ok=' + enc('Created "' + name + '" (' + ids.length + ' products). Now spread it to locations below.'));
+    } catch (e) { res.redirect('/admin/geo/picks?err=' + enc('Create failed: ' + e.message)); }
+  });
+
+  router.post('/geo/picks/update', auth, urlenc, async (req, res) => {
+    try {
+      const id = parseInt(req.body.id, 10);
+      const ids = String(req.body.product_ids || '').split(',').map(x => parseInt(x, 10)).filter(Boolean);
+      const name = String(req.body.name || '').trim();
+      const intro = String(req.body.intro || '').trim() || null;
+      if (!id) return res.redirect('/admin/geo/picks?err=' + enc('No pick'));
+      if (!ids.length) return res.redirect('/admin/geo/picks?err=' + enc('Tick at least one product'));
+      await pool.query("UPDATE geo_picks SET name=COALESCE(NULLIF($2,''),name), product_ids=$3, intro=$4, updated_at=now() WHERE id=$1", [id, name, ids, intro]);
+      res.redirect('/admin/geo/picks?ok=' + enc('Updated. Spread again to rebuild its pages with the new products.'));
+    } catch (e) { res.redirect('/admin/geo/picks?err=' + enc('Update failed: ' + e.message)); }
+  });
+
+  router.post('/geo/picks/spread', auth, urlenc, async (req, res) => {
+    try {
+      const id = parseInt(req.body.id, 10);
+      if (!id) return res.redirect('/admin/geo/picks?err=' + enc('No pick'));
+      const target = String(req.body.target || '');
+      const cid = parseInt(req.body.country_id, 10) || 0;
+      const cities = String(req.body.cities || '') === '1';
+      const live = String(req.body.publish || '') === '1';
+      let scope;
+      if (target === 'all') scope = 'all' + (cities ? ':cities' : '');
+      else { if (!cid) return res.redirect('/admin/geo/picks?err=' + enc('Choose a country first')); scope = 'c:' + cid + (cities ? ':cities' : ''); }
+      const cp = require('child_process'); const fs = require('fs'); const GSZ = path.join(__dirname, '..');
+      let out = 'ignore'; try { out = fs.openSync(path.join(GSZ, '.geo_country.log'), 'a'); } catch (e) {}
+      const child = cp.spawn(process.execPath, [path.join(GSZ, 'scripts', 'geo_pick.js'), String(id), scope, live ? '1' : '0'], { cwd: GSZ, detached: true, stdio: ['ignore', out, out], env: process.env });
+      child.unref();
+      res.redirect('/admin/geo/picks?ok=' + enc('Spreading across ' + (target === 'all' ? 'all countries' : 'the country') + (cities ? ' + cities' : '') + (live ? ', publishing live' : ' as drafts') + ' — refresh in a few seconds.'));
+    } catch (e) { res.redirect('/admin/geo/picks?err=' + enc('Spread failed: ' + e.message)); }
+  });
+
+  router.post('/geo/picks/delete', auth, urlenc, async (req, res) => {
+    try {
+      const id = parseInt(req.body.id, 10); if (!id) return res.redirect('/admin/geo/picks?err=' + enc('No pick'));
+      const alsoPages = String(req.body.pages || '') === '1';
+      if (alsoPages) await pool.query("DELETE FROM geo_pages WHERE page_type='PICK_LANDING' AND (content_data->'pick'->>'id')::int = $1", [id]);
+      await pool.query("DELETE FROM geo_picks WHERE id=$1", [id]);
+      res.redirect('/admin/geo/picks?ok=' + enc('Deleted' + (alsoPages ? ' pick and its pages' : ' pick (pages kept)')));
+    } catch (e) { res.redirect('/admin/geo/picks?err=' + enc('Delete failed: ' + e.message)); }
+  });
+
   return router;
 };

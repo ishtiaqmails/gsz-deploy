@@ -1,0 +1,160 @@
+<%- include('_shell_top') %>
+<%
+  function pidsOf(pick){ return (pick.product_ids||[]).map(Number); }
+  function checklist(sel, idp){ sel = sel||[]; var s = {}; sel.forEach(function(x){ s[x]=1; });
+%>
+  <div class="pk-list" data-cl="<%= idp %>">
+    <input type="text" class="pk-filter" placeholder="Filter products…" oninput="pkFilter(this)">
+    <% cats.forEach(function(c){ var cp = products.filter(function(p){return p.category_id===c.id}); if(!cp.length) return; %>
+      <div class="pk-cat"><span class="gl"><%= c.glyph||'●' %></span><%= c.name %></div>
+      <div class="pk-grid">
+        <% cp.forEach(function(p){ %>
+          <label class="pk-chk<%= s[p.id]?' on':'' %>"><input type="checkbox" value="<%= p.id %>" <%= s[p.id]?'checked':'' %> onchange="pkToggle(this)"><span><%= p.name %></span></label>
+        <% }); %>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<style>
+  .gt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+  .gt-tabs{display:inline-flex;background:#eef2fb;border:1px solid #d9e2f5;border-radius:12px;padding:4px;gap:4px;margin-bottom:16px}
+  .gt-tab{padding:8px 16px;border-radius:9px;font-weight:700;font-size:13.5px;color:#4a5878;text-decoration:none;white-space:nowrap}
+  .gt-tab.on{background:#fff;color:#12204a;box-shadow:0 1px 3px rgba(20,40,90,.12)}
+  .pk-list{border:1px solid #e6ebf5;border-radius:12px;padding:12px;background:#fbfcfe;margin:8px 0}
+  .pk-filter{width:100%;max-width:340px;padding:9px 12px;border:1.5px solid #d9e2f5;border-radius:9px;font-size:14px;margin:0 0 10px}
+  .pk-cat{font-size:12px;font-weight:800;letter-spacing:.03em;color:#6b7aa0;text-transform:uppercase;margin:10px 2px 7px;display:flex;align-items:center;gap:7px}
+  .pk-cat .gl{font-size:14px}
+  .pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px}
+  .pk-chk{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1.5px solid #e1e8f4;border-radius:9px;background:#fff;cursor:pointer;font-size:13.5px;color:#28365f;font-weight:600}
+  .pk-chk input{width:16px;height:16px;accent-color:#2a7bff}
+  .pk-chk.on{border-color:#2a7bff;background:#f3f8ff}
+  .pk-count{font-size:12.5px;font-weight:700;color:#2a7bff;margin:8px 2px 0}
+  .pk-card{margin:12px 0}
+  .pk-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .pk-top h3{margin:0;font-size:18px;color:#101f49}
+  .pk-badge{font-size:11.5px;font-weight:700;color:#56688f;background:#eef2fb;border:1px solid #e1e8f4;border-radius:999px;padding:3px 10px}
+  .pk-badge.live{color:#128a4e;background:#eafaf0;border-color:#cdeedb}
+  .pk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .pk-chip{font-size:12px;font-weight:600;color:#2a3a68;background:#f1f4fb;border:1px solid #e1e8f4;border-radius:7px;padding:4px 9px}
+  .pk-spread{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;padding-top:12px;border-top:1px solid #eef1f7}
+  .pk-spread .fld{font-size:11px}
+  .pk-spread select,.pk-spread input[type=text]{padding:9px 11px;border:1.5px solid #d9e2f5;border-radius:9px;font-size:14px}
+  .pk-ck{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;color:#56688f;white-space:nowrap;padding-bottom:9px}
+  .pk-ck input{width:16px;height:16px;accent-color:#2a7bff}
+  .pk-url{font-size:12px;color:#8392b5;margin-top:4px}
+  .pk-url code{background:#f1f4fb;padding:2px 6px;border-radius:5px;color:#3b4e86}
+  details.pk-edit{margin-top:10px}
+  details.pk-edit>summary{cursor:pointer;font-size:13px;font-weight:700;color:#2a7bff;list-style:none}
+  details.pk-edit>summary::-webkit-details-marker{display:none}
+  .btn-sm{padding:8px 13px;font-size:13px}
+  @media(max-width:640px){ .pk-grid{grid-template-columns:1fr 1fr} }
+</style>
+
+<% if (typeof flash!=='undefined' && flash) { %><div class="flash"><%= flash %></div><% } %>
+<% if (typeof err!=='undefined' && err) { %><div class="flash" style="background:#fdecea;color:#b4231b;border-color:#f6c9c4"><%= err %></div><% } %>
+
+<div class="gt-head">
+  <p class="hint" style="margin:0;max-width:680px">Build a <b>pick list</b> — a short set of products — then spread it across countries and cities. Each page shows only those products, priced in that country's currency. Your full category pages are untouched.</p>
+  <a class="btn btn-g" href="/admin/geo" style="white-space:nowrap">← Geo pages</a>
+</div>
+
+<div class="gt-tabs">
+  <a class="gt-tab" href="/admin/geo/targeting?mode=loc">By location</a>
+  <a class="gt-tab" href="/admin/geo/targeting?mode=prod">By product</a>
+  <a class="gt-tab on" href="/admin/geo/picks">Pick pages</a>
+</div>
+
+<!-- CREATE -->
+<div class="card" style="border:1.5px solid #cfe0ff;background:linear-gradient(180deg,#f7fbff,#fff)">
+  <h2 style="margin:0 0 4px">New pick list</h2>
+  <p class="hint" style="margin:0 0 12px">Name it for what it is (e.g. "Best IPTV for Firestick"), choose the section it belongs to, and tick the products.</p>
+  <form method="post" action="/admin/geo/picks/create" id="pkCreate">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1 1 240px"><label class="fld">Name</label><input type="text" name="name" required placeholder="Best IPTV for Firestick" style="width:100%;padding:11px 13px;border:1.5px solid #d4ddee;border-radius:10px;font-size:15px"></div>
+      <div style="flex:0 1 200px"><label class="fld">Section (for the URL)</label>
+        <select name="category_id" style="width:100%;padding:11px;border:1.5px solid #d4ddee;border-radius:10px;font-size:14px">
+          <% cats.forEach(function(c){ %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
+        </select>
+      </div>
+    </div>
+    <label class="fld" style="margin-top:12px">Products on this list</label>
+    <%- checklist([], 'create') %>
+    <div class="pk-count" id="cnt-create">0 selected</div>
+    <label class="fld" style="margin-top:12px">Short note (optional — shown on the page)</label>
+    <input type="text" name="intro" maxlength="200" placeholder="Leave blank to auto-write a factual line" style="width:100%;padding:10px 12px;border:1.5px solid #d4ddee;border-radius:10px;font-size:14px">
+    <input type="hidden" name="product_ids" id="ids-create">
+    <div style="margin-top:14px"><button class="btn btn-p" type="submit">Create pick</button></div>
+  </form>
+</div>
+
+<!-- EXISTING PICKS -->
+<% if (!picks.length) { %>
+  <div class="card" style="text-align:center;color:#7585a6">No pick lists yet. Create one above.</div>
+<% } %>
+<% picks.forEach(function(pick){ var c = counts[pick.id]||{total:0,live:0,draft:0}; var pn = products.filter(function(p){return pidsOf(pick).indexOf(p.id)>=0}); var catSlug=(cats.find(function(x){return x.id===pick.category_id})||{}).slug||'iptv'; %>
+  <div class="card pk-card">
+    <div class="pk-top">
+      <h3><%= pick.name %></h3>
+      <span class="pk-badge"><%= pidsOf(pick).length %> products</span>
+      <% if (c.total) { %><span class="pk-badge live"><%= c.live %> live</span><% if(c.draft){ %><span class="pk-badge"><%= c.draft %> draft</span><% } %><% } else { %><span class="pk-badge">no pages yet</span><% } %>
+    </div>
+    <div class="pk-url">URL pattern: <code>/<%= catSlug %>/<%= pick.slug %>/&lt;country&gt;</code></div>
+    <div class="pk-chips"><% pn.forEach(function(p){ %><span class="pk-chip"><%= p.name %></span><% }); %></div>
+
+    <form method="post" action="/admin/geo/picks/spread" class="pk-spread">
+      <input type="hidden" name="id" value="<%= pick.id %>">
+      <input type="hidden" name="target" value="country" class="pk-tgt">
+      <div><label class="fld">Spread to</label>
+        <select name="country_id" class="pk-country" onchange="this.closest('form').querySelector('.pk-tgt').value = this.value==='all'?'all':'country'">
+          <% countries.forEach(function(co){ %><option value="<%= co.id %>"><%= co.name %></option><% }); %>
+          <option value="all">— All countries —</option>
+        </select>
+      </div>
+      <label class="pk-ck"><input type="checkbox" name="cities" value="1"> Include cities</label>
+      <label class="pk-ck"><input type="checkbox" name="publish" value="1"> Publish live now</label>
+      <button class="btn btn-p btn-sm" type="submit">Spread</button>
+    </form>
+
+    <details class="pk-edit">
+      <summary>Edit products / name</summary>
+      <form method="post" action="/admin/geo/picks/update" class="pk-upd">
+        <input type="hidden" name="id" value="<%= pick.id %>">
+        <label class="fld" style="margin-top:8px">Name</label>
+        <input type="text" name="name" value="<%= pick.name.replace(/"/g,'&quot;') %>" style="width:100%;max-width:360px;padding:9px 12px;border:1.5px solid #d4ddee;border-radius:9px">
+        <label class="fld" style="margin-top:10px">Products</label>
+        <%- checklist(pidsOf(pick), 'e'+pick.id) %>
+        <div class="pk-count" id="cnt-e<%= pick.id %>"><%= pidsOf(pick).length %> selected</div>
+        <label class="fld" style="margin-top:8px">Short note</label>
+        <input type="text" name="intro" value="<%= (pick.intro||'').replace(/"/g,'&quot;') %>" maxlength="200" style="width:100%;padding:9px 12px;border:1.5px solid #d4ddee;border-radius:9px">
+        <input type="hidden" name="product_ids" id="ids-e<%= pick.id %>">
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-p btn-sm" type="submit">Save changes</button>
+        </div>
+      </form>
+      <form method="post" action="/admin/geo/picks/delete" onsubmit="return confirm('Delete this pick list?')" style="margin-top:10px">
+        <input type="hidden" name="id" value="<%= pick.id %>">
+        <label class="pk-ck" style="padding:0"><input type="checkbox" name="pages" value="1"> also delete its pages</label>
+        <button class="btn btn-g btn-sm" type="submit" style="margin-top:8px">Delete pick</button>
+      </form>
+    </details>
+  </div>
+<% }); %>
+
+<script>
+  function pkToggle(cb){ cb.closest('.pk-chk').classList.toggle('on',cb.checked); pkSync(cb.closest('.pk-list')); }
+  function pkFilter(inp){ var box=inp.closest('.pk-list'); var t=inp.value.toLowerCase().trim();
+    box.querySelectorAll('.pk-chk').forEach(function(l){ l.style.display = l.textContent.toLowerCase().indexOf(t)>=0?'':'none'; });
+    box.querySelectorAll('.pk-cat').forEach(function(h){ var g=h.nextElementSibling; var any=[...g.querySelectorAll('.pk-chk')].some(function(l){return l.style.display!=='none';}); h.style.display=any?'':'none'; g.style.display=any?'':'none'; });
+  }
+  function pkSync(box){ var cl=box.dataset.cl; var ids=[...box.querySelectorAll('.pk-chk input:checked')].map(function(i){return i.value;});
+    var hid=document.getElementById('ids-'+cl); if(hid) hid.value=ids.join(',');
+    var cnt=document.getElementById('cnt-'+cl); if(cnt) cnt.textContent=ids.length+' selected';
+  }
+  // init all hidden fields + counts, and wire form submit to ensure latest ids
+  document.querySelectorAll('.pk-list').forEach(function(box){ pkSync(box); });
+  document.getElementById('pkCreate').addEventListener('submit',function(){ pkSync(this.querySelector('.pk-list')); });
+  document.querySelectorAll('form.pk-upd').forEach(function(f){ f.addEventListener('submit',function(){ pkSync(f.querySelector('.pk-list')); }); });
+</script>
+
+<%- include('_shell_bottom') %>
