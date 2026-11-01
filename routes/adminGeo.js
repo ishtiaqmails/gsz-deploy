@@ -205,29 +205,26 @@ module.exports = function (pool) {
     catch (e) { res.status(500).send('targeting error: ' + e.message); }
   });
 
-  // Save every product rule for ONE location (the by-location grid)
-  router.post('/geo/targeting/save-location', auth, urlenc, async (req, res) => {
-    const locId = parseInt(req.body.loc, 10);
-    const back = '/admin/geo/targeting?mode=loc&loc=' + locId;
-    if (!locId) return res.redirect('/admin/geo/targeting?err=' + enc('No location'));
-    let rows;
-    try { rows = JSON.parse(req.body.payload || '[]'); } catch (e) { return res.redirect(back + '&err=' + enc('Bad payload')); }
-    const lmeta = await pool.query("SELECT currency_symbol FROM geo_locations WHERE id=$1", [locId]).catch(() => ({ rows: [] }));
-    const sym = (lmeta.rows[0] && lmeta.rows[0].currency_symbol) || null;
-    const client = await pool.connect();
+  // Instant save: ONE product's rule at ONE location (click-to-save grid). Returns JSON.
+  router.post('/geo/targeting/set', auth, express.json(), async (req, res) => {
     try {
-      await client.query('BEGIN');
-      let set = 0, cleared = 0;
-      for (const o of rows) {
-        if (!o || !o.pid) continue;
-        o.curOverride = sym;
-        const r = await writeRule(client, o, locId, o.cid);
-        if (r === 'set') set++; else cleared++;
-      }
-      await client.query('COMMIT');
-      res.redirect(back + '&ok=' + enc('Saved — ' + set + ' rule' + (set === 1 ? '' : 's') + ' active, ' + cleared + ' at default'));
-    } catch (e) { try { await client.query('ROLLBACK'); } catch (x) {} res.redirect(back + '&err=' + enc('Save failed: ' + e.message)); }
-    finally { client.release(); }
+      const b = req.body || {};
+      const locId = parseInt(b.loc, 10), pid = parseInt(b.pid, 10);
+      if (!locId || !pid) return res.status(400).json({ ok: false, error: 'bad request' });
+      const lmeta = await pool.query("SELECT currency_symbol FROM geo_locations WHERE id=$1", [locId]).catch(() => ({ rows: [] }));
+      const sym = (lmeta.rows[0] && lmeta.rows[0].currency_symbol) || null;
+      const o = {
+        pid, cid: parseInt(b.cid, 10) || null,
+        hide: !!b.hide, feat: !!b.feat, rec: !!b.rec,
+        price: (b.price == null ? '' : String(b.price).trim()),
+        notice: (b.notice == null ? '' : String(b.notice).trim()),
+        curOverride: sym
+      };
+      const client = await pool.connect();
+      try { await client.query('BEGIN'); const r = await writeRule(client, o, locId, o.cid); await client.query('COMMIT'); res.json({ ok: true, state: r }); }
+      catch (e) { try { await client.query('ROLLBACK'); } catch (x) {} res.json({ ok: false, error: e.message }); }
+      finally { client.release(); }
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
   // Apply ONE product's rule to MANY locations (the by-product bulk assign)

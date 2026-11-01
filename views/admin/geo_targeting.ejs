@@ -28,7 +28,10 @@
   .gt-grid{display:grid;gap:10px}
   .gt-row{display:grid;grid-template-columns:minmax(150px,1.4fr) auto auto auto minmax(120px,1fr) minmax(140px,1.3fr);gap:10px;align-items:center;padding:10px 14px;border:1px solid #e6ebf5;border-radius:12px;background:#fff}
   .gt-row.hidden{background:#fbfbfc;opacity:.78}
+  .gt-row.saving{opacity:.55}
   .gt-row .pn{font-weight:650;color:#17254f;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .gt-saved{margin-left:9px;font-size:11px;font-weight:800;opacity:0;transition:opacity .18s}
+  .gt-saved.on{opacity:1}
   .gt-seg{display:inline-flex;border:1px solid #d9e2f5;border-radius:10px;overflow:hidden}
   .gt-seg button{border:0;background:#fff;padding:7px 11px;font-size:12.5px;font-weight:700;color:#5a6a8e;cursor:pointer}
   .gt-seg button.on{background:#12204a;color:#fff}
@@ -92,10 +95,8 @@
     <% if (typeof parentCountry!=='undefined' && parentCountry) { %><span class="cur">· inherits <b><%= parentCountry.name %></b> rules unless overridden here</span><% } %>
   </div>
 
-  <form method="post" action="/admin/geo/targeting/save-location" id="locForm">
-    <input type="hidden" name="loc" value="<%= loc.id %>">
-    <input type="hidden" name="payload" id="locPayload">
-    <input type="hidden" name="mode" value="loc">
+  <div id="locWrap" data-loc="<%= loc.id %>">
+    <div class="gt-note" style="margin:2px 2px 12px"><b>Just click.</b> Every change saves by itself — a green ✓ next to the product confirms it. There is no save button.</div>
 
     <div class="gt-head-lbls">
       <span>Product</span><span>Visibility</span><span>Feature</span><span>Recommend</span><span>Custom price (<%= sym||'local' %>)</span><span>Notice</span>
@@ -130,12 +131,10 @@
 
     <% if (products.length) { %>
     <div class="gt-save">
-      <button class="btn btn-p" type="submit">Save rules for <%= loc.name %></button>
-      <span class="dirty" id="dirty" style="display:none">Unsaved changes</span>
-      <span class="hint" style="margin-left:auto">Blank price = auto-price from the product's $ / Rs. Hidden products won't appear on this location's pages.</span>
+      <span class="hint">Blank price = auto-price from the product's $ / Rs. Hidden products won't show on this location's pages. Every change is saved automatically.</span>
     </div>
     <% } %>
-  </form>
+  </div>
 <% } else { %>
   <div class="gt-empty" style="margin-top:16px">Pick a location above to set its product rules.</div>
 <% } %>
@@ -234,36 +233,36 @@
     document.addEventListener('click',function(e){if(!q.contains(e.target)&&!res.contains(e.target))res.classList.remove('show');});
   }
 
-  // ---- BY LOCATION ----
+  // ---- BY LOCATION (instant save — every click persists on its own) ----
   (function(){
-    var form=document.getElementById('locForm');
     hookPick('locQ','locRes',LOCS,locLabel,function(l){return l.type;},function(l){location.href='/admin/geo/targeting?mode=loc&loc='+l.id;});
-    if(!form) return;
-    var dirty=document.getElementById('dirty');
-    function mark(){ if(dirty) dirty.style.display=''; }
-    form.querySelectorAll('.gt-row').forEach(function(row){
+    var wrap=document.getElementById('locWrap'); if(!wrap) return;
+    var LOC=wrap.dataset.loc;
+    function state(row){ var seg=row.querySelector('.gt-seg.vis');
+      return { loc:LOC, pid:+row.dataset.pid, cid:+row.dataset.cid, hide:seg.dataset.vis==='hide',
+        feat:row.querySelector('.feat').checked, rec:row.querySelector('.rec').checked,
+        price:row.querySelector('.price').value.trim(), notice:row.querySelector('.nt').value.trim() }; }
+    function flash(row,ok){ var pn=row.querySelector('.pn'); var p=pn.querySelector('.gt-saved');
+      if(!p){p=document.createElement('span');p.className='gt-saved';pn.appendChild(p);}
+      p.textContent=ok?'✓ Saved':'✕ Not saved'; p.style.color=ok?'#128a4e':'#c23b2e'; p.classList.add('on');
+      clearTimeout(p._t); p._t=setTimeout(function(){p.classList.remove('on');},1600); }
+    function save(row){ row.classList.add('saving');
+      fetch('/admin/geo/targeting/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state(row))})
+        .then(function(r){return r.json();}).then(function(d){row.classList.remove('saving');flash(row,!!(d&&d.ok));})
+        .catch(function(){row.classList.remove('saving');flash(row,false);}); }
+    var tmr={};
+    function later(row){ var id=row.dataset.pid; clearTimeout(tmr[id]); tmr[id]=setTimeout(function(){save(row);},500); }
+    wrap.querySelectorAll('.gt-row').forEach(function(row){
       var seg=row.querySelector('.gt-seg.vis');
       seg.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){
         seg.dataset.vis=b.dataset.v; seg.classList.toggle('hide',b.dataset.v==='hide'); seg.classList.toggle('show',b.dataset.v==='show');
         seg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x.dataset.v===b.dataset.v);});
-        row.classList.toggle('hidden',b.dataset.v==='hide'); mark();
+        row.classList.toggle('hidden',b.dataset.v==='hide'); save(row);
       });});
-      row.querySelectorAll('input').forEach(function(i){i.addEventListener('input',mark);i.addEventListener('change',mark);});
-    });
-    form.addEventListener('submit',function(){
-      var out=[];
-      form.querySelectorAll('.gt-row').forEach(function(row){
-        var seg=row.querySelector('.gt-seg.vis');
-        out.push({
-          pid:+row.dataset.pid, cid:+row.dataset.cid,
-          hide: seg.dataset.vis==='hide',
-          feat: row.querySelector('.feat').checked,
-          rec: row.querySelector('.rec').checked,
-          price: row.querySelector('.price').value.trim(),
-          notice: row.querySelector('.nt').value.trim()
-        });
-      });
-      document.getElementById('locPayload').value=JSON.stringify(out);
+      row.querySelector('.feat').addEventListener('change',function(){save(row);});
+      row.querySelector('.rec').addEventListener('change',function(){save(row);});
+      row.querySelector('.price').addEventListener('input',function(){later(row);});
+      row.querySelector('.nt').addEventListener('input',function(){later(row);});
     });
   })();
 
