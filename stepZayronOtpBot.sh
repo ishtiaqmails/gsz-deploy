@@ -7,8 +7,12 @@ set -e
 O=/opt/zayron-otp
 [ -f "$O/index.js" ] || { echo "ERROR: $O/index.js not found"; exit 1; }
 TS=$(date +%s)
-cp "$O/index.js" "$O/index.js.baileys.bak.$TS"
-echo "backed up old Baileys worker -> $O/index.js.baileys.bak.$TS"
+# idempotent backup: only snapshot the original Baileys worker once; later re-runs save a .prev
+if grep -q "baileys" "$O/index.js" 2>/dev/null; then
+  cp "$O/index.js" "$O/index.js.baileys.bak.$TS"; echo "backed up original Baileys worker -> $O/index.js.baileys.bak.$TS"
+else
+  cp "$O/index.js" "$O/index.js.prev.bak.$TS"; echo "backed up previous drainer -> $O/index.js.prev.bak.$TS"
+fi
 
 cat > "$O/index.js" <<'OTP'
 // Zayron OTP sender — lean outbox drainer. Delivers each queued login code through the SHARED
@@ -32,10 +36,6 @@ async function setStatus(obj) {
     }
   } catch (e) { console.error('setStatus', e.message); }
 }
-async function cfg(key, dflt) {
-  try { const r = await pool.query("SELECT v FROM otp_status WHERE k=$1", [key]); return r.rows.length ? r.rows[0].v : dflt; }
-  catch (e) { return dflt; }
-}
 // keep the retail bot's number normalisation so 03xx / 0092 / bare 3xx all resolve to 92xxxxxxxxxx
 function normalizeMsisdn(phone) {
   let d = String(phone || '').replace(/[^0-9]/g, '');
@@ -51,7 +51,8 @@ async function drain() {
   if (draining) return;
   draining = true;
   try {
-    if (String(await cfg('otp_enabled', '1')) === '0') { draining = false; return; }
+    // the outbox is the single source of truth: account.js decides when a code is enqueued,
+    // so the drainer simply delivers whatever is queued (no hidden enable/disable flag).
     const rows = (await pool.query("SELECT id, phone, body FROM otp_outbox WHERE status='queued' ORDER BY id ASC LIMIT 5")).rows;
     for (const m of rows) {
       const to = normalizeMsisdn(m.phone);
