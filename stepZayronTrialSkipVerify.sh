@@ -25,7 +25,7 @@ APPLY
 
 node --check routes/trial.js || { echo "syntax error - reverting"; revert; exit 1; }
 pm2 restart zayron >/dev/null 2>&1 || pm2 restart zayron
-sleep 2
-HC=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3500/healthz || echo 000)
-[ "$HC" = "200" ] || { echo "healthz=$HC - reverting"; revert; exit 1; }
+HC=000
+for i in $(seq 1 12); do sleep 1; HC=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3500/healthz 2>/dev/null || echo 000); [ "$HC" = "200" ] && break; done
+[ "$HC" = "200" ] || { echo "healthz=$HC after 12s - reverting"; revert; exit 1; }
 echo "DONE: signed-in verified customers skip trial re-verification (others still verify). healthz=200"
