@@ -39,20 +39,11 @@ cat > "$T/b_n" <<'O'
       res.redirect('/admin/customers/' + req.params.id + (_numChanged ? '?sent=1' : '?ok=1'));
 O
 
-# --- C: manage page shows a confirmation after a number change ---
-cat > "$T/c_o" <<'O'
-        '<p class="sub" style="font-family:ui-monospace,monospace">+' + esc(c.phone) + (c.email ? ' · ' + esc(c.email) : '') + '</p>' +
-O
-cat > "$T/c_n" <<'O'
-        '<p class="sub" style="font-family:ui-monospace,monospace">+' + esc(c.phone) + (c.email ? ' · ' + esc(c.email) : '') + '</p>' +
-        (req.query && req.query.sent ? '<div class="card" style="background:#f0fdf6;border-color:#bbf7d0;color:#0e9257;margin:10px 0">Number changed. A verification code was sent to the new WhatsApp number — the customer must verify it before they can order.</div>' : '') +
-O
-
 node - "$T" <<'APPLY'
 const fs=require('fs'); const dir=process.argv[2];
 function rd(f){ let x=fs.readFileSync(dir+'/'+f,'utf8'); if(x.endsWith('\n')) x=x.slice(0,-1); return x; }
 function patch(file, pairs){ let s=fs.readFileSync(file,'utf8'); for(const [o,n] of pairs){ const O=rd(o),N=rd(n); const c=s.split(O).length-1; if(c!==1){console.error('ANCHOR '+o+' x'+c+' in '+file);process.exit(5);} s=s.split(O).join(N);} fs.writeFileSync(file,s); console.log(file+' PATCHED OK'); }
-patch('lib/customerAdmin.js', [['a_o','a_n'],['b_o','b_n'],['c_o','c_n']]);
+patch('lib/customerAdmin.js', [['a_o','a_n'],['b_o','b_n']]);
 
 // remove dead Batch-D routes from routes/admin.js (marker .. last module.exports)
 (function(){
