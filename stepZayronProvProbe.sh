@@ -15,7 +15,7 @@ function get(path){return new Promise(function(res,rej){try{const u=new URL(proc
     const prod = await get('/api/products').catch(e=>({error:e.message}));
     const iptv = ((prod&&prod.products)||[]).filter(p=>p.delivery_type==='iptv');
     console.log('=== gsz-api IPTV products ===');
-    iptv.forEach(p=>console.log('  sku='+p.sku+' | panel='+p.iptv_panel_id+' | types=['+(p.types||[]).map(t=>t.key).join(',')+'] | plans=['+(p.plans||[]).map(x=>x.plan_key+':'+x.label).join(' , ')+']'));
+    iptv.forEach(p=>console.log('  sku='+p.sku+' | name="'+(p.name||'')+'" | plans=['+(p.plans||[]).map(x=>x.plan_key+':'+x.label).join(' , ')+']'));
     if(prod&&prod.error) console.log('  (products error: '+prod.error+')');
 
     // zayron servers + their panel ids
