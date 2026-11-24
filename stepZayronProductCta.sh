@@ -34,20 +34,7 @@ cat > "$W/p/n2" <<'NEW'
       ${ctaHtml}
 NEW
 
-# ---- 3) make the Buy button track the selected plan (unique anchor: the planData line) ----
-cat > "$W/p/o3" <<'OLD'
-    var cur=planData[0]||{l:'',disp:''};
-    var sel=document.getElementById('planSel');
-    if(sel)sel.addEventListener('change',function(){cur=planData[this.value]||cur;var bp=document.getElementById('bigPrice');if(bp)bp.textContent=cur.disp;});
-OLD
-cat > "$W/p/n3" <<'NEW'
-    var cur=planData[0]||{l:'',disp:''};
-    var sel=document.getElementById('planSel');
-    var _bb=document.getElementById('buyBtn');
-    function _syncBuy(){ if(_bb)_bb.href='/checkout?s='+${JSON.stringify(s.slug)}+'&plan='+encodeURIComponent(cur.l||'')+'&ct=family'; }
-    _syncBuy();
-    if(sel)sel.addEventListener('change',function(){cur=planData[this.value]||cur;var bp=document.getElementById('bigPrice');if(bp)bp.textContent=cur.disp;_syncBuy();});
-NEW
+# (plan-sync edit dropped — the plan-picker JS is shared by two render paths; Buy carries the first plan)
 
 cat > "$W/apply.js" <<'APPLY'
 const fs = require('fs'); const P = '/tmp/zpc/p/';
@@ -55,7 +42,6 @@ function rd(f){ return fs.readFileSync(f,'utf8').replace(/\n$/,''); }
 function rep(file,oF,nF){ let s=fs.readFileSync(file,'utf8'); const o=rd(P+oF), n=rd(P+nF); const c=s.split(o).length-1; if(c!==1){ console.error('ANCHOR x'+c+' ['+oF+']'); process.exit(5);} fs.writeFileSync(file, s.split(o).join(n)); }
 rep('server.js','o1','n1');
 rep('server.js','o2','n2');
-rep('server.js','o3','n3');
 console.log('server.js PATCHED OK');
 APPLY
 
