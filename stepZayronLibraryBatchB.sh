@@ -7,9 +7,9 @@
 set -e
 Z=/opt/zayron; cd "$Z"
 TS=$(date +%s); B="$Z/.retired/$TS"; mkdir -p "$B"
-cp lib/data.js "$B/"; cp routes/admin.js "$B/"
+cp lib/data.js "$B/"
 [ -f lib/gszLibrary.js ] && cp lib/gszLibrary.js "$B/" || true
-revert(){ cp "$B/data.js" lib/data.js; cp "$B/admin.js" routes/admin.js; [ -f "$B/gszLibrary.js" ] && cp "$B/gszLibrary.js" lib/gszLibrary.js || rm -f lib/gszLibrary.js; pm2 restart zayron >/dev/null 2>&1 || true; }
+revert(){ cp "$B/data.js" lib/data.js; [ -f "$B/gszLibrary.js" ] && cp "$B/gszLibrary.js" lib/gszLibrary.js || rm -f lib/gszLibrary.js; pm2 restart zayron >/dev/null 2>&1 || true; }
 
 # ---- new library reader ----
 cat > lib/gszLibrary.js <<'LIB'
@@ -90,30 +90,20 @@ cat > "$T/d_n" <<'O'
   } catch (e) {}
 O
 
-# ---- admin.js: drop "Card numbers" nav item ----
-cat > "$T/a_o" <<'O'
-      ['/admin/channels/paste','Paste a list','⎘'],
-      ['/admin/channels/counts','Card numbers','#']] },
-O
-cat > "$T/a_n" <<'O'
-      ['/admin/channels/paste','Paste a list','⎘']] },
-O
-
 node - "$T" <<'APPLY'
 const fs=require('fs'); const dir=process.argv[2];
 function rd(f){ let x=fs.readFileSync(dir+'/'+f,'utf8'); if(x.endsWith('\n')) x=x.slice(0,-1); return x; }
 function patch(file, pairs){ let s=fs.readFileSync(file,'utf8'); for(const [o,n] of pairs){ const O=rd(o),N=rd(n); const c=s.split(O).length-1; if(c!==1){console.error('ANCHOR '+o+' x'+c+' in '+file);process.exit(5);} s=s.split(O).join(N);} fs.writeFileSync(file,s); console.log(file+' PATCHED OK'); }
 patch('lib/data.js', [['d_o','d_n']]);
-patch('routes/admin.js', [['a_o','a_n']]);
 APPLY
 [ $? -eq 0 ] || { echo "patch failed - reverting"; revert; rm -rf "$T"; exit 1; }
 rm -rf "$T"
 
-node --check lib/gszLibrary.js && node --check lib/data.js && node --check routes/admin.js || { echo "syntax error - reverting"; revert; exit 1; }
+node --check lib/gszLibrary.js && node --check lib/data.js || { echo "syntax error - reverting"; revert; exit 1; }
 pm2 restart zayron >/dev/null 2>&1 || pm2 restart zayron
 HC=000
 for i in $(seq 1 12); do sleep 1; HC=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3500/healthz 2>/dev/null || echo 000); [ "$HC" = "200" ] && break; done
 [ "$HC" = "200" ] || { echo "healthz=$HC after 12s - reverting"; revert; exit 1; }
 echo "--- sample counts now (5G Zain / filex / b1g) ---"
 node -e "const d=require('./lib/data');d.getPublicData().then(x=>{(x.servers||[]).filter(s=>/zain|filex|b1g/i.test(s.slug)).forEach(s=>console.log(s.slug,'|',s.ch,'/',s.vod,'/',s.series));process.exit(0)}).catch(e=>{console.log(e.message);process.exit(0)})"
-echo "DONE: cards/pages show galaxyzayron live counts; Card numbers page removed. healthz=200"
+echo "DONE: cards/pages show galaxyzayron live counts. healthz=200"
