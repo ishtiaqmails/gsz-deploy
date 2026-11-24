@@ -36,7 +36,8 @@ async function syncServer(pool, sv, plist) {
   const desired = [];
   botPlans.forEach(function (d) {
     const ex = take(d.label);
-    if (ex) desired.push({ label: ex.label, price: Number(ex.price) || 0, price_usd: Number(ex.price_usd) || 0, save: Number(ex.save) || 0 });
+    // Bot label is canonical everywhere; carry the owner's price over from the matched row.
+    if (ex) desired.push({ label: d.label, price: Number(ex.price) || 0, price_usd: Number(ex.price_usd) || 0, save: Number(ex.save) || 0 });
     else desired.push({ label: d.label, price: 0, price_usd: 0, save: 0 });
   });
   items.forEach(function (x) { if (!x.used && Number(x.r.price) > 0) desired.push({ label: x.r.label, price: Number(x.r.price) || 0, price_usd: Number(x.r.price_usd) || 0, save: Number(x.r.save) || 0 }); });
