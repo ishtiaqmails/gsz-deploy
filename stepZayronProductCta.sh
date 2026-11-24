@@ -34,12 +34,19 @@ cat > "$W/p/n2" <<'NEW'
       ${ctaHtml}
 NEW
 
-# ---- 3) keep the Buy button's plan in sync with the picker ----
+# ---- 3) make the Buy button track the selected plan (unique anchor: the planData line) ----
 cat > "$W/p/o3" <<'OLD'
+    var cur=planData[0]||{l:'',disp:''};
+    var sel=document.getElementById('planSel');
     if(sel)sel.addEventListener('change',function(){cur=planData[this.value]||cur;var bp=document.getElementById('bigPrice');if(bp)bp.textContent=cur.disp;});
 OLD
 cat > "$W/p/n3" <<'NEW'
-    if(sel)sel.addEventListener('change',function(){cur=planData[this.value]||cur;var bp=document.getElementById('bigPrice');if(bp)bp.textContent=cur.disp;var bb=document.getElementById('buyBtn');if(bb)bb.href='/checkout?s='+${JSON.stringify(s.slug)}+'&plan='+encodeURIComponent(cur.l)+'&ct=family';});
+    var cur=planData[0]||{l:'',disp:''};
+    var sel=document.getElementById('planSel');
+    var _bb=document.getElementById('buyBtn');
+    function _syncBuy(){ if(_bb)_bb.href='/checkout?s='+${JSON.stringify(s.slug)}+'&plan='+encodeURIComponent(cur.l||'')+'&ct=family'; }
+    _syncBuy();
+    if(sel)sel.addEventListener('change',function(){cur=planData[this.value]||cur;var bp=document.getElementById('bigPrice');if(bp)bp.textContent=cur.disp;_syncBuy();});
 NEW
 
 cat > "$W/apply.js" <<'APPLY'
