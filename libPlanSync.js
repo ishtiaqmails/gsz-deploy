@@ -17,6 +17,13 @@ function durKey(s) {
   if ((m = s.match(/^(\d+)m$/))) return +m[1];
   return null;
 }
+// Canonical label from the duration itself, so every server reads the same way
+// (12 months -> "12 Months") no matter how its bot product worded the plan.
+function canon(label) {
+  const dk = durKey(label);
+  if (dk != null && dk > 0) return dk === 1 ? '1 Month' : (dk + ' Months');
+  return label;
+}
 
 async function syncServer(pool, sv, plist) {
   const p = plist.find(function (y) { return String(y.sku) === String(sv.bot_sku); });
@@ -36,11 +43,11 @@ async function syncServer(pool, sv, plist) {
   const desired = [];
   botPlans.forEach(function (d) {
     const ex = take(d.label);
-    // Bot label is canonical everywhere; carry the owner's price over from the matched row.
-    if (ex) desired.push({ label: d.label, price: Number(ex.price) || 0, price_usd: Number(ex.price_usd) || 0, save: Number(ex.save) || 0 });
-    else desired.push({ label: d.label, price: 0, price_usd: 0, save: 0 });
+    // Canonical label everywhere; carry the owner's price over from the matched row.
+    if (ex) desired.push({ label: canon(d.label), price: Number(ex.price) || 0, price_usd: Number(ex.price_usd) || 0, save: Number(ex.save) || 0 });
+    else desired.push({ label: canon(d.label), price: 0, price_usd: 0, save: 0 });
   });
-  items.forEach(function (x) { if (!x.used && Number(x.r.price) > 0) desired.push({ label: x.r.label, price: Number(x.r.price) || 0, price_usd: Number(x.r.price_usd) || 0, save: Number(x.r.save) || 0 }); });
+  items.forEach(function (x) { if (!x.used && Number(x.r.price) > 0) desired.push({ label: canon(x.r.label), price: Number(x.r.price) || 0, price_usd: Number(x.r.price_usd) || 0, save: Number(x.r.save) || 0 }); });
 
   const same = existing.length === desired.length && existing.every(function (r, i) {
     const d = desired[i]; return d && r.label === d.label && Number(r.price) === Number(d.price) && Number(r.price_usd) === Number(d.price_usd) && Number(r.save) === Number(d.save);
