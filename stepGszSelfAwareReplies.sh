@@ -13,8 +13,8 @@ revert(){ cp "$B/whatsapp.js" routes/whatsapp.js; PGQ "UPDATE wa_templates SET b
 T="$(mktemp -d)"
 
 # --- guard: these two templates must each be composed in exactly ONE place (the ones we patch) ---
-VC=$(grep -rn "watpl.compose(pool, 'whatsapp.verification_success'" routes lib 2>/dev/null | grep -v node_modules | grep -v "\.bak" | wc -l)
-RC=$(grep -rn "watpl.compose(pool, 'whatsapp.redirect_support'" routes lib 2>/dev/null | grep -v node_modules | grep -v "\.bak" | wc -l)
+VC=$(grep -rn "watpl.compose(pool, 'whatsapp.verification_success'" routes lib 2>/dev/null | grep -vE 'node_modules|\.bak|\.xbak|/\.retired/' | wc -l)
+RC=$(grep -rn "watpl.compose(pool, 'whatsapp.redirect_support'" routes lib 2>/dev/null | grep -vE 'node_modules|\.bak|\.xbak|/\.retired/' | wc -l)
 echo "callers: verification_success=${VC}  redirect_support=${RC}"
 if [ "$VC" != "1" ] || [ "$RC" != "1" ]; then echo "UNEXPECTED extra caller(s) — aborting so no template renders a blank URL. Nothing changed."; grep -rn "whatsapp.verification_success\|whatsapp.redirect_support" routes lib 2>/dev/null | grep -v node_modules | grep -v "\.bak"; rm -rf "$T"; exit 1; fi
 
