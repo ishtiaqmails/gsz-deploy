@@ -129,7 +129,9 @@ async function drain() {
 })();
 JS
 
-node --check "$O/index.js.new" || { echo "new index.js syntax error - aborting, nothing changed"; rm -f "$O/index.js.new"; exit 1; }
+cp "$O/index.js.new" "$O/.bridgecheck.js"
+node --check "$O/.bridgecheck.js" || { echo "new index.js syntax error - aborting, nothing changed"; rm -f "$O/index.js.new" "$O/.bridgecheck.js"; exit 1; }
+rm -f "$O/.bridgecheck.js"
 mv "$O/index.js.new" "$O/index.js"
 pm2 restart zayron-otp >/dev/null 2>&1 || pm2 restart zayron-otp
 
